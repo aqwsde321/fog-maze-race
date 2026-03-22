@@ -42,11 +42,13 @@ export function PlayerSidebar({ snapshot, selfPlayerId }: PlayerSidebarProps) {
 }
 
 const sidebarStyle: CSSProperties = {
+  width: "100%",
   padding: "20px",
   borderRadius: "24px",
   background: "rgba(8, 15, 30, 0.88)",
   border: "1px solid rgba(148, 163, 184, 0.18)",
-  minWidth: "280px"
+  minWidth: 0,
+  boxSizing: "border-box"
 };
 
 const titleStyle: CSSProperties = {

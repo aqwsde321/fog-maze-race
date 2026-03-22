@@ -43,6 +43,14 @@ export function GameScreen({
   }, [canMove, snapshot.room.status]);
 
   useEffect(() => {
+    const resetViewportScroll = () => {
+      if (window.scrollX === 0 && window.scrollY === 0) {
+        return;
+      }
+
+      window.scrollTo(0, 0);
+    };
+
     const handleKeyDown = (event: KeyboardEvent) => {
       const direction = toDirection(event.key);
       if (!direction) {
@@ -55,12 +63,14 @@ export function GameScreen({
 
       event.preventDefault();
       event.stopPropagation();
+      resetViewportScroll();
 
       if (!canMove) {
         return;
       }
 
       onMove(direction);
+      requestAnimationFrame(resetViewportScroll);
     };
 
     const handleKeyUp = (event: KeyboardEvent) => {
@@ -70,6 +80,7 @@ export function GameScreen({
 
       event.preventDefault();
       event.stopPropagation();
+      resetViewportScroll();
     };
 
     window.addEventListener("keydown", handleKeyDown, { capture: true });
@@ -171,13 +182,16 @@ function isEditableTarget(target: EventTarget | null) {
 const shellStyle: CSSProperties = {
   position: "relative",
   display: "grid",
-  gridTemplateColumns: "minmax(0, 1fr) 300px",
+  gridTemplateColumns: "minmax(0, 1fr) minmax(280px, 300px)",
   gap: "20px",
-  width: "min(1240px, 100%)",
+  width: "100%",
+  maxWidth: "1240px",
+  margin: "0 auto",
   alignItems: "start"
 };
 
 const mainColumnStyle: CSSProperties = {
+  minWidth: 0,
   display: "grid",
   gap: "18px"
 };
@@ -186,6 +200,7 @@ const topBarStyle: CSSProperties = {
   display: "grid",
   gridTemplateColumns: "minmax(0, 1fr) minmax(260px, auto) auto auto",
   gap: "16px",
+  minWidth: 0,
   alignItems: "center",
   padding: "20px 24px",
   borderRadius: "26px",

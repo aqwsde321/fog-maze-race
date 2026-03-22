@@ -8,6 +8,9 @@ test("US1 players can finish a race and return to waiting", async ({ browser }) 
   const roomName = `A${Date.now().toString().slice(-4)}`;
 
   try {
+    await host.page.setViewportSize({ width: 2048, height: 1330 });
+    await guest.page.setViewportSize({ width: 2048, height: 1330 });
+
     await host.page.goto("/");
     await host.page.getByLabel("닉네임").fill("호1");
     await host.page.getByRole("button", { name: "입장" }).click();

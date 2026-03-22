@@ -43,18 +43,41 @@ export function App() {
   const [lastError, setLastError] = useState<string | null>(null);
 
   useEffect(() => {
+    const previousHtmlOverflow = document.documentElement.style.overflow;
     const previousHtmlOverflowX = document.documentElement.style.overflowX;
-    const previousBodyOverflowX = document.body.style.overflowX;
+    const previousHtmlOverscrollBehavior = document.documentElement.style.overscrollBehavior;
+    const previousBodyOverflow = document.body.style.overflow;
     const previousBodyMargin = document.body.style.margin;
+    const previousBodyWidth = document.body.style.width;
+    const previousBodyOverscrollBehavior = document.body.style.overscrollBehavior;
 
+    const resetViewportScroll = () => {
+      if (window.scrollX === 0 && window.scrollY === 0) {
+        return;
+      }
+
+      window.scrollTo(0, 0);
+    };
+
+    document.documentElement.style.overflow = "hidden";
     document.documentElement.style.overflowX = "hidden";
-    document.body.style.overflowX = "hidden";
+    document.documentElement.style.overscrollBehavior = "none";
+    document.body.style.overflow = "hidden";
     document.body.style.margin = "0";
+    document.body.style.width = "100%";
+    document.body.style.overscrollBehavior = "none";
+    resetViewportScroll();
+    window.addEventListener("scroll", resetViewportScroll, { passive: true });
 
     return () => {
+      window.removeEventListener("scroll", resetViewportScroll);
+      document.documentElement.style.overflow = previousHtmlOverflow;
       document.documentElement.style.overflowX = previousHtmlOverflowX;
-      document.body.style.overflowX = previousBodyOverflowX;
+      document.documentElement.style.overscrollBehavior = previousHtmlOverscrollBehavior;
+      document.body.style.overflow = previousBodyOverflow;
       document.body.style.margin = previousBodyMargin;
+      document.body.style.width = previousBodyWidth;
+      document.body.style.overscrollBehavior = previousBodyOverscrollBehavior;
     };
   }, []);
 
@@ -280,10 +303,12 @@ export function App() {
 const pageStyle: CSSProperties = {
   position: "relative",
   width: "100%",
+  maxWidth: "100vw",
   minHeight: "100vh",
+  boxSizing: "border-box",
   padding: "32px 18px 44px",
-  overflowX: "hidden",
-  overflowY: "hidden",
+  overflow: "hidden",
+  overscrollBehavior: "none",
   background: "linear-gradient(180deg, #030712, #081120 38%, #06111d 100%)",
   color: "#e2e8f0",
   fontFamily: "\"Pretendard\", \"IBM Plex Sans KR\", sans-serif"
@@ -311,10 +336,11 @@ const backgroundMeshStyle: CSSProperties = {
 
 const contentStyle: CSSProperties = {
   position: "relative",
-  width: "min(1240px, 100%)",
+  width: "100%",
+  maxWidth: "1240px",
   margin: "0 auto",
   display: "grid",
-  placeItems: "center"
+  justifyItems: "stretch"
 };
 
 const errorStyle: CSSProperties = {
