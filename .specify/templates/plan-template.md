@@ -23,6 +23,8 @@
 **Testing**: [e.g., pytest, XCTest, cargo test or NEEDS CLARIFICATION]  
 **Target Platform**: [e.g., Linux server, iOS 15+, WASM or NEEDS CLARIFICATION]
 **Project Type**: [e.g., library/cli/web-service/mobile-app/compiler/desktop-app or NEEDS CLARIFICATION]  
+**Authority Model**: [e.g., server authoritative by default, or NEEDS CLARIFICATION]  
+**Sync Recovery**: [e.g., realtime events + snapshots, N/A with justification, or NEEDS CLARIFICATION]  
 **Performance Goals**: [domain-specific, e.g., 1000 req/s, 10k lines/sec, 60 fps or NEEDS CLARIFICATION]  
 **Constraints**: [domain-specific, e.g., <200ms p95, <100MB memory, offline-capable or NEEDS CLARIFICATION]  
 **Scale/Scope**: [domain-specific, e.g., 10k users, 1M LOC, 50 screens or NEEDS CLARIFICATION]
@@ -31,7 +33,13 @@
 
 *GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
 
-[Gates determined based on constitution file]
+- [ ] The plan identifies a shippable MVP slice in User Story 1 and defers non-MVP work.
+- [ ] The server owns authoritative state, rule evaluation, and conflict resolution by default.
+- [ ] Client responsibilities are limited to rendering, input capture, and presentation unless
+      a justified exception is documented.
+- [ ] Domain/sync state and presentation state are separated with clear module boundaries.
+- [ ] Realtime features define both event propagation and snapshot-based recovery, or the plan
+      explicitly marks recovery as `N/A`.
 
 ## Project Structure
 

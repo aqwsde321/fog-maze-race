@@ -62,12 +62,12 @@ description: "Task list template for feature implementation"
 
 Examples of foundational tasks (adjust based on your project):
 
-- [ ] T004 Setup database schema and migrations framework
-- [ ] T005 [P] Implement authentication/authorization framework
-- [ ] T006 [P] Setup API routing and middleware structure
-- [ ] T007 Create base models/entities that all stories depend on
-- [ ] T008 Configure error handling and logging infrastructure
-- [ ] T009 Setup environment configuration management
+- [ ] T004 Establish authoritative server state model and command handling
+- [ ] T005 [P] Implement event broadcast pipeline and snapshot recovery support
+- [ ] T006 [P] Setup API/transport contracts between authoritative state and clients
+- [ ] T007 Create shared domain models that stay independent from presentation concerns
+- [ ] T008 Split client rendering/view state from synchronized gameplay state
+- [ ] T009 Setup error handling, logging, and reconnect diagnostics
 
 **Checkpoint**: Foundation ready - user story implementation can now begin in parallel
 
@@ -216,16 +216,18 @@ Task: "Create [Entity2] model in src/models/[entity2].py"
 1. Complete Phase 1: Setup
 2. Complete Phase 2: Foundational (CRITICAL - blocks all stories)
 3. Complete Phase 3: User Story 1
-4. **STOP and VALIDATE**: Test User Story 1 independently
+4. **STOP and VALIDATE**: Test User Story 1 independently, including recovery behavior if realtime
 5. Deploy/demo if ready
+6. Keep non-MVP work in backlog until the MVP is accepted
 
 ### Incremental Delivery
 
 1. Complete Setup + Foundational → Foundation ready
 2. Add User Story 1 → Test independently → Deploy/Demo (MVP!)
-3. Add User Story 2 → Test independently → Deploy/Demo
-4. Add User Story 3 → Test independently → Deploy/Demo
-5. Each story adds value without breaking previous stories
+3. Defer non-MVP ideas that are not required for User Story 1
+4. Add User Story 2 → Test independently → Deploy/Demo
+5. Add User Story 3 → Test independently → Deploy/Demo
+6. Each story adds value without breaking previous stories
 
 ### Parallel Team Strategy
 
@@ -246,6 +248,8 @@ With multiple developers:
 - [Story] label maps task to specific user story for traceability
 - Each user story should be independently completable and testable
 - Verify tests fail before implementing
+- Add explicit tasks for server authority, state boundaries, and sync recovery when applicable
 - Commit after each task or logical group
 - Stop at any checkpoint to validate story independently
-- Avoid: vague tasks, same file conflicts, cross-story dependencies that break independence
+- Avoid: vague tasks, same file conflicts, cross-story dependencies that break independence,
+  and non-MVP scope creep

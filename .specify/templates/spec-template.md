@@ -18,6 +18,7 @@
   - Tested independently
   - Deployed independently
   - Demonstrated to users independently
+  - Trimmed to the smallest valuable MVP before any expansion
 -->
 
 ### User Story 1 - [Brief Title] (Priority: P1)
@@ -99,6 +100,19 @@
 
 - **[Entity 1]**: [What it represents, key attributes without implementation]
 - **[Entity 2]**: [What it represents, relationships to other entities]
+
+## Architecture Constraints *(mandatory)*
+
+- **AC-001**: **Authority Model**: [Define which layer owns the source of truth. Default:
+  server authoritative.]
+- **AC-002**: **Client Role**: [Describe how clients stay focused on rendering, input, and
+  presentation.]
+- **AC-003**: **State Boundary**: [Explain how domain/sync state is separated from UI/view
+  state.]
+- **AC-004**: **Realtime Recovery**: [Explain event flow and snapshot restoration, or mark
+  `N/A` with justification.]
+- **AC-005**: **MVP Exclusions**: [List features explicitly deferred beyond the first playable
+  release.]
 
 ## Success Criteria *(mandatory)*
 
