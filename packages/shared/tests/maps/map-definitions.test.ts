@@ -5,17 +5,18 @@ import type { ZoneBounds } from "../../src/maps/map-definitions.js";
 import { MAP_DEFINITIONS, isWalkableTile } from "../../src/maps/map-definitions.js";
 
 describe("MAP_DEFINITIONS", () => {
-  it("uses a separated start zone with one open entrance and a single goal tile", () => {
+  it("uses a fixed 3x5 start zone, a 5-tile connector, and a single goal tile", () => {
     for (const map of MAP_DEFINITIONS) {
       expect(map.startSlots).toHaveLength(15);
+      expect(zoneWidth(map.startZone)).toBe(3);
+      expect(zoneHeight(map.startZone)).toBe(5);
       expect(map.goalZone.minX).toBe(map.goalZone.maxX);
       expect(map.goalZone.minY).toBe(map.goalZone.maxY);
-      expect(map.mazeEntrance).toHaveLength(1);
+      expect(zoneWidth(map.mazeZone)).toBeGreaterThanOrEqual(5);
+      expect(zoneHeight(map.mazeZone)).toBeGreaterThanOrEqual(5);
+      expect(map.connectorTiles).toHaveLength(5);
       expect(overlaps(map.startZone, map.goalZone)).toBe(false);
-
-      const entrance = map.mazeEntrance[0]!;
-      expect(isWalkableTile(map, entrance)).toBe(true);
-      expect(adjacentToZone(entrance, map.startZone)).toBe(true);
+      expect(overlaps(map.startZone, map.mazeZone)).toBe(false);
 
       for (let y = map.startZone.minY; y <= map.startZone.maxY; y += 1) {
         for (let x = map.startZone.minX; x <= map.startZone.maxX; x += 1) {
@@ -30,11 +31,24 @@ describe("MAP_DEFINITIONS", () => {
         expect(isInside(startSlot, map.startZone)).toBe(true);
       }
 
-      const borderX = map.startZone.maxX + 1;
-      const borderKeys = new Set(map.mazeEntrance.map(toKey));
+      const connectorKeys = new Set(map.connectorTiles.map(toKey));
       for (let y = map.startZone.minY; y <= map.startZone.maxY; y += 1) {
-        const borderTile = { x: borderX, y };
-        expect(isWalkableTile(map, borderTile)).toBe(borderKeys.has(toKey(borderTile)));
+        const connectorTile = { x: map.startZone.maxX + 1, y };
+        expect(connectorKeys.has(toKey(connectorTile))).toBe(true);
+        expect(isWalkableTile(map, connectorTile)).toBe(true);
+        expect(adjacentToZone(connectorTile, map.startZone)).toBe(true);
+        expect(adjacentToZone(connectorTile, map.mazeZone)).toBe(true);
+      }
+
+      for (let y = map.startZone.maxY + 1; y < map.height; y += 1) {
+        expect(isWalkableTile(map, { x: 0, y })).toBe(false);
+        expect(isWalkableTile(map, { x: map.startZone.maxX + 1, y })).toBe(false);
+      }
+
+      if (map.mapId !== "training-lap") {
+        expect(zoneWidth(map.mazeZone)).toBeGreaterThanOrEqual(17);
+        expect(zoneHeight(map.mazeZone)).toBeGreaterThanOrEqual(17);
+        expect(outerEdgeWalkableRatio(map)).toBeGreaterThan(0.7);
       }
     }
   });
@@ -58,6 +72,14 @@ function overlaps(left: ZoneBounds, right: ZoneBounds) {
   );
 }
 
+function zoneWidth(zone: ZoneBounds) {
+  return zone.maxX - zone.minX + 1;
+}
+
+function zoneHeight(zone: ZoneBounds) {
+  return zone.maxY - zone.minY + 1;
+}
+
 function adjacentToZone(position: GridPosition, zone: ZoneBounds) {
   if (position.x === zone.maxX + 1 && position.y >= zone.minY && position.y <= zone.maxY) {
     return true;
@@ -76,6 +98,23 @@ function adjacentToZone(position: GridPosition, zone: ZoneBounds) {
   }
 
   return false;
+}
+
+function outerEdgeWalkableRatio(map: (typeof MAP_DEFINITIONS)[number]) {
+  const perimeter: GridPosition[] = [];
+
+  for (let x = map.mazeZone.minX; x <= map.mazeZone.maxX; x += 1) {
+    perimeter.push({ x, y: map.mazeZone.minY });
+    perimeter.push({ x, y: map.mazeZone.maxY });
+  }
+
+  for (let y = map.mazeZone.minY + 1; y < map.mazeZone.maxY; y += 1) {
+    perimeter.push({ x: map.mazeZone.minX, y });
+    perimeter.push({ x: map.mazeZone.maxX, y });
+  }
+
+  const walkableCount = perimeter.filter((position) => isWalkableTile(map, position)).length;
+  return walkableCount / perimeter.length;
 }
 
 function canReachGoal(

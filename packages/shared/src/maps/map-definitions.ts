@@ -14,75 +14,106 @@ export type MapDefinition = {
   height: number;
   tiles: string[];
   startZone: ZoneBounds;
+  mazeZone: ZoneBounds;
   goalZone: ZoneBounds;
   startSlots: GridPosition[];
-  mazeEntrance: GridPosition[];
+  connectorTiles: GridPosition[];
   visibilityRadius: number;
 };
 
-const MAX_ROOM_PLAYERS = 15;
+const START_ZONE: ZoneBounds = {
+  minX: 0,
+  minY: 0,
+  maxX: 2,
+  maxY: 4
+};
 
-const MAP_ALPHA_ROWS = [
-  "SSSSS##########",
-  "SSSSS.........#",
-  "SSSSS#.######.#",
-  "SSSSS#.#....#.#",
-  "#####.#.##.#..#",
-  "#.....#.##.##.#",
-  "#.#####....##.#",
-  "#.#....######.#",
-  "#.#.##......#.#",
-  "#...######..#.#",
-  "###.#....##.#.#",
-  "#...#.##.##...#",
-  "#.###.##.####.#",
-  "#......##.....#",
-  "##########...G#"
+const START_SLOT_ROW_ORDER = [1, 2, 0, 3, 4];
+
+const TRAINING_LAP_MAZE_ROWS = [
+  ".#...",
+  "....G",
+  ".#.#.",
+  ".#...",
+  "....."
 ];
 
-const MAP_BETA_ROWS = [
-  "SSSSS##########",
-  "SSSSS.........#",
-  "SSSSS#.######.#",
-  "####.#.....##.#",
-  "#....#.###.##.#",
-  "#.####.#.#....#",
-  "#.#....#.#.####",
-  "#.#.####.#....#",
-  "#...#....####.#",
-  "###.#.##......#",
-  "#...#.##.####.#",
-  "#.###....#..#.#",
-  "#.....####..#.#",
-  "#.########...G#",
-  "#.............#"
+const ALPHA_RUN_MAZE_ROWS = [
+  "...................",
+  ".###..#....##...#..",
+  ".#....#.##....#.#..",
+  ".#.#..#..###..#.#..",
+  "...#.....#....#....",
+  ".#####.#.#.####.##.",
+  ".#.....#.#....#....",
+  ".#.#####.####.#.##.",
+  ".#.....#....#.#....",
+  ".###.#.####.#.####.",
+  ".#...#....#.#....#.",
+  ".#.#.###..#..##.#..",
+  ".#.#...#..##....#..",
+  ".#..##.#....###.#..",
+  ".##....####....##..",
+  ".#...#......#...G..",
+  ".#.###.####.#.###..",
+  ".#.....#....#......",
+  "..................."
 ];
 
-const TRAINING_LAP_ROWS = [
-  "SSSSS#####",
-  "SSSSS...G#",
-  "SSSSS#####"
+const BETA_DASH_MAZE_ROWS = [
+  "...................",
+  "..##...#..###...##.",
+  ".#..#..#....#.#....",
+  ".#..##.####.#.#.##.",
+  ".#......#...#.#....",
+  ".####.#.#.###.####.",
+  ".....#.#...#......#",
+  ".###.#.###.####.#..",
+  ".#...#.....#....#..",
+  ".#.#####.#.#.##.#..",
+  ".#.....#.#.#....#..",
+  ".###.#.#.#.####.#..",
+  "...#.#...#....#....",
+  ".#.#.#######.#.###.",
+  ".#.#.....#...#.....",
+  ".#.#####.#.#####.#.",
+  ".#.....#...#..G..#.",
+  ".#####.###.#.###.#.",
+  "..................."
 ];
 
 function createMap(
   mapId: string,
   name: string,
-  rows: string[],
-  startZone: ZoneBounds,
-  goalZone: ZoneBounds,
-  startSlots: GridPosition[],
-  mazeEntrance: GridPosition[]
+  mazeRows: string[]
 ): MapDefinition {
+  const mazeWidth = mazeRows[0]?.length ?? 0;
+  const mazeHeight = mazeRows.length;
+  const mazeZone = {
+    minX: START_ZONE.maxX + 2,
+    minY: 0,
+    maxX: START_ZONE.maxX + 1 + mazeWidth,
+    maxY: mazeHeight - 1
+  };
+  const rows = composeRows(mazeRows);
+  const goalPosition = findGoal(rows);
+
   return {
     mapId,
     name,
     width: rows[0]?.length ?? 0,
     height: rows.length,
     tiles: rows,
-    startZone,
-    goalZone,
-    startSlots,
-    mazeEntrance,
+    startZone: { ...START_ZONE },
+    mazeZone,
+    goalZone: {
+      minX: goalPosition.x,
+      minY: goalPosition.y,
+      maxX: goalPosition.x,
+      maxY: goalPosition.y
+    },
+    startSlots: createStartSlots(),
+    connectorTiles: createConnectorTiles(),
     visibilityRadius: 3
   };
 }
@@ -91,48 +122,29 @@ export const MAP_DEFINITIONS: MapDefinition[] = [
   createMap(
     "training-lap",
     "Training Lap",
-    TRAINING_LAP_ROWS,
-    { minX: 0, minY: 0, maxX: 4, maxY: 2 },
-    { minX: 8, minY: 1, maxX: 8, maxY: 1 },
-    createZoneSlots({ minX: 0, minY: 0, maxX: 4, maxY: 2 }, [1, 0, 2]),
-    [{ x: 5, y: 1 }]
+    TRAINING_LAP_MAZE_ROWS
   ),
   createMap(
     "alpha-run",
     "Alpha Run",
-    MAP_ALPHA_ROWS,
-    { minX: 0, minY: 0, maxX: 4, maxY: 3 },
-    { minX: 13, minY: 14, maxX: 13, maxY: 14 },
-    createZoneSlots({ minX: 0, minY: 0, maxX: 4, maxY: 3 }, [1, 2, 0, 3]).slice(0, MAX_ROOM_PLAYERS),
-    [{ x: 5, y: 1 }]
+    ALPHA_RUN_MAZE_ROWS
   ),
   createMap(
     "beta-dash",
     "Beta Dash",
-    MAP_BETA_ROWS,
-    { minX: 0, minY: 0, maxX: 4, maxY: 2 },
-    { minX: 13, minY: 13, maxX: 13, maxY: 13 },
-    createZoneSlots({ minX: 0, minY: 0, maxX: 4, maxY: 2 }, [1, 0, 2]),
-    [{ x: 5, y: 1 }]
+    BETA_DASH_MAZE_ROWS
   )
 ];
 
-function createZoneSlots(zone: ZoneBounds, preferredRowOrder?: number[]) {
+function composeRows(mazeRows: string[]) {
+  return mazeRows.map((mazeRow, y) => `${y <= START_ZONE.maxY ? "SSSC" : "    "}${mazeRow}`);
+}
+
+function createStartSlots() {
   const slots: GridPosition[] = [];
-  const remainingRows = [];
 
-  for (let y = zone.minY; y <= zone.maxY; y += 1) {
-    if (!preferredRowOrder?.includes(y)) {
-      remainingRows.push(y);
-    }
-  }
-
-  const rowOrder = [...(preferredRowOrder ?? []), ...remainingRows].filter(
-    (y) => y >= zone.minY && y <= zone.maxY
-  );
-
-  for (const y of rowOrder) {
-    for (let x = zone.minX; x <= zone.maxX; x += 1) {
+  for (const y of START_SLOT_ROW_ORDER) {
+    for (let x = START_ZONE.minX; x <= START_ZONE.maxX; x += 1) {
       slots.push({ x, y });
     }
   }
@@ -140,12 +152,32 @@ function createZoneSlots(zone: ZoneBounds, preferredRowOrder?: number[]) {
   return slots;
 }
 
+function createConnectorTiles() {
+  return Array.from({ length: START_ZONE.maxY - START_ZONE.minY + 1 }, (_, index) => ({
+    x: START_ZONE.maxX + 1,
+    y: START_ZONE.minY + index
+  }));
+}
+
+function findGoal(rows: string[]) {
+  for (let y = 0; y < rows.length; y += 1) {
+    for (let x = 0; x < rows[y]!.length; x += 1) {
+      if (rows[y]![x] === "G") {
+        return { x, y };
+      }
+    }
+  }
+
+  throw new Error("Map must contain a goal tile");
+}
+
 export function getMapById(mapId: string): MapDefinition | undefined {
   return MAP_DEFINITIONS.find((definition) => definition.mapId === mapId);
 }
 
 export function getRandomMap(seedIndex = Date.now()): MapDefinition {
-  return MAP_DEFINITIONS[seedIndex % MAP_DEFINITIONS.length]!;
+  const playableMaps = MAP_DEFINITIONS.filter((definition) => definition.mapId !== "training-lap");
+  return playableMaps[seedIndex % playableMaps.length]!;
 }
 
 export function isInsideZone(zone: ZoneBounds, position: GridPosition): boolean {
@@ -160,5 +192,15 @@ export function isInsideZone(zone: ZoneBounds, position: GridPosition): boolean 
 export function isWalkableTile(map: MapDefinition, position: GridPosition): boolean {
   const row = map.tiles[position.y];
   const tile = row?.[position.x];
-  return tile !== undefined && tile !== "#";
+  return tile !== undefined && tile !== "#" && tile !== " ";
+}
+
+export function isRenderableTile(map: MapDefinition, position: GridPosition): boolean {
+  const row = map.tiles[position.y];
+  const tile = row?.[position.x];
+  return tile !== undefined && tile !== " ";
+}
+
+export function isConnectorTile(map: Pick<MapDefinition, "connectorTiles">, position: GridPosition): boolean {
+  return map.connectorTiles.some((tile) => tile.x === position.x && tile.y === position.y);
 }

@@ -1,8 +1,12 @@
-import { isInsideZone, type MapDefinition } from "@fog-maze-race/shared/maps/map-definitions";
+import {
+  isConnectorTile,
+  isInsideZone,
+  type MapDefinition
+} from "@fog-maze-race/shared/maps/map-definitions";
 
 type BoardMap = Pick<
   MapDefinition,
-  "width" | "height" | "startZone" | "goalZone" | "mazeEntrance"
+  "width" | "height" | "startZone" | "mazeZone" | "goalZone" | "connectorTiles"
 >;
 
 export type BoardLayout = {
@@ -54,9 +58,9 @@ export function getTileVisual(input: {
   position: { x: number; y: number };
   isVisible: boolean;
 }) {
-  const entrance = input.map.mazeEntrance.some(
-    (position) => position.x === input.position.x && position.y === input.position.y
-  );
+  if (input.tile === " ") {
+    return null;
+  }
 
   if (isInsideZone(input.map.startZone, input.position)) {
     return {
@@ -65,16 +69,16 @@ export function getTileVisual(input: {
     };
   }
 
-  if (isInsideZone(input.map.goalZone, input.position)) {
+  if (isConnectorTile(input.map, input.position)) {
     return {
-      fillColor: input.isVisible ? 0xfacc15 : 0x854d0e,
-      alpha: input.isVisible ? 1 : 0.82
+      fillColor: input.isVisible ? 0x14b8a6 : 0x0f766e,
+      alpha: input.isVisible ? 1 : 0.86
     };
   }
 
-  if (entrance) {
+  if (isInsideZone(input.map.goalZone, input.position)) {
     return {
-      fillColor: input.isVisible ? 0x2dd4bf : 0x115e59,
+      fillColor: input.isVisible ? 0xfacc15 : 0x854d0e,
       alpha: input.isVisible ? 1 : 0.82
     };
   }

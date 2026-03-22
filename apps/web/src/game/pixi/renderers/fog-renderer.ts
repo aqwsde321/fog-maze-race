@@ -24,6 +24,11 @@ export function renderFogOverlay(
 
   for (let y = 0; y < input.match.map.height; y += 1) {
     for (let x = 0; x < input.match.map.width; x += 1) {
+      const tile = input.match.map.tiles[y]?.[x] ?? " ";
+      if (tile === " ") {
+        continue;
+      }
+
       if (visibleTileSet.has(toTileKey({ x, y }))) {
         continue;
       }

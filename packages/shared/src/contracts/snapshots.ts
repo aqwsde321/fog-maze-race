@@ -19,9 +19,10 @@ export type MapView = {
   height: number;
   tiles: string[];
   startZone: ZoneBounds;
+  mazeZone: ZoneBounds;
   goalZone: ZoneBounds;
   startSlots: GridPosition[];
-  mazeEntrance: GridPosition[];
+  connectorTiles: GridPosition[];
   visibilityRadius: number;
 };
 

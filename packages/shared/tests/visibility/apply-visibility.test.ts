@@ -11,13 +11,18 @@ describe("createVisibilityProjection", () => {
       map,
       selfPlayerId: "self",
       members: [
-        { playerId: "self", position: { x: 5, y: 6 }, state: "playing" },
-        { playerId: "goal-runner", position: { x: 13, y: 14 }, state: "playing" }
+        { playerId: "self", position: { x: 10, y: 8 }, state: "playing" },
+        {
+          playerId: "goal-runner",
+          position: { x: map.goalZone.minX, y: map.goalZone.minY },
+          state: "playing"
+        }
       ]
     });
 
     expect(projection.visibleTileKeys).toContain("0,0");
-    expect(projection.visibleTileKeys).toContain("13,14");
+    expect(projection.visibleTileKeys).toContain("3,0");
+    expect(projection.visibleTileKeys).toContain(`${map.goalZone.minX},${map.goalZone.minY}`);
     expect(projection.visiblePlayerIds).toContain("goal-runner");
   });
 
@@ -26,9 +31,9 @@ describe("createVisibilityProjection", () => {
       map,
       selfPlayerId: "self",
       members: [
-        { playerId: "self", position: { x: 5, y: 6 }, state: "playing" },
-        { playerId: "nearby", position: { x: 7, y: 6 }, state: "playing" },
-        { playerId: "faraway", position: { x: 13, y: 10 }, state: "playing" }
+        { playerId: "self", position: { x: 10, y: 8 }, state: "playing" },
+        { playerId: "nearby", position: { x: 12, y: 8 }, state: "playing" },
+        { playerId: "faraway", position: { x: 18, y: 13 }, state: "playing" }
       ]
     });
 
@@ -41,13 +46,17 @@ describe("createVisibilityProjection", () => {
       map,
       selfPlayerId: "self",
       members: [
-        { playerId: "self", position: { x: 13, y: 14 }, state: "finished" },
-        { playerId: "faraway", position: { x: 1, y: 13 }, state: "playing" }
+        {
+          playerId: "self",
+          position: { x: map.goalZone.minX, y: map.goalZone.minY },
+          state: "finished"
+        },
+        { playerId: "faraway", position: { x: 6, y: 17 }, state: "playing" }
       ]
     });
 
     expect(projection.showFullMap).toBe(true);
-    expect(projection.visibleTileKeys).toContain("13,14");
+    expect(projection.visibleTileKeys).toContain(`${map.goalZone.minX},${map.goalZone.minY}`);
     expect(projection.visibleTileKeys).toContain("0,0");
     expect(projection.visiblePlayerIds).toEqual(["self", "faraway"]);
   });

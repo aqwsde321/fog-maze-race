@@ -257,9 +257,10 @@ function serializeMap(map: MapDefinition): MapView {
     height: map.height,
     tiles: [...map.tiles],
     startZone: map.startZone,
+    mazeZone: map.mazeZone,
     goalZone: map.goalZone,
     startSlots: [...map.startSlots],
-    mazeEntrance: [...map.mazeEntrance],
+    connectorTiles: [...map.connectorTiles],
     visibilityRadius: map.visibilityRadius
   };
 }

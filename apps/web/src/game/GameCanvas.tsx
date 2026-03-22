@@ -52,7 +52,8 @@ export function GameCanvas({ snapshot, selfPlayerId }: GameCanvasProps) {
       data-testid="game-canvas"
       style={{
         width: "100%",
-        minHeight: "320px",
+        minHeight: "420px",
+        height: "clamp(420px, 62vh, 760px)",
         display: "grid",
         placeItems: "center",
         borderRadius: "26px",

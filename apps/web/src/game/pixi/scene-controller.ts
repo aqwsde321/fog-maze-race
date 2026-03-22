@@ -16,15 +16,17 @@ export async function createSceneController(container: HTMLDivElement): Promise<
   const app = new Application();
   await app.init({
     width: 640,
-    height: 420,
+    height: 520,
     antialias: true,
     backgroundColor: 0x07111f
   });
 
+  const panelLayer = new Graphics();
   const tileLayer = new Graphics();
   const playerLayer = new Graphics();
   const fogLayer = new Graphics();
 
+  app.stage.addChild(panelLayer);
   app.stage.addChild(tileLayer);
   app.stage.addChild(playerLayer);
   app.stage.addChild(fogLayer);
@@ -32,6 +34,7 @@ export async function createSceneController(container: HTMLDivElement): Promise<
 
   return {
     render(snapshot, selfPlayerId) {
+      panelLayer.clear();
       tileLayer.clear();
       playerLayer.clear();
       fogLayer.clear();
@@ -48,6 +51,7 @@ export async function createSceneController(container: HTMLDivElement): Promise<
         viewportHeight: container.clientHeight || 360
       });
       app.renderer.resize(layout.viewportWidth, layout.viewportHeight);
+      drawZonePanels(panelLayer, layout, map);
 
       const renderMembers =
         !match && snapshot.previewMap
@@ -80,7 +84,7 @@ export async function createSceneController(container: HTMLDivElement): Promise<
 
       for (let y = 0; y < map.height; y += 1) {
         for (let x = 0; x < map.width; x += 1) {
-          const tile = map.tiles[y]?.[x] ?? "#";
+          const tile = map.tiles[y]?.[x] ?? " ";
           const position = { x, y };
           const isVisible = projection.showFullMap || visibleTileSet.has(toTileKey(position));
           const visual = getTileVisual({
@@ -89,6 +93,9 @@ export async function createSceneController(container: HTMLDivElement): Promise<
             position,
             isVisible
           });
+          if (!visual) {
+            continue;
+          }
 
           tileLayer
             .rect(
@@ -157,9 +164,67 @@ function toVisibilityMap(map: MapView): MapDefinition {
     height: map.height,
     tiles: map.tiles,
     startZone: map.startZone,
+    mazeZone: map.mazeZone,
     goalZone: map.goalZone,
     startSlots: map.startSlots,
-    mazeEntrance: map.mazeEntrance,
+    connectorTiles: map.connectorTiles,
     visibilityRadius: map.visibilityRadius
   };
+}
+
+function drawZonePanels(
+  graphics: Graphics,
+  layout: ReturnType<typeof createBoardLayout>,
+  map: Pick<MapView, "startZone" | "mazeZone" | "connectorTiles">
+) {
+  drawPanel(graphics, layout, map.mazeZone, {
+    fillColor: 0x081325,
+    fillAlpha: 0.92,
+    strokeColor: 0x1d4f91,
+    strokeAlpha: 0.35
+  });
+  drawPanel(graphics, layout, map.startZone, {
+    fillColor: 0x0a1b2c,
+    fillAlpha: 0.95,
+    strokeColor: 0x22d3ee,
+    strokeAlpha: 0.36
+  });
+  drawPanel(graphics, layout, toBounds(map.connectorTiles), {
+    fillColor: 0x0d2731,
+    fillAlpha: 0.96,
+    strokeColor: 0x14b8a6,
+    strokeAlpha: 0.4
+  });
+}
+
+function drawPanel(
+  graphics: Graphics,
+  layout: ReturnType<typeof createBoardLayout>,
+  bounds: { minX: number; minY: number; maxX: number; maxY: number },
+  style: {
+    fillColor: number;
+    fillAlpha: number;
+    strokeColor: number;
+    strokeAlpha: number;
+  }
+) {
+  const padding = Math.max(6, Math.floor(layout.tileSize * 0.26));
+  const x = layout.offsetX + bounds.minX * layout.tileSize - padding;
+  const y = layout.offsetY + bounds.minY * layout.tileSize - padding;
+  const width = (bounds.maxX - bounds.minX + 1) * layout.tileSize + padding * 2 - 2;
+  const height = (bounds.maxY - bounds.minY + 1) * layout.tileSize + padding * 2 - 2;
+
+  graphics
+    .roundRect(x, y, width, height, Math.max(16, Math.floor(layout.tileSize * 0.4)))
+    .fill({ color: style.fillColor, alpha: style.fillAlpha })
+    .stroke({ color: style.strokeColor, width: 2, alpha: style.strokeAlpha });
+}
+
+function toBounds(positions: Array<{ x: number; y: number }>) {
+  const minX = Math.min(...positions.map((position) => position.x));
+  const minY = Math.min(...positions.map((position) => position.y));
+  const maxX = Math.max(...positions.map((position) => position.x));
+  const maxY = Math.max(...positions.map((position) => position.y));
+
+  return { minX, minY, maxX, maxY };
 }

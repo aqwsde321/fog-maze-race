@@ -1,6 +1,10 @@
 import type { GridPosition } from "../domain/grid-position.js";
 import type { RoomMemberState } from "../domain/status.js";
-import { isInsideZone, type MapDefinition } from "../maps/map-definitions.js";
+import {
+  isConnectorTile,
+  isInsideZone,
+  type MapDefinition
+} from "../maps/map-definitions.js";
 
 export type VisibilityMember = {
   playerId: string;
@@ -60,6 +64,7 @@ export function createVisibilityProjection(input: {
       const position = { x, y };
       if (
         isInsideZone(input.map.startZone, position) ||
+        isConnectorTile(input.map, position) ||
         isInsideZone(input.map.goalZone, position) ||
         withinVision(self.position, position, input.map.visibilityRadius)
       ) {
@@ -75,6 +80,7 @@ export function createVisibilityProjection(input: {
 
     if (
       isInsideZone(input.map.startZone, member.position) ||
+      isConnectorTile(input.map, member.position) ||
       isInsideZone(input.map.goalZone, member.position) ||
       withinVision(self.position, member.position, input.map.visibilityRadius)
     ) {

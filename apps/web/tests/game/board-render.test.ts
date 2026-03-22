@@ -17,13 +17,19 @@ describe("board render helpers", () => {
     expect(layout.offsetY).toBeGreaterThan(0);
   });
 
-  it("uses distinct palette values for walls, paths, start, and goal tiles", () => {
+  it("uses distinct palette values for connectors, walls, paths, start, and goal tiles", () => {
     const trainingLap = getMapById("training-lap")!;
 
     const startTile = getTileVisual({
       tile: "S",
       map: trainingLap,
       position: { x: 0, y: 0 },
+      isVisible: true
+    });
+    const connectorTile = getTileVisual({
+      tile: "C",
+      map: trainingLap,
+      position: trainingLap.connectorTiles[0]!,
       isVisible: true
     });
     const goalTile = getTileVisual({
@@ -35,21 +41,33 @@ describe("board render helpers", () => {
     const wallTile = getTileVisual({
       tile: "#",
       map: trainingLap,
-      position: { x: 3, y: 0 },
+      position: { x: trainingLap.mazeZone.minX + 1, y: trainingLap.mazeZone.minY + 2 },
       isVisible: true
     });
     const pathTile = getTileVisual({
       tile: ".",
       map: trainingLap,
-      position: { x: 6, y: 1 },
+      position: { x: trainingLap.mazeZone.minX, y: trainingLap.mazeZone.minY },
+      isVisible: true
+    });
+    const voidTile = getTileVisual({
+      tile: " ",
+      map: getMapById("alpha-run")!,
+      position: { x: 0, y: 6 },
       isVisible: true
     });
 
+    if (!startTile || !connectorTile || !goalTile || !wallTile || !pathTile) {
+      throw new Error("Expected non-void tile visuals for start, connector, goal, wall, and path");
+    }
+    expect(startTile.fillColor).not.toBe(connectorTile.fillColor);
     expect(startTile.fillColor).not.toBe(goalTile.fillColor);
     expect(startTile.fillColor).not.toBe(pathTile.fillColor);
+    expect(connectorTile.fillColor).not.toBe(pathTile.fillColor);
     expect(goalTile.fillColor).not.toBe(pathTile.fillColor);
     expect(wallTile.fillColor).not.toBe(pathTile.fillColor);
     expect(wallTile.alpha).toBe(1);
     expect(pathTile.alpha).toBe(1);
+    expect(voidTile).toBeNull();
   });
 });
