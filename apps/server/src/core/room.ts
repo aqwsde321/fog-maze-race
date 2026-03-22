@@ -97,6 +97,58 @@ export class RoomAggregate {
     this.bumpRevision();
   }
 
+  seedMatchPositions(startSlots: GridPosition[]) {
+    const members = this.listMembers();
+
+    members.forEach((member, index) => {
+      member.position = startSlots[index] ?? startSlots[startSlots.length - 1] ?? null;
+      member.state = "waiting";
+      member.finishRank = null;
+      member.finishedAt = null;
+    });
+
+    this.bumpRevision();
+  }
+
+  markMembersPlaying() {
+    for (const member of this.members.values()) {
+      if (member.state !== "left") {
+        member.state = "playing";
+      }
+    }
+
+    this.bumpRevision();
+  }
+
+  updateMemberPosition(playerId: string, position: GridPosition) {
+    const member = this.members.get(playerId);
+    if (!member) {
+      throw new Error("NOT_IN_ROOM");
+    }
+
+    member.position = position;
+    this.bumpRevision();
+    return member;
+  }
+
+  markMemberFinished(playerId: string, rank: number, now = Date.now()) {
+    const member = this.members.get(playerId);
+    if (!member) {
+      throw new Error("NOT_IN_ROOM");
+    }
+
+    member.state = "finished";
+    member.finishRank = rank;
+    member.finishedAt = now;
+    this.bumpRevision();
+    return member;
+  }
+
+  allMembersFinished() {
+    const members = this.listMembers();
+    return members.length > 0 && members.every((member) => member.state === "finished");
+  }
+
   endRound() {
     this.status = "ended";
     this.bumpRevision();

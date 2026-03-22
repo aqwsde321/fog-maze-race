@@ -64,18 +64,18 @@ description: "Task list for Fog Maze Race MVP implementation"
 
 > **NOTE: Write these tests FIRST, ensure they FAIL before implementation**
 
-- [ ] T011 [P] [US1] Write failing Socket.IO contract tests for connect, create room, join room, start game, move, and results in `/Users/jino/study/project/fog-maze-race/apps/server/tests/contracts/us1-race-flow.contract.test.ts`
-- [ ] T012 [P] [US1] Write failing multi-browser race flow test in `/Users/jino/study/project/fog-maze-race/tests/e2e/us1-race-flow.spec.ts`
+- [x] T011 [P] [US1] Write failing Socket.IO contract tests for connect, create room, join room, start game, move, and results in `/Users/jino/study/project/fog-maze-race/apps/server/tests/contracts/us1-race-flow.contract.test.ts`
+- [x] T012 [P] [US1] Write failing multi-browser race flow test in `/Users/jino/study/project/fog-maze-race/tests/e2e/us1-race-flow.spec.ts`
 
 ### Implementation for User Story 1
 
-- [ ] T013 [P] [US1] Implement session connect, room create, and room join application services in `/Users/jino/study/project/fog-maze-race/apps/server/src/rooms/room-service.ts` and `/Users/jino/study/project/fog-maze-race/apps/server/src/ws/handlers/session-handlers.ts`
-- [ ] T014 [US1] Implement countdown, movement validation, finish ordering, and automatic end conditions in `/Users/jino/study/project/fog-maze-race/apps/server/src/matches/match-service.ts`
-- [ ] T015 [US1] Implement authoritative snapshot and delta broadcasts in `/Users/jino/study/project/fog-maze-race/apps/server/src/ws/handlers/match-handlers.ts` and `/Users/jino/study/project/fog-maze-race/apps/server/src/ws/revision-sync.ts`
-- [ ] T016 [P] [US1] Implement nickname gate and room list screen in `/Users/jino/study/project/fog-maze-race/apps/web/src/features/session/NicknameGate.tsx` and `/Users/jino/study/project/fog-maze-race/apps/web/src/features/rooms/RoomListPanel.tsx`
-- [ ] T017 [P] [US1] Implement the single game screen shell and sidebar in `/Users/jino/study/project/fog-maze-race/apps/web/src/views/GameScreen.tsx` and `/Users/jino/study/project/fog-maze-race/apps/web/src/features/rooms/PlayerSidebar.tsx`
-- [ ] T018 [US1] Implement PixiJS maze, fog, and player rendering in `/Users/jino/study/project/fog-maze-race/apps/web/src/game/GameCanvas.tsx`, `/Users/jino/study/project/fog-maze-race/apps/web/src/game/pixi/scene-controller.ts`, and `/Users/jino/study/project/fog-maze-race/apps/web/src/game/pixi/renderers/fog-renderer.ts`
-- [ ] T019 [US1] Implement result overlay, 6-second reset flow, and make US1 tests pass in `/Users/jino/study/project/fog-maze-race/apps/web/src/features/rooms/ResultOverlay.tsx` and `/Users/jino/study/project/fog-maze-race/apps/server/src/rooms/reset-room.ts`
+- [x] T013 [P] [US1] Implement session connect, room create, and room join application services in `/Users/jino/study/project/fog-maze-race/apps/server/src/rooms/room-service.ts` and `/Users/jino/study/project/fog-maze-race/apps/server/src/ws/handlers/session-handlers.ts`
+- [x] T014 [US1] Implement countdown, movement validation, finish ordering, and automatic end conditions in `/Users/jino/study/project/fog-maze-race/apps/server/src/matches/match-service.ts`
+- [x] T015 [US1] Implement authoritative snapshot and delta broadcasts in `/Users/jino/study/project/fog-maze-race/apps/server/src/ws/handlers/match-handlers.ts` and `/Users/jino/study/project/fog-maze-race/apps/server/src/ws/revision-sync.ts`
+- [x] T016 [P] [US1] Implement nickname gate and room list screen in `/Users/jino/study/project/fog-maze-race/apps/web/src/features/session/NicknameGate.tsx` and `/Users/jino/study/project/fog-maze-race/apps/web/src/features/rooms/RoomListPanel.tsx`
+- [x] T017 [P] [US1] Implement the single game screen shell and sidebar in `/Users/jino/study/project/fog-maze-race/apps/web/src/views/GameScreen.tsx` and `/Users/jino/study/project/fog-maze-race/apps/web/src/features/rooms/PlayerSidebar.tsx`
+- [x] T018 [US1] Implement PixiJS maze, fog, and player rendering in `/Users/jino/study/project/fog-maze-race/apps/web/src/game/GameCanvas.tsx`, `/Users/jino/study/project/fog-maze-race/apps/web/src/game/pixi/scene-controller.ts`, and `/Users/jino/study/project/fog-maze-race/apps/web/src/game/pixi/renderers/fog-renderer.ts`
+- [x] T019 [US1] Implement result overlay, 6-second reset flow, and make US1 tests pass in `/Users/jino/study/project/fog-maze-race/apps/web/src/features/rooms/ResultOverlay.tsx` and `/Users/jino/study/project/fog-maze-race/apps/server/src/rooms/reset-room.ts`
 
 **Checkpoint**: User Story 1 delivers the first playable MVP and can be demoed on its own
 

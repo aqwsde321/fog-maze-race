@@ -56,6 +56,12 @@ const MAP_BETA_ROWS = [
   "#..........GGG#"
 ];
 
+const TRAINING_LAP_ROWS = [
+  "SSS######",
+  "SSS....GG",
+  "SSS######"
+];
+
 function createMap(
   mapId: string,
   name: string,
@@ -80,6 +86,25 @@ function createMap(
 }
 
 export const MAP_DEFINITIONS: MapDefinition[] = [
+  createMap(
+    "training-lap",
+    "Training Lap",
+    TRAINING_LAP_ROWS,
+    { minX: 0, minY: 0, maxX: 2, maxY: 2 },
+    { minX: 7, minY: 0, maxX: 8, maxY: 2 },
+    [
+      { x: 0, y: 1 },
+      { x: 1, y: 1 },
+      { x: 2, y: 1 },
+      { x: 0, y: 0 },
+      { x: 1, y: 0 },
+      { x: 2, y: 0 },
+      { x: 0, y: 2 },
+      { x: 1, y: 2 },
+      { x: 2, y: 2 }
+    ],
+    [{ x: 3, y: 1 }]
+  ),
   createMap(
     "alpha-run",
     "Alpha Run",

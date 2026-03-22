@@ -1,38 +1,34 @@
-import { randomUUID } from "node:crypto";
 import type { Server } from "socket.io";
-import type { ConnectedPayload } from "../../../../packages/shared/src/contracts/realtime.js";
 
 import { PlayerSession } from "../core/player-session.js";
+import { MatchService, type MatchServiceOptions } from "../matches/match-service.js";
+import { RoomService } from "../rooms/room-service.js";
 import { DisconnectGraceRegistry } from "./disconnect-grace.js";
 import { RevisionSync } from "./revision-sync.js";
+import { registerMatchHandlers } from "./handlers/match-handlers.js";
+import { registerSessionHandlers } from "./handlers/session-handlers.js";
 
-export function buildRaceGateway(io: Server) {
+export function buildRaceGateway(io: Server, options: MatchServiceOptions) {
   const revisionSync = new RevisionSync();
   const disconnectGrace = new DisconnectGraceRegistry();
   const sessions = new Map<string, PlayerSession>();
+  const roomService = new RoomService(revisionSync);
+  const matchService = new MatchService(roomService, options);
 
   io.on("connection", (socket) => {
-    socket.on("CONNECT", (payload: { playerId?: string; nickname: string }) => {
-      const playerId = payload.playerId ?? randomUUID();
-      const existingSession = sessions.get(playerId);
-
-      const session = existingSession ?? new PlayerSession({ playerId, nickname: payload.nickname });
-      session.nickname = payload.nickname;
-      session.reconnect();
-      sessions.set(playerId, session);
-
-      const recovered = Boolean(disconnectGrace.recover(playerId));
-      revisionSync.peek(session.currentRoomId ?? "lobby");
-
-      const response: ConnectedPayload = {
-        playerId,
-        nickname: session.nickname,
-        recovered,
-        currentRoomId: session.currentRoomId
-      };
-
-      socket.data.playerId = playerId;
-      socket.emit("CONNECTED", response);
+    registerSessionHandlers({
+      io,
+      socket,
+      sessions,
+      roomService,
+      disconnectGrace
+    });
+    registerMatchHandlers({
+      io,
+      socket,
+      sessions,
+      roomService,
+      matchService
     });
 
     socket.on("disconnect", () => {
@@ -54,6 +50,12 @@ export function buildRaceGateway(io: Server) {
   return {
     revisionSync,
     disconnectGrace,
-    sessions
+    sessions,
+    roomService,
+    matchService,
+    dispose() {
+      matchService.dispose();
+      roomService.dispose();
+    }
   };
 }

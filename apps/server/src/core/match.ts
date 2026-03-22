@@ -57,6 +57,15 @@ export class MatchAggregate {
     return nextValue;
   }
 
+  setCountdownValue(value: 3 | 2 | 1 | 0, now = Date.now()) {
+    this.countdownValue = value;
+
+    if (value === 0) {
+      this.status = "playing";
+      this.startedAt = now;
+    }
+  }
+
   applyMove(position: GridPosition, direction: Direction) {
     const nextPosition = movePosition(position, direction);
 

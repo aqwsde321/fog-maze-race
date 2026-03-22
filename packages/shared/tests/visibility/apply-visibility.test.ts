@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import { MAP_DEFINITIONS } from "../../src/maps/map-definitions.js";
 import { createVisibilityProjection } from "../../src/visibility/apply-visibility.js";
 
-const map = MAP_DEFINITIONS[0]!;
+const map = MAP_DEFINITIONS.find((definition) => definition.mapId === "alpha-run")!;
 
 describe("createVisibilityProjection", () => {
   it("keeps start and goal zones visible even when outside the current vision window", () => {

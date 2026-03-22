@@ -4,7 +4,13 @@ import { Server as SocketIOServer } from "socket.io";
 
 import { buildRaceGateway } from "../ws/race-gateway.js";
 
-export async function buildServer() {
+export type BuildServerOptions = {
+  countdownStepMs?: number;
+  resultsDurationMs?: number;
+  forcedMapId?: string | null;
+};
+
+export async function buildServer(options: BuildServerOptions = {}) {
   const app = Fastify({ logger: true });
   const io = new SocketIOServer(app.server, {
     connectionStateRecovery: {
@@ -13,7 +19,11 @@ export async function buildServer() {
     }
   });
 
-  buildRaceGateway(io);
+  const gateway = buildRaceGateway(io, {
+    countdownStepMs: options.countdownStepMs ?? Number(process.env.COUNTDOWN_STEP_MS ?? 1_000),
+    resultsDurationMs: options.resultsDurationMs ?? Number(process.env.RESULTS_DURATION_MS ?? 6_000),
+    forcedMapId: options.forcedMapId ?? process.env.FORCED_MAP_ID ?? null
+  });
 
   app.get("/health", async () => ({
     ok: true,
@@ -23,6 +33,7 @@ export async function buildServer() {
   }));
 
   app.addHook("onClose", async () => {
+    gateway.dispose();
     await io.close();
   });
 

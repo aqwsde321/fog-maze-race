@@ -1,0 +1,257 @@
+import { randomUUID } from "node:crypto";
+import type {
+  CountdownPayload,
+  GameEndedPayload,
+  GameStartingPayload,
+  MovePayload,
+  PlayerFinishedPayload,
+  PlayerMovedPayload,
+  RoomStateUpdatePayload
+} from "../../../../packages/shared/src/contracts/realtime.js";
+import { getRandomMap } from "../../../../packages/shared/src/maps/map-definitions.js";
+
+import { MatchAggregate } from "../core/match.js";
+import { resetRoom } from "../rooms/reset-room.js";
+import { RoomService } from "../rooms/room-service.js";
+
+type MatchEventSink = {
+  emitRoomState: (payload: RoomStateUpdatePayload) => void;
+  emitCountdown: (payload: CountdownPayload) => void;
+  emitPlayerMoved: (payload: PlayerMovedPayload) => void;
+  emitPlayerFinished: (payload: PlayerFinishedPayload) => void;
+  emitGameStarting: (payload: GameStartingPayload) => void;
+  emitGameEnded: (payload: GameEndedPayload) => void;
+  emitRoomListUpdate: () => void;
+};
+
+export type MatchServiceOptions = {
+  countdownStepMs: number;
+  resultsDurationMs: number;
+  forcedMapId?: string | null;
+};
+
+type TimerBucket = {
+  countdown: ReturnType<typeof setTimeout>[];
+  reset: ReturnType<typeof setTimeout> | null;
+};
+
+export class MatchService {
+  private readonly timers = new Map<string, TimerBucket>();
+
+  constructor(
+    private readonly roomService: RoomService,
+    private readonly options: MatchServiceOptions
+  ) {}
+
+  startGame(roomId: string, requestedBy: string, sink: MatchEventSink) {
+    const runtime = this.roomService.requireRuntime(roomId);
+    const mapId = this.options.forcedMapId ?? getRandomMap().mapId;
+    const match = new MatchAggregate({
+      matchId: randomUUID(),
+      roomId,
+      mapId
+    });
+
+    runtime.room.startCountdown(requestedBy);
+    runtime.room.seedMatchPositions(match.map.startSlots);
+    this.roomService.setMatch(roomId, match);
+    this.roomService.syncRoomRevision(roomId);
+
+    const initialDelayMs = this.getInitialCountdownDelay();
+    const startsAt = new Date(Date.now() + initialDelayMs + this.options.countdownStepMs * 3).toISOString();
+    sink.emitGameStarting({
+      roomId,
+      matchId: match.matchId,
+      mapId: match.map.mapId,
+      startsAt
+    });
+    sink.emitRoomState({
+      roomId,
+      snapshot: this.roomService.getSnapshot(roomId)
+    });
+    sink.emitRoomListUpdate();
+
+    this.scheduleCountdown(roomId, sink, initialDelayMs);
+  }
+
+  move(
+    roomId: string,
+    playerId: string,
+    input: Pick<MovePayload, "direction" | "inputSeq">,
+    sink: MatchEventSink
+  ) {
+    const runtime = this.roomService.requireRuntime(roomId);
+    const match = runtime.match;
+    const member = runtime.room.getMember(playerId);
+
+    if (!match || runtime.room.status !== "playing" || !member || member.state !== "playing" || !member.position) {
+      return;
+    }
+
+    const nextPosition = match.applyMove(member.position, input.direction);
+    if (!match.hasPositionChanged(member.position, nextPosition)) {
+      return;
+    }
+
+    const finishedRank = match.isGoal(nextPosition)
+      ? match.markFinished({
+          playerId,
+          nickname: member.nickname,
+          color: member.color,
+          position: nextPosition
+        })
+      : null;
+
+    runtime.room.updateMemberPosition(playerId, nextPosition);
+
+    if (finishedRank) {
+      runtime.room.markMemberFinished(playerId, finishedRank);
+      this.roomService.syncRoomRevision(roomId);
+      sink.emitPlayerFinished({
+        roomId,
+        playerId,
+        rank: finishedRank,
+        revision: this.roomService.getSnapshot(roomId).revision
+      });
+      sink.emitRoomState({
+        roomId,
+        snapshot: this.roomService.getSnapshot(roomId)
+      });
+
+      if (runtime.room.allMembersFinished()) {
+        this.finishGame(roomId, sink);
+      }
+
+      return;
+    }
+
+    this.roomService.syncRoomRevision(roomId);
+    const revision = this.roomService.getSnapshot(roomId).revision;
+
+    sink.emitPlayerMoved({
+      roomId,
+      playerId,
+      position: nextPosition,
+      inputSeq: input.inputSeq,
+      revision
+    });
+    sink.emitRoomState({
+      roomId,
+      snapshot: this.roomService.getSnapshot(roomId)
+    });
+  }
+
+  dispose() {
+    for (const timers of this.timers.values()) {
+      timers.countdown.forEach((timer) => clearTimeout(timer));
+      if (timers.reset) {
+        clearTimeout(timers.reset);
+      }
+    }
+
+    this.timers.clear();
+  }
+
+  private scheduleCountdown(roomId: string, sink: MatchEventSink, initialDelayMs: number) {
+    const bucket = this.getTimerBucket(roomId);
+    bucket.countdown.forEach((timer) => clearTimeout(timer));
+    bucket.countdown = [];
+
+    const values: Array<3 | 2 | 1 | 0> = [3, 2, 1, 0];
+
+    values.forEach((value, index) => {
+      const delay = initialDelayMs + this.options.countdownStepMs * index;
+      const timer = setTimeout(() => {
+        const runtime = this.roomService.requireRuntime(roomId);
+        const match = runtime.match;
+        if (!match) {
+          return;
+        }
+
+        if (value !== 3) {
+          match.setCountdownValue(value);
+        }
+
+        if (value === 0) {
+          runtime.room.beginPlaying();
+          runtime.room.markMembersPlaying();
+          this.roomService.syncRoomRevision(roomId);
+        } else {
+          this.roomService.bumpStreamRevision(roomId);
+        }
+
+        sink.emitCountdown({
+          roomId,
+          value,
+          endsAt: new Date(Date.now() + this.options.countdownStepMs).toISOString(),
+          revision: this.roomService.getSnapshot(roomId).revision
+        });
+        sink.emitRoomState({
+          roomId,
+          snapshot: this.roomService.getSnapshot(roomId)
+        });
+
+        if (value === 0) {
+          sink.emitRoomListUpdate();
+        }
+      }, delay);
+
+      bucket.countdown.push(timer);
+    });
+  }
+
+  private finishGame(roomId: string, sink: MatchEventSink) {
+    const runtime = this.roomService.requireRuntime(roomId);
+    const match = runtime.match;
+    if (!match) {
+      return;
+    }
+
+    runtime.room.endRound();
+    match.end();
+    this.roomService.syncRoomRevision(roomId);
+
+    const endedSnapshot = this.roomService.getSnapshot(roomId);
+    sink.emitRoomState({
+      roomId,
+      snapshot: endedSnapshot
+    });
+    sink.emitGameEnded({
+      roomId,
+      results: [...match.results],
+      returnToWaitingAt: new Date(Date.now() + this.options.resultsDurationMs).toISOString(),
+      revision: endedSnapshot.revision
+    });
+    sink.emitRoomListUpdate();
+
+    const bucket = this.getTimerBucket(roomId);
+    if (bucket.reset) {
+      clearTimeout(bucket.reset);
+    }
+
+    bucket.reset = setTimeout(() => {
+      const snapshot = resetRoom(this.roomService, roomId);
+      sink.emitRoomState({ roomId, snapshot });
+      sink.emitRoomListUpdate();
+    }, this.options.resultsDurationMs);
+  }
+
+  private getTimerBucket(roomId: string): TimerBucket {
+    const existing = this.timers.get(roomId);
+    if (existing) {
+      return existing;
+    }
+
+    const created: TimerBucket = {
+      countdown: [],
+      reset: null
+    };
+
+    this.timers.set(roomId, created);
+    return created;
+  }
+
+  private getInitialCountdownDelay() {
+    return Math.min(20, this.options.countdownStepMs);
+  }
+}
