@@ -1,4 +1,4 @@
-import { Application, Container, Graphics, Text } from "pixi.js";
+import { Application, Graphics } from "pixi.js";
 
 import type { MapView, RoomSnapshot } from "@fog-maze-race/shared/contracts/snapshots";
 import { createVisibilityProjection, toTileKey } from "@fog-maze-race/shared/visibility/apply-visibility";
@@ -6,14 +6,7 @@ import type { MapDefinition } from "@fog-maze-race/shared/maps/map-definitions";
 
 import { createBoardLayout, getTileVisual } from "./renderers/board-render.js";
 import { renderFogOverlay } from "./renderers/fog-renderer.js";
-import {
-  buildPlayerMarkerMetaMap,
-  getMarkerLabelFontSize,
-  PLAYER_MARKER_DIAMETER_RATIO,
-  PLAYER_MARKER_PATTERN_ALPHA_LIVE,
-  PLAYER_MARKER_SELF_RING_RATIO,
-  type PlayerPattern
-} from "../player-marker.js";
+import { PLAYER_MARKER_DIAMETER_RATIO, PLAYER_MARKER_SELF_RING_RATIO } from "../player-marker.js";
 import { getPlayerRenderOrder } from "../player-render-order.js";
 
 export type SceneController = {
@@ -33,13 +26,11 @@ export async function createSceneController(container: HTMLDivElement): Promise<
   const panelLayer = new Graphics();
   const tileLayer = new Graphics();
   const playerLayer = new Graphics();
-  const playerLabelLayer = new Container();
   const fogLayer = new Graphics();
 
   app.stage.addChild(panelLayer);
   app.stage.addChild(tileLayer);
   app.stage.addChild(playerLayer);
-  app.stage.addChild(playerLabelLayer);
   app.stage.addChild(fogLayer);
   container.replaceChildren(app.canvas);
 
@@ -48,9 +39,6 @@ export async function createSceneController(container: HTMLDivElement): Promise<
       panelLayer.clear();
       tileLayer.clear();
       playerLayer.clear();
-      for (const child of playerLabelLayer.removeChildren()) {
-        child.destroy();
-      }
       fogLayer.clear();
 
       const match = snapshot?.match;
@@ -96,7 +84,6 @@ export async function createSceneController(container: HTMLDivElement): Promise<
 
       const visibleTileSet = new Set(projection.visibleTileKeys);
       const visiblePlayerSet = new Set(projection.visiblePlayerIds);
-      const markerMetaMap = buildPlayerMarkerMetaMap(renderMembers);
 
       for (let y = 0; y < map.height; y += 1) {
         for (let x = 0; x < map.width; x += 1) {
@@ -129,28 +116,13 @@ export async function createSceneController(container: HTMLDivElement): Promise<
         if (!member.position || (!projection.showFullMap && !visiblePlayerSet.has(member.playerId))) {
           continue;
         }
-        const markerMeta = markerMetaMap.get(member.playerId);
-        if (!markerMeta) {
-          continue;
-        }
 
         const centerX = layout.offsetX + member.position.x * layout.tileSize + layout.tileSize / 2;
         const centerY = layout.offsetY + member.position.y * layout.tileSize + layout.tileSize / 2;
         const markerRadius = (layout.tileSize * PLAYER_MARKER_DIAMETER_RATIO) / 2;
         playerLayer
           .circle(centerX, centerY, markerRadius)
-          .fill({ color: toPixiColor(member.color) })
-          .stroke({ color: 0x08111f, width: 2.2, alpha: 0.96 });
-        drawMarkerPattern(playerLayer, centerX, centerY, markerRadius * 0.92, markerMeta.pattern, markerMeta.contrastColor);
-        renderMarkerLabel(
-          playerLabelLayer,
-          centerX,
-          centerY,
-          markerMeta.label,
-          markerMeta.contrastColor,
-          markerRadius * 2,
-          markerMeta.label.length
-        );
+          .fill({ color: toPixiColor(member.color) });
 
         if (member.playerId === selfPlayerId) {
           playerLayer
@@ -187,68 +159,6 @@ function drawPlaceholder(graphics: Graphics) {
 
 function toPixiColor(color: string) {
   return Number.parseInt(color.replace("#", ""), 16);
-}
-
-function drawMarkerPattern(
-  graphics: Graphics,
-  centerX: number,
-  centerY: number,
-  radius: number,
-  pattern: PlayerPattern,
-  color: string
-) {
-  const stroke = {
-    color: toPixiColor(color),
-    width: Math.max(1.5, radius * 0.18),
-    alpha: PLAYER_MARKER_PATTERN_ALPHA_LIVE
-  };
-
-  if (pattern === "horizontal" || pattern === "cross") {
-    graphics.moveTo(centerX - radius * 0.72, centerY);
-    graphics.lineTo(centerX + radius * 0.72, centerY);
-    graphics.stroke(stroke);
-  }
-
-  if (pattern === "vertical" || pattern === "cross") {
-    graphics.moveTo(centerX, centerY - radius * 0.72);
-    graphics.lineTo(centerX, centerY + radius * 0.72);
-    graphics.stroke(stroke);
-  }
-
-  if (pattern === "diagonal-up") {
-    graphics.moveTo(centerX - radius * 0.64, centerY + radius * 0.64);
-    graphics.lineTo(centerX + radius * 0.64, centerY - radius * 0.64);
-    graphics.stroke(stroke);
-  }
-
-  if (pattern === "diagonal-down") {
-    graphics.moveTo(centerX - radius * 0.64, centerY - radius * 0.64);
-    graphics.lineTo(centerX + radius * 0.64, centerY + radius * 0.64);
-    graphics.stroke(stroke);
-  }
-}
-
-function renderMarkerLabel(
-  layer: Container,
-  centerX: number,
-  centerY: number,
-  label: string,
-  color: string,
-  markerSize: number,
-  labelLength: number
-) {
-  const text = new Text({
-    text: label,
-    style: {
-      fill: color,
-      fontFamily: "monospace",
-      fontWeight: "700",
-      fontSize: getMarkerLabelFontSize(markerSize, labelLength)
-    }
-  });
-  text.anchor.set(0.5);
-  text.position.set(centerX, centerY);
-  layer.addChild(text);
 }
 
 function toVisibilityMap(map: MapView): MapDefinition {

@@ -1,7 +1,6 @@
 import type { CSSProperties } from "react";
 
 import type { RoomSnapshot } from "@fog-maze-race/shared/contracts/snapshots";
-import { buildPlayerMarkerMetaMap, getPatternBackground } from "../../game/player-marker.js";
 
 type PlayerSidebarProps = {
   snapshot: RoomSnapshot;
@@ -9,8 +8,6 @@ type PlayerSidebarProps = {
 };
 
 export function PlayerSidebar({ snapshot, selfPlayerId }: PlayerSidebarProps) {
-  const markerMetaMap = buildPlayerMarkerMetaMap(snapshot.members);
-
   return (
     <aside style={sidebarStyle}>
       <div style={headerStyle}>
@@ -18,24 +15,17 @@ export function PlayerSidebar({ snapshot, selfPlayerId }: PlayerSidebarProps) {
         <span style={countStyle}>{snapshot.members.length}</span>
       </div>
       <div style={listStyle}>
-        {snapshot.members.map((member, index) => (
+        {snapshot.members.map((member) => (
           <article key={member.playerId} style={memberCardStyle}>
             <div style={identityStyle}>
-              <span style={orderChipStyle}>{index + 1}</span>
-              <span
-                style={{
-                  ...patternChipStyle,
-                  backgroundImage: getPatternBackground(
-                    markerMetaMap.get(member.playerId)?.pattern ?? "horizontal",
-                    markerMetaMap.get(member.playerId)?.contrastColor ?? "#f8fafc",
-                    0.58
-                  )
-                }}
-              />
               <span
                 style={{
                   ...colorDotStyle,
-                  background: member.color
+                  background: member.color,
+                  boxShadow:
+                    member.playerId === selfPlayerId
+                      ? "0 0 0 2px rgba(8,17,31,0.96), 0 0 0 4px rgba(248,250,252,0.92)"
+                      : "none"
                 }}
               />
               <div>
@@ -112,39 +102,15 @@ const memberCardStyle: CSSProperties = {
 
 const identityStyle: CSSProperties = {
   display: "flex",
-  gap: "9px",
+  gap: "10px",
   alignItems: "center",
   minWidth: 0
 };
 
-const orderChipStyle: CSSProperties = {
-  minWidth: "18px",
-  height: "18px",
-  display: "inline-grid",
-  placeItems: "center",
-  borderRadius: "999px",
-  fontSize: "0.66rem",
-  fontWeight: 700,
-  color: "#94a3b8",
-  background: "rgba(15, 23, 42, 0.92)",
-  border: "1px solid rgba(148, 163, 184, 0.1)",
-  flexShrink: 0
-};
-
-const patternChipStyle: CSSProperties = {
-  width: "14px",
-  height: "14px",
-  borderRadius: "4px",
-  backgroundColor: "rgba(15, 23, 42, 0.96)",
-  border: "1px solid rgba(148, 163, 184, 0.08)",
-  flexShrink: 0
-};
-
 const colorDotStyle: CSSProperties = {
-  width: "11px",
-  height: "11px",
+  width: "12px",
+  height: "12px",
   borderRadius: "999px",
-  boxShadow: "0 0 0 3px rgba(8,17,31,0.92)",
   flexShrink: 0
 };
 

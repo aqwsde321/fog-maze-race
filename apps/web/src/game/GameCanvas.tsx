@@ -5,14 +5,7 @@ import { isInsideZone } from "@fog-maze-race/shared/maps/map-definitions";
 
 import { createSceneController, type SceneController } from "./pixi/scene-controller.js";
 import { createBoardLayout } from "./pixi/renderers/board-render.js";
-import {
-  buildPlayerMarkerMetaMap,
-  getMarkerLabelFontSize,
-  getPatternBackground,
-  PLAYER_MARKER_DIAMETER_RATIO,
-  PLAYER_MARKER_PATTERN_ALPHA_PREVIEW,
-  type PlayerPattern
-} from "./player-marker.js";
+import { PLAYER_MARKER_DIAMETER_RATIO } from "./player-marker.js";
 import { getPlayerRenderOrder } from "./player-render-order.js";
 
 type GameCanvasProps = {
@@ -143,7 +136,6 @@ function StartZonePreview({
   const dotSize = Math.max(15, Math.floor(layout.tileSize * PLAYER_MARKER_DIAMETER_RATIO));
   const startPanel = toPanelBox(layout, map.startZone, panelPadding);
   const mazePanel = toPanelBox(layout, map.mazeZone, panelPadding);
-  const markerMetaMap = buildPlayerMarkerMetaMap(snapshot.members);
 
   return (
     <div data-testid="game-canvas" style={canvasShellStyle}>
@@ -191,10 +183,6 @@ function StartZonePreview({
         </div>
         {getPlayerRenderOrder(members, selfPlayerId).map((member) => {
           const position = member.position!;
-          const markerMeta = markerMetaMap.get(member.playerId);
-          if (!markerMeta) {
-            return null;
-          }
           const x = layout.offsetX + position.x * layout.tileSize + layout.tileSize / 2 - dotSize / 2;
           const y = layout.offsetY + position.y * layout.tileSize + layout.tileSize / 2 - dotSize / 2;
 
@@ -208,21 +196,10 @@ function StartZonePreview({
                 background: member.color,
                 boxShadow:
                   member.playerId === selfPlayerId
-                    ? "0 0 0 2px rgba(8,17,31,0.96), 0 0 0 4px rgba(248,250,252,0.92)"
-                    : "0 0 0 2px rgba(8,17,31,0.96)"
+                    ? "0 0 0 4px rgba(248,250,252,0.92)"
+                    : "none"
               }}
-            >
-              <span
-                aria-hidden="true"
-                style={playerPatternStyle(markerMeta.pattern, markerMeta.contrastColor)}
-              />
-              <span
-                aria-hidden="true"
-                style={playerLabelStyle(markerMeta.contrastColor, dotSize, markerMeta.label.length)}
-              >
-                {markerMeta.label}
-              </span>
-            </div>
+            />
           );
         })}
       </div>
@@ -293,31 +270,7 @@ function playerDotStyle(dotSize: number): CSSProperties {
     width: `${dotSize}px`,
     height: `${dotSize}px`,
     borderRadius: "999px",
-    overflow: "hidden",
-    display: "grid",
-    placeItems: "center"
-  };
-}
-
-function playerPatternStyle(pattern: PlayerPattern, color: string): CSSProperties {
-  return {
-    position: "absolute",
-    inset: "8%",
-    borderRadius: "999px",
-    backgroundImage: getPatternBackground(pattern, color, PLAYER_MARKER_PATTERN_ALPHA_PREVIEW)
-  };
-}
-
-function playerLabelStyle(color: string, dotSize: number, labelLength = 1): CSSProperties {
-  return {
-    position: "relative",
-    zIndex: 1,
-    color,
-    fontSize: `${getMarkerLabelFontSize(dotSize, labelLength)}px`,
-    lineHeight: 1,
-    fontWeight: 800,
-    letterSpacing: "-0.03em",
-    textShadow: color === "#08111f" ? "0 1px 0 rgba(248,250,252,0.2)" : "0 1px 0 rgba(8,17,31,0.38)"
+    overflow: "hidden"
   };
 }
 
