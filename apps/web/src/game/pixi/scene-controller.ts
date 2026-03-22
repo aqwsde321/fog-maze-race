@@ -183,25 +183,25 @@ function drawZonePanels(
 ) {
   drawPanel(graphics, layout, map.startZone, {
     fillColor: 0x0a1b2c,
-    fillAlpha: 0.95,
+    fillAlpha: 0.84,
     strokeColor: 0x22d3ee,
-    strokeAlpha: 0.36
+    strokeAlpha: 0.18
   });
   if (mode === "preview") {
     return;
   }
 
   drawPanel(graphics, layout, map.mazeZone, {
-    fillColor: 0x081325,
-    fillAlpha: 0.92,
+    fillColor: 0x07111f,
+    fillAlpha: 0.16,
     strokeColor: 0x1d4f91,
-    strokeAlpha: 0.35
+    strokeAlpha: 0
   });
   drawPanel(graphics, layout, toBounds(map.connectorTiles), {
-    fillColor: 0x0d2731,
-    fillAlpha: 0.96,
+    fillColor: 0x0b1c26,
+    fillAlpha: 0.28,
     strokeColor: 0x14b8a6,
-    strokeAlpha: 0.4
+    strokeAlpha: 0
   });
 }
 
@@ -216,16 +216,18 @@ function drawPanel(
     strokeAlpha: number;
   }
 ) {
-  const padding = Math.max(6, Math.floor(layout.tileSize * 0.26));
+  const padding = Math.max(4, Math.floor(layout.tileSize * 0.18));
   const x = layout.offsetX + bounds.minX * layout.tileSize - padding;
   const y = layout.offsetY + bounds.minY * layout.tileSize - padding;
   const width = (bounds.maxX - bounds.minX + 1) * layout.tileSize + padding * 2 - 2;
   const height = (bounds.maxY - bounds.minY + 1) * layout.tileSize + padding * 2 - 2;
 
-  graphics
-    .roundRect(x, y, width, height, Math.max(16, Math.floor(layout.tileSize * 0.4)))
-    .fill({ color: style.fillColor, alpha: style.fillAlpha })
-    .stroke({ color: style.strokeColor, width: 2, alpha: style.strokeAlpha });
+  const shape = graphics.roundRect(x, y, width, height, Math.max(12, Math.floor(layout.tileSize * 0.28)));
+  shape.fill({ color: style.fillColor, alpha: style.fillAlpha });
+
+  if (style.strokeAlpha > 0) {
+    shape.stroke({ color: style.strokeColor, width: 1.5, alpha: style.strokeAlpha });
+  }
 }
 
 function toBounds(positions: Array<{ x: number; y: number }>) {

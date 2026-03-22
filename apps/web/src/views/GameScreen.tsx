@@ -212,8 +212,9 @@ const topBarStyle: CSSProperties = {
   padding: "20px 24px",
   borderRadius: "26px",
   overflow: "hidden",
-  background: "rgba(8, 15, 30, 0.9)",
-  border: "1px solid rgba(148, 163, 184, 0.18)"
+  background: "linear-gradient(180deg, rgba(8, 15, 30, 0.92), rgba(7, 16, 30, 0.88))",
+  border: "1px solid rgba(148, 163, 184, 0.12)",
+  boxShadow: "0 12px 32px rgba(2, 6, 23, 0.16)"
 };
 
 const labelStyle: CSSProperties = {
@@ -268,11 +269,12 @@ const canvasFrameStyle: CSSProperties = {
   position: "relative",
   width: "100%",
   boxSizing: "border-box",
-  padding: "18px",
-  borderRadius: "28px",
+  padding: "20px",
+  borderRadius: "26px",
   overflow: "hidden",
-  background: "linear-gradient(180deg, rgba(8, 15, 30, 0.94), rgba(7, 17, 31, 0.98))",
-  border: "1px solid rgba(148, 163, 184, 0.12)",
+  background: "linear-gradient(180deg, rgba(8, 15, 30, 0.82), rgba(6, 14, 26, 0.88))",
+  border: "1px solid rgba(56, 189, 248, 0.12)",
+  boxShadow: "inset 0 1px 0 rgba(255, 255, 255, 0.02)",
   outline: "none"
 };
 

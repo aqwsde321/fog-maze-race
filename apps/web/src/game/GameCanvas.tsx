@@ -73,10 +73,9 @@ export function GameCanvas({ snapshot, selfPlayerId }: GameCanvasProps) {
         height: "clamp(420px, 62vh, 760px)",
         display: "grid",
         placeItems: "center",
-        borderRadius: "26px",
+        borderRadius: "20px",
         overflow: "hidden",
-        background: "rgba(7, 17, 31, 0.94)",
-        border: "1px solid rgba(56, 189, 248, 0.18)"
+        background: "transparent"
       }}
     />
   );
@@ -145,10 +144,9 @@ function StartZonePreview({
           style={{
             ...previewPanelStyle,
             ...mazePanel,
-            background:
-              "radial-gradient(circle at 35% 30%, rgba(15, 23, 42, 0.96), rgba(2, 6, 23, 0.985))",
-            borderColor: "rgba(29, 78, 216, 0.22)",
-            boxShadow: "inset 0 0 0 1px rgba(15, 23, 42, 0.88), 0 18px 54px rgba(2, 6, 23, 0.22)"
+            background: "linear-gradient(180deg, rgba(6, 12, 24, 0.98), rgba(2, 6, 23, 0.98))",
+            borderColor: "transparent",
+            boxShadow: "none"
           }}
         />
         <div
@@ -156,8 +154,9 @@ function StartZonePreview({
           style={{
             ...previewPanelStyle,
             ...startPanel,
-            background: "rgba(8, 27, 44, 0.96)",
-            borderColor: "rgba(34, 211, 238, 0.34)"
+            background: "rgba(8, 27, 44, 0.92)",
+            borderColor: "rgba(34, 211, 238, 0.18)",
+            boxShadow: "0 10px 28px rgba(2, 6, 23, 0.16)"
           }}
         />
         <div
@@ -207,10 +206,9 @@ const canvasShellStyle: CSSProperties = {
   minHeight: "420px",
   height: "clamp(420px, 62vh, 760px)",
   position: "relative",
-  borderRadius: "26px",
+  borderRadius: "20px",
   overflow: "hidden",
-  background: "rgba(7, 17, 31, 0.94)",
-  border: "1px solid rgba(56, 189, 248, 0.18)"
+  background: "transparent"
 };
 
 const previewStageStyle: CSSProperties = {
@@ -221,8 +219,8 @@ const previewStageStyle: CSSProperties = {
 
 const previewPanelStyle: CSSProperties = {
   position: "absolute",
-  borderRadius: "24px",
-  border: "1px solid rgba(148, 163, 184, 0.18)"
+  borderRadius: "18px",
+  border: "1px solid transparent"
 };
 
 function previewTileStyle(tileSize: number): CSSProperties {

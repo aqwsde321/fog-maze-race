@@ -47,8 +47,9 @@ const sidebarStyle: CSSProperties = {
   maxWidth: "300px",
   padding: "20px",
   borderRadius: "24px",
-  background: "rgba(8, 15, 30, 0.88)",
-  border: "1px solid rgba(148, 163, 184, 0.18)",
+  background: "linear-gradient(180deg, rgba(8, 15, 30, 0.9), rgba(7, 16, 30, 0.86))",
+  border: "1px solid rgba(148, 163, 184, 0.12)",
+  boxShadow: "0 12px 32px rgba(2, 6, 23, 0.16)",
   boxSizing: "border-box"
 };
 
@@ -68,8 +69,8 @@ const memberCardStyle: CSSProperties = {
   gap: "12px",
   alignItems: "center",
   padding: "14px",
-  borderRadius: "18px",
-  background: "rgba(15, 23, 42, 0.72)"
+  borderRadius: "16px",
+  background: "rgba(15, 23, 42, 0.64)"
 };
 
 const identityStyle: CSSProperties = {
