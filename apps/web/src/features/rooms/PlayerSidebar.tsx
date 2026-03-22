@@ -29,9 +29,7 @@ export function PlayerSidebar({ snapshot, selfPlayerId }: PlayerSidebarProps) {
                   {member.nickname}
                   {member.playerId === selfPlayerId ? " (나)" : ""}
                 </strong>
-                <p style={metaStyle}>
-                  {member.isHost ? "방장" : "참가자"} · {member.state}
-                </p>
+                <p style={metaStyle}>{member.isHost ? "방장" : "참가자"}</p>
               </div>
             </div>
             <span style={rankStyle}>
@@ -83,7 +81,10 @@ const countStyle: CSSProperties = {
 const listStyle: CSSProperties = {
   display: "grid",
   gap: "2px",
-  marginTop: "10px"
+  marginTop: "10px",
+  maxHeight: "min(70vh, 760px)",
+  overflowY: "auto",
+  paddingRight: "4px"
 };
 
 const memberCardStyle: CSSProperties = {
@@ -103,8 +104,8 @@ const identityStyle: CSSProperties = {
 };
 
 const colorDotStyle: CSSProperties = {
-  width: "13px",
-  height: "13px",
+  width: "11px",
+  height: "11px",
   borderRadius: "999px",
   boxShadow: "0 0 0 3px rgba(255,255,255,0.08)"
 };

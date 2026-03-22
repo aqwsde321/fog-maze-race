@@ -148,7 +148,12 @@ function StartZonePreview({
             borderColor: "transparent",
             boxShadow: "none"
           }}
-        />
+        >
+          <div style={previewHintStyle}>
+            <strong style={previewHintTitleStyle}>미로는 시작 후 공개</strong>
+            <p style={previewHintBodyStyle}>카운트다운 동안 시작 구역에서 위치를 정리하세요.</p>
+          </div>
+        </div>
         <div
           data-testid="preview-start-panel"
           style={{
@@ -221,6 +226,32 @@ const previewPanelStyle: CSSProperties = {
   position: "absolute",
   borderRadius: "14px",
   border: "1px solid transparent"
+};
+
+const previewHintStyle: CSSProperties = {
+  position: "absolute",
+  inset: 0,
+  display: "grid",
+  placeItems: "center",
+  alignContent: "center",
+  gap: "10px",
+  textAlign: "center",
+  padding: "24px",
+  color: "#8fa8c7"
+};
+
+const previewHintTitleStyle: CSSProperties = {
+  fontSize: "1rem",
+  letterSpacing: "0.08em",
+  textTransform: "uppercase",
+  color: "#d8e4f5"
+};
+
+const previewHintBodyStyle: CSSProperties = {
+  margin: 0,
+  fontSize: "0.88rem",
+  lineHeight: 1.5,
+  maxWidth: "22ch"
 };
 
 function previewTileStyle(tileSize: number): CSSProperties {
