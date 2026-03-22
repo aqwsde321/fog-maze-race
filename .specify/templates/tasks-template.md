@@ -8,7 +8,9 @@ description: "Task list template for feature implementation"
 **Input**: Design documents from `/specs/[###-feature-name]/`
 **Prerequisites**: plan.md (required), spec.md (required for user stories), research.md, data-model.md, contracts/
 
-**Tests**: The examples below include test tasks. Tests are OPTIONAL - only include them if explicitly requested in the feature specification.
+**Tests**: The examples below include test tasks. Tests are REQUIRED when the constitution or
+the user mandates TDD; otherwise include them when explicitly requested in the feature
+specification.
 
 **Organization**: Tasks are grouped by user story to enable independent implementation and testing of each story.
 
@@ -62,12 +64,12 @@ description: "Task list template for feature implementation"
 
 Examples of foundational tasks (adjust based on your project):
 
-- [ ] T004 Establish authoritative server state model and command handling
+- [ ] T004 Define domain aggregates, value objects, and command handling boundaries
 - [ ] T005 [P] Implement event broadcast pipeline and snapshot recovery support
 - [ ] T006 [P] Setup API/transport contracts between authoritative state and clients
 - [ ] T007 Create shared domain models that stay independent from presentation concerns
 - [ ] T008 Split client rendering/view state from synchronized gameplay state
-- [ ] T009 Setup error handling, logging, and reconnect diagnostics
+- [ ] T009 Setup automated test commands, error handling, logging, and reconnect diagnostics
 
 **Checkpoint**: Foundation ready - user story implementation can now begin in parallel
 
@@ -179,8 +181,8 @@ Examples of foundational tasks (adjust based on your project):
 ### Within Each User Story
 
 - Tests (if included) MUST be written and FAIL before implementation
-- Models before services
-- Services before endpoints
+- Domain models and value objects before application services
+- Application services before endpoints, sockets, or UI adapters
 - Core implementation before integration
 - Story complete before moving to next priority
 
@@ -248,6 +250,7 @@ With multiple developers:
 - [Story] label maps task to specific user story for traceability
 - Each user story should be independently completable and testable
 - Verify tests fail before implementing
+- Treat code as incomplete until the relevant automated tests pass
 - Add explicit tasks for server authority, state boundaries, and sync recovery when applicable
 - Commit after each task or logical group
 - Stop at any checkpoint to validate story independently

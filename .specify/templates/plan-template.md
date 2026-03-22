@@ -23,7 +23,9 @@
 **Testing**: [e.g., pytest, XCTest, cargo test or NEEDS CLARIFICATION]  
 **Target Platform**: [e.g., Linux server, iOS 15+, WASM or NEEDS CLARIFICATION]
 **Project Type**: [e.g., library/cli/web-service/mobile-app/compiler/desktop-app or NEEDS CLARIFICATION]  
+**Architecture Style**: [e.g., DDD-lite with explicit domain/application/adapters, or NEEDS CLARIFICATION]  
 **Authority Model**: [e.g., server authoritative by default, or NEEDS CLARIFICATION]  
+**Test Discipline**: [e.g., TDD required; failing contract and integration tests before code, or NEEDS CLARIFICATION]  
 **Sync Recovery**: [e.g., realtime events + snapshots, N/A with justification, or NEEDS CLARIFICATION]  
 **Performance Goals**: [domain-specific, e.g., 1000 req/s, 10k lines/sec, 60 fps or NEEDS CLARIFICATION]  
 **Constraints**: [domain-specific, e.g., <200ms p95, <100MB memory, offline-capable or NEEDS CLARIFICATION]  
@@ -38,6 +40,10 @@
 - [ ] Client responsibilities are limited to rendering, input capture, and presentation unless
       a justified exception is documented.
 - [ ] Domain/sync state and presentation state are separated with clear module boundaries.
+- [ ] Domain rules are modeled in explicit domain/application layers before transport or UI
+      adapters are implemented.
+- [ ] The plan identifies the failing automated tests and passing test commands required
+      before implementation is considered complete.
 - [ ] Realtime features define both event propagation and snapshot-based recovery, or the plan
       explicitly marks recovery as `N/A`.
 

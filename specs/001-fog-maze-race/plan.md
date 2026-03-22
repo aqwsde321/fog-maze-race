@@ -25,7 +25,13 @@ tests for authoritative rules, Playwright multi-context browser tests for race f
 reconnect recovery  
 **Target Platform**: Modern desktop and mobile browsers, Linux Node.js web service  
 **Project Type**: Real-time web application with separate frontend, backend, and shared contract packages  
+**Architecture Style**: DDD-lite with explicit domain aggregates in `packages/shared` and
+`apps/server/src/core`, application services in room and match services, and adapters in
+Socket.IO handlers and React/PixiJS UI  
 **Authority Model**: Server authoritative for room lifecycle, countdown, movement validation, finish ordering, and disconnect grace handling  
+**Test Discipline**: TDD required; failing contract and Playwright scenarios are written
+before implementation, and each story is only complete after the relevant test suites
+pass  
 **Sync Recovery**: Socket.IO reconnect handling plus explicit room snapshot resync and a 30-second disconnected grace window stored on the server  
 **Performance Goals**: 60 FPS local render, 15 players per room, typical state propagation under 150 ms within one region, 1-2 minute matches  
 **Constraints**: Single backend instance for MVP, no cross-instance state replication, client sends directions only, no chat/items/replay/customization, room joins only in `waiting` state  
@@ -42,6 +48,10 @@ reconnect recovery
       unless a justified exception is documented.
 - [x] Domain/sync state and presentation state are separated with clear module
       boundaries.
+- [x] Domain rules are modeled in explicit domain/application layers before transport or UI
+      adapters are implemented.
+- [x] The plan identifies the failing automated tests and passing test commands required
+      before implementation is considered complete.
 - [x] Realtime features define both event propagation and snapshot-based recovery.
 
 Post-design review: Pass. The design keeps gameplay rules on the server, treats client

@@ -1,16 +1,14 @@
 <!--
 Sync Impact Report
-- Version change: N/A -> 1.0.0
+- Version change: 1.0.0 -> 1.1.0
 - Modified principles:
-  - Initialized constitution with five concrete principles
+  - Added VI. Domain-Driven and Test-Verified Delivery
 - Added sections:
-  - Architectural Constraints
-  - Delivery Workflow
+  - None
 - Removed sections:
   - None
 - Templates requiring updates:
   - ✅ .specify/templates/plan-template.md
-  - ✅ .specify/templates/spec-template.md
   - ✅ .specify/templates/tasks-template.md
 - Follow-up TODOs:
   - None
@@ -50,12 +48,21 @@ polish ideas, speculative optimizations, and optional social or cosmetic feature
 documented as deferred work instead of being folded into active delivery. Scope expansion
 requires an explicit amendment to the spec or plan.
 
+### VI. Domain-Driven and Test-Verified Delivery
+Gameplay and product behavior MUST be modeled through explicit domain concepts, value
+objects, aggregates, and application services before transport adapters or UI details are
+implemented. Every behavior change MUST begin with an automated test that fails first,
+and implementation is not complete until the relevant automated test suite passes. Code
+that bypasses the domain model or lands without passing tests is non-compliant.
+
 ## Architectural Constraints
 
 - The default architecture is a server-authoritative multiplayer system with rendering-led
   clients.
 - Plans MUST describe server responsibilities, client responsibilities, state boundaries, and
   synchronization recovery paths before implementation starts.
+- Plans MUST identify the domain model boundary, application services, and adapter layers
+  so business rules are not implemented inside transport or rendering code.
 - If a feature is not realtime, the plan MUST explicitly mark synchronization recovery as
   `N/A` and explain why.
 - Shared contracts MUST favor deterministic inputs, explicit events, and snapshot payloads
@@ -65,11 +72,15 @@ requires an explicit amendment to the spec or plan.
 
 - Each spec MUST identify the MVP user story and list explicit out-of-scope items.
 - Each implementation plan MUST pass a constitution check covering MVP scope,
-  server-authoritative ownership, state/presentation separation, and recovery design.
-- Each task list MUST schedule foundational work for authoritative state handling before
-  client-facing polish or secondary stories.
+  server-authoritative ownership, state/presentation separation, DDD boundaries, and
+  recovery design.
+- Each implementation plan MUST name the automated test commands that define done-ness for
+  the feature.
+- Each task list MUST schedule failing automated tests before implementation tasks and
+  place domain/application work ahead of transport and presentation work.
 - Reviews MUST reject changes that move authority into clients, mix view concerns into domain
-  state, or add non-MVP work without approval.
+  state, bypass the domain layer, skip the fail-first test step, or add non-MVP work
+  without approval.
 
 ## Governance
 
@@ -80,4 +91,4 @@ and semantic versioning to be applied as follows: MAJOR for incompatible governa
 MINOR for new principles or materially expanded rules, and PATCH for clarifications that do
 not change the meaning of existing rules.
 
-**Version**: 1.0.0 | **Ratified**: 2026-03-22 | **Last Amended**: 2026-03-22
+**Version**: 1.1.0 | **Ratified**: 2026-03-22 | **Last Amended**: 2026-03-22
