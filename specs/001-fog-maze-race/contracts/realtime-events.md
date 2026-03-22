@@ -4,7 +4,7 @@
 
 - 백엔드 웹 서비스와 같은 오리진의 `Socket.IO` 연결
 - 게임 서비스용 논리 네임스페이스는 하나만 사용
-- 서버 측 room 채널 이름 규칙: `room:{roomId}`
+- 서버 측 room 채널 이름은 `roomId` 원문을 그대로 사용
 - 모든 authoritative 스냅샷 페이로드는 단조 증가하는 `revision`을 포함
 
 ## 명령 모델
@@ -85,6 +85,33 @@ type StartGamePayload = {
 - 방장만 호출할 수 있다.
 - `waiting` 상태에서만 허용한다.
 - 무작위 맵을 고르고, 시작 슬롯을 배정한 뒤 카운트다운을 시작한다.
+
+### `RENAME_ROOM`
+
+```ts
+type RenameRoomPayload = {
+  roomId: string;
+  name: string;
+};
+```
+
+**규칙**
+
+- 방장만 호출할 수 있다.
+- 성공하면 방 내부 스냅샷과 방 목록이 같이 갱신된다.
+
+### `FORCE_END_ROOM`
+
+```ts
+type ForceEndRoomPayload = {
+  roomId: string;
+};
+```
+
+**규칙**
+
+- 방장만 호출할 수 있다.
+- 진행 중 경기만 즉시 종료하며, 결과 표시 뒤 `waiting`으로 복귀한다.
 
 ### `MOVE`
 

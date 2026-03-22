@@ -81,10 +81,11 @@ authoritative 상태는 서버에 존재하며, 클라이언트에는 전체 방
 | `width` | integer | 고정 격자 너비 |
 | `height` | integer | 고정 격자 높이 |
 | `tiles` | tile[][] | 벽/바닥/구역 정보를 인코딩 |
-| `startZone` | `ZoneBounds` | 항상 공개 |
-| `goalZone` | `ZoneBounds` | 항상 공개 |
-| `startSlots` | `GridPosition[]` | 미리 정해진 시작 슬롯 |
-| `mazeEntrance` | `GridPosition[]` | 시작 구역과 미로를 연결 |
+| `startZone` | `ZoneBounds` | `3x5` 고정 시작 영역 |
+| `mazeZone` | `ZoneBounds` | `25x25` 고정 미로 영역 |
+| `goalZone` | `ZoneBounds` | 미로 내부 단일 골 타일 |
+| `startSlots` | `GridPosition[]` | 시작 영역의 15개 고정 슬롯 |
+| `connectorTiles` | `GridPosition[]` | 시작 구역과 미로를 잇는 `1x5` 세로 통로 |
 | `visibilityRadius` | integer | 기본 3칸으로, 실제 시야는 7x7 |
 
 ### `ResultEntry`
@@ -122,10 +123,12 @@ authoritative 상태는 서버에 존재하며, 클라이언트에는 전체 방
 - `waiting` 상태의 방만 새 멤버를 받을 수 있다.
 - 방 멤버 수는 절대 15명을 넘지 않는다.
 - 현재 방장만 방 이름 변경, 경기 시작, 강제 종료를 할 수 있다.
+- `waiting` 상태 클라이언트 프리뷰에서는 시작 영역과 시작 슬롯만 렌더링한다.
 - 이동 명령은 한 번에 하나의 상하좌우 방향만 받는다.
 - 서버는 벽이나 맵 바깥으로의 이동을 거절한다.
 - 플레이어끼리 서로를 막지 않는다. 같은 타일을 동시에 점유할 수 있다.
 - 골인 순위는 서버가 처리한 authoritative 순서대로 부여한다.
+- 시야 밖 미로 타일은 벽과 통로가 구분되지 않도록 완전히 가린다.
 - 예기치 않은 연결 끊김은 `RoomMember.state = disconnected`로 두고 30초 복구 타이머를 시작한다.
 - 수동 나가기는 즉시 `RoomMember.state = left`로 전환하고 매치 복구를 비활성화한다.
 
@@ -187,6 +190,7 @@ countdown -> playing -> ended
 |-------|------|
 | `room` | 방 메타데이터 |
 | `members` | `RoomMemberView[]` |
+| `previewMap` | `MapView \| null` |
 | `match` | `MatchView \| null` |
 | `revision` | integer |
 
@@ -196,7 +200,7 @@ countdown -> playing -> ended
 
 | 필드 | 소스 |
 |-------|--------|
-| `visibleTiles` | 맵 + 내 위치 + 시야 규칙 |
+| `visibleTiles` | `waiting`에서는 시작 영역 프리뷰, `playing`에서는 맵 + 내 위치 + 시야 규칙 |
 | `visiblePlayers` | 시야 규칙으로 필터링한 멤버 위치 |
 | `showFullMap` | `self.state === finished` |
 | `sidebarPlayers` | 방 스냅샷 기반 투영 |

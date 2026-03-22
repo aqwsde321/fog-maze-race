@@ -13,6 +13,7 @@ type RoomSnapshot = {
     maxPlayers: number;
   };
   members: RoomMemberView[];
+  previewMap: MapView | null;
   match: MatchView | null;
 };
 ```
@@ -31,6 +32,23 @@ type RoomMemberView = {
 };
 ```
 
+## `MapView`
+
+```ts
+type MapView = {
+  mapId: string;
+  width: number;
+  height: number;
+  tiles: string[];
+  startZone: ZoneBounds;
+  mazeZone: ZoneBounds;
+  goalZone: ZoneBounds;
+  startSlots: Array<{ x: number; y: number }>;
+  connectorTiles: Array<{ x: number; y: number }>;
+  visibilityRadius: number;
+};
+```
+
 ## `MatchView`
 
 ```ts
@@ -42,14 +60,8 @@ type MatchView = {
   startedAt: string | null;
   endedAt: string | null;
   finishOrder: string[];
-  map: {
-    width: number;
-    height: number;
-    tiles: string[];
-    startZone: ZoneBounds;
-    goalZone: ZoneBounds;
-    visibilityRadius: number;
-  };
+  results: ResultRow[];
+  map: MapView;
 };
 ```
 
@@ -72,6 +84,7 @@ type ResultRow = {
 
 ### 입력
 
+- `RoomSnapshot.previewMap`
 - `RoomSnapshot.match.map`
 - 현재 플레이어 위치
 - 모든 멤버 위치
@@ -79,8 +92,9 @@ type ResultRow = {
 
 ### 파생 동작
 
-- 시작 구역과 도착 구역은 항상 보인다.
-- 현재 플레이어의 7x7 시야 밖 미로 타일은 가려진다.
+- `waiting` 상태에서는 `previewMap`의 시작 구역과 시작 슬롯만 렌더링한다.
+- 플레이 중에는 시작 구역, 연결 통로, 골 타일을 계속 구분할 수 있다.
+- 현재 플레이어의 7x7 시야 밖 미로 타일은 완전히 가려져서 벽과 통로를 구분할 수 없다.
 - 미로 안 플레이어는 현재 플레이어 시야 안에 있을 때만 보인다.
 - 현재 플레이어가 완주하면 클라이언트는 전체 맵과 모든 플레이어를 공개한다.
 
