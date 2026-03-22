@@ -1,0 +1,19 @@
+{
+  "name": "fog-maze-race",
+  "version": "0.1.0",
+  "private": true,
+  "packageManager": "pnpm@10.28.0",
+  "scripts": {
+    "dev": "pnpm --parallel --filter @fog-maze-race/shared --filter @fog-maze-race/server --filter @fog-maze-race/web dev",
+    "build": "pnpm --filter @fog-maze-race/shared build && pnpm --filter @fog-maze-race/server build && pnpm --filter @fog-maze-race/web build",
+    "test": "pnpm --filter @fog-maze-race/shared test && pnpm --filter @fog-maze-race/server test && pnpm --filter @fog-maze-race/web test",
+    "typecheck": "pnpm --filter @fog-maze-race/shared typecheck && pnpm --filter @fog-maze-race/server typecheck && pnpm --filter @fog-maze-race/web typecheck",
+    "test:e2e": "playwright test"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.55.0",
+    "@types/node": "^24.3.0",
+    "tsx": "^4.20.5",
+    "typescript": "^5.9.2"
+  }
+}

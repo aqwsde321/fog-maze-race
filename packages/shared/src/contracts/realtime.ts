@@ -1,0 +1,126 @@
+import type { Direction, GridPosition } from "../domain/grid-position.js";
+import type { ResultEntry } from "../domain/result-entry.js";
+import type { RoomMemberState, RoomStatus } from "../domain/status.js";
+import type { RoomSnapshot } from "./snapshots.js";
+
+export type ConnectPayload = {
+  playerId?: string;
+  nickname: string;
+  requestedRoomId?: string | null;
+};
+
+export type CreateRoomPayload = {
+  name: string;
+};
+
+export type JoinRoomPayload = {
+  roomId: string;
+};
+
+export type LeaveRoomPayload = {
+  roomId: string;
+};
+
+export type StartGamePayload = {
+  roomId: string;
+};
+
+export type MovePayload = {
+  roomId: string;
+  direction: Direction;
+  inputSeq: number;
+};
+
+export type ConnectedPayload = {
+  playerId: string;
+  nickname: string;
+  recovered: boolean;
+  currentRoomId: string | null;
+};
+
+export type RoomListItem = {
+  roomId: string;
+  name: string;
+  hostNickname: string;
+  playerCount: number;
+  status: RoomStatus;
+};
+
+export type RoomListUpdatePayload = {
+  rooms: RoomListItem[];
+};
+
+export type RoomJoinedPayload = {
+  roomId: string;
+  snapshot: RoomSnapshot;
+  selfPlayerId: string;
+};
+
+export type RoomLeftPayload = {
+  roomId: string;
+  playerId: string;
+  reason: "manual" | "timeout" | "removed";
+};
+
+export type RoomStateUpdatePayload = {
+  roomId: string;
+  snapshot: RoomSnapshot;
+};
+
+export type GameStartingPayload = {
+  roomId: string;
+  matchId: string;
+  mapId: string;
+  startsAt: string;
+};
+
+export type CountdownPayload = {
+  roomId: string;
+  value: 3 | 2 | 1 | 0;
+  endsAt: string;
+  revision: number;
+};
+
+export type PlayerMovedPayload = {
+  roomId: string;
+  playerId: string;
+  position: GridPosition;
+  inputSeq: number;
+  revision: number;
+};
+
+export type PlayerFinishedPayload = {
+  roomId: string;
+  playerId: string;
+  rank: number;
+  revision: number;
+};
+
+export type GameEndedPayload = {
+  roomId: string;
+  results: ResultEntry[];
+  returnToWaitingAt: string;
+  revision: number;
+};
+
+export type ErrorCode =
+  | "INVALID_NICKNAME"
+  | "ROOM_FULL"
+  | "ROOM_NOT_JOINABLE"
+  | "HOST_ONLY"
+  | "INVALID_MOVE"
+  | "RECOVERY_FAILED"
+  | "NOT_IN_ROOM"
+  | "UNKNOWN";
+
+export type ErrorPayload = {
+  code: ErrorCode;
+  message: string;
+};
+
+export type MemberStateChangedPayload = {
+  roomId: string;
+  playerId: string;
+  state: RoomMemberState;
+  revision: number;
+};

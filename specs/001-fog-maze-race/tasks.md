@@ -30,10 +30,10 @@ description: "Task list for Fog Maze Race MVP implementation"
 
 **Purpose**: Initialize the monorepo and create the minimum developer tooling for fast MVP iteration.
 
-- [ ] T001 Create root workspace manifests in `/Users/jino/study/project/fog-maze-race/package.json`, `/Users/jino/study/project/fog-maze-race/pnpm-workspace.yaml`, and `/Users/jino/study/project/fog-maze-race/tsconfig.base.json`
-- [ ] T002 [P] Scaffold the backend package in `/Users/jino/study/project/fog-maze-race/apps/server/package.json`, `/Users/jino/study/project/fog-maze-race/apps/server/tsconfig.json`, and `/Users/jino/study/project/fog-maze-race/apps/server/src/app/server.ts`
-- [ ] T003 [P] Scaffold the web package in `/Users/jino/study/project/fog-maze-race/apps/web/package.json`, `/Users/jino/study/project/fog-maze-race/apps/web/tsconfig.json`, and `/Users/jino/study/project/fog-maze-race/apps/web/src/app/App.tsx`
-- [ ] T004 [P] Configure shared test tooling in `/Users/jino/study/project/fog-maze-race/vitest.workspace.ts`, `/Users/jino/study/project/fog-maze-race/playwright.config.ts`, and `/Users/jino/study/project/fog-maze-race/tests/e2e/helpers/multi-client.ts`
+- [x] T001 Create root workspace manifests in `/Users/jino/study/project/fog-maze-race/package.json`, `/Users/jino/study/project/fog-maze-race/pnpm-workspace.yaml`, and `/Users/jino/study/project/fog-maze-race/tsconfig.base.json`
+- [x] T002 [P] Scaffold the backend package in `/Users/jino/study/project/fog-maze-race/apps/server/package.json`, `/Users/jino/study/project/fog-maze-race/apps/server/tsconfig.json`, and `/Users/jino/study/project/fog-maze-race/apps/server/src/app/server.ts`
+- [x] T003 [P] Scaffold the web package in `/Users/jino/study/project/fog-maze-race/apps/web/package.json`, `/Users/jino/study/project/fog-maze-race/apps/web/tsconfig.json`, and `/Users/jino/study/project/fog-maze-race/apps/web/src/app/App.tsx`
+- [x] T004 [P] Configure shared test tooling in `/Users/jino/study/project/fog-maze-race/vitest.workspace.ts`, `/Users/jino/study/project/fog-maze-race/playwright.config.ts`, and `/Users/jino/study/project/fog-maze-race/tests/e2e/helpers/multi-client.ts`
 
 ---
 
@@ -43,12 +43,12 @@ description: "Task list for Fog Maze Race MVP implementation"
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
-- [ ] T005 Define shared domain enums and value objects in `/Users/jino/study/project/fog-maze-race/packages/shared/src/domain/status.ts`, `/Users/jino/study/project/fog-maze-race/packages/shared/src/domain/grid-position.ts`, and `/Users/jino/study/project/fog-maze-race/packages/shared/src/domain/result-entry.ts`
-- [ ] T006 [P] Define realtime event and snapshot contracts in `/Users/jino/study/project/fog-maze-race/packages/shared/src/contracts/realtime.ts` and `/Users/jino/study/project/fog-maze-race/packages/shared/src/contracts/snapshots.ts`
-- [ ] T007 [P] Add prebuilt map definitions and visibility helpers in `/Users/jino/study/project/fog-maze-race/packages/shared/src/maps/map-definitions.ts` and `/Users/jino/study/project/fog-maze-race/packages/shared/src/visibility/apply-visibility.ts`
-- [ ] T008 Implement authoritative room and match aggregates in `/Users/jino/study/project/fog-maze-race/apps/server/src/core/room.ts`, `/Users/jino/study/project/fog-maze-race/apps/server/src/core/match.ts`, and `/Users/jino/study/project/fog-maze-race/apps/server/src/core/player-session.ts`
-- [ ] T009 Implement the Socket.IO gateway skeleton, revision tracker, and disconnect timer infrastructure in `/Users/jino/study/project/fog-maze-race/apps/server/src/ws/race-gateway.ts`, `/Users/jino/study/project/fog-maze-race/apps/server/src/ws/revision-sync.ts`, and `/Users/jino/study/project/fog-maze-race/apps/server/src/ws/disconnect-grace.ts`
-- [ ] T010 Implement render-only client state boundaries in `/Users/jino/study/project/fog-maze-race/apps/web/src/stores/sessionStore.ts`, `/Users/jino/study/project/fog-maze-race/apps/web/src/stores/roomStore.ts`, and `/Users/jino/study/project/fog-maze-race/apps/web/src/services/socket-client.ts`
+- [x] T005 Define shared domain enums and value objects in `/Users/jino/study/project/fog-maze-race/packages/shared/src/domain/status.ts`, `/Users/jino/study/project/fog-maze-race/packages/shared/src/domain/grid-position.ts`, and `/Users/jino/study/project/fog-maze-race/packages/shared/src/domain/result-entry.ts`
+- [x] T006 [P] Define realtime event and snapshot contracts in `/Users/jino/study/project/fog-maze-race/packages/shared/src/contracts/realtime.ts` and `/Users/jino/study/project/fog-maze-race/packages/shared/src/contracts/snapshots.ts`
+- [x] T007 [P] Add prebuilt map definitions and visibility helpers in `/Users/jino/study/project/fog-maze-race/packages/shared/src/maps/map-definitions.ts` and `/Users/jino/study/project/fog-maze-race/packages/shared/src/visibility/apply-visibility.ts`
+- [x] T008 Implement authoritative room and match aggregates in `/Users/jino/study/project/fog-maze-race/apps/server/src/core/room.ts`, `/Users/jino/study/project/fog-maze-race/apps/server/src/core/match.ts`, and `/Users/jino/study/project/fog-maze-race/apps/server/src/core/player-session.ts`
+- [x] T009 Implement the Socket.IO gateway skeleton, revision tracker, and disconnect timer infrastructure in `/Users/jino/study/project/fog-maze-race/apps/server/src/ws/race-gateway.ts`, `/Users/jino/study/project/fog-maze-race/apps/server/src/ws/revision-sync.ts`, and `/Users/jino/study/project/fog-maze-race/apps/server/src/ws/disconnect-grace.ts`
+- [x] T010 Implement render-only client state boundaries in `/Users/jino/study/project/fog-maze-race/apps/web/src/stores/sessionStore.ts`, `/Users/jino/study/project/fog-maze-race/apps/web/src/stores/roomStore.ts`, and `/Users/jino/study/project/fog-maze-race/apps/web/src/services/socket-client.ts`
 
 **Checkpoint**: Foundation ready - user story implementation can now begin in priority order
 

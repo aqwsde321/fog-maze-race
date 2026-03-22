@@ -1,0 +1,51 @@
+{
+  "name": "@fog-maze-race/shared",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "default": "./src/index.ts"
+    },
+    "./contracts/realtime": {
+      "types": "./src/contracts/realtime.ts",
+      "default": "./src/contracts/realtime.ts"
+    },
+    "./contracts/snapshots": {
+      "types": "./src/contracts/snapshots.ts",
+      "default": "./src/contracts/snapshots.ts"
+    },
+    "./domain/grid-position": {
+      "types": "./src/domain/grid-position.ts",
+      "default": "./src/domain/grid-position.ts"
+    },
+    "./domain/result-entry": {
+      "types": "./src/domain/result-entry.ts",
+      "default": "./src/domain/result-entry.ts"
+    },
+    "./domain/status": {
+      "types": "./src/domain/status.ts",
+      "default": "./src/domain/status.ts"
+    },
+    "./maps/map-definitions": {
+      "types": "./src/maps/map-definitions.ts",
+      "default": "./src/maps/map-definitions.ts"
+    },
+    "./visibility/apply-visibility": {
+      "types": "./src/visibility/apply-visibility.ts",
+      "default": "./src/visibility/apply-visibility.ts"
+    }
+  },
+  "scripts": {
+    "dev": "tsc -p tsconfig.build.json --watch --preserveWatchOutput",
+    "build": "tsc -p tsconfig.build.json",
+    "test": "vitest run --config vitest.config.ts",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "devDependencies": {
+    "vitest": "^3.2.4"
+  }
+}

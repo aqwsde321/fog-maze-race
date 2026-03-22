@@ -1,0 +1,54 @@
+import { describe, expect, it } from "vitest";
+
+import { MAP_DEFINITIONS } from "../../src/maps/map-definitions.js";
+import { createVisibilityProjection } from "../../src/visibility/apply-visibility.js";
+
+const map = MAP_DEFINITIONS[0]!;
+
+describe("createVisibilityProjection", () => {
+  it("keeps start and goal zones visible even when outside the current vision window", () => {
+    const projection = createVisibilityProjection({
+      map,
+      selfPlayerId: "self",
+      members: [
+        { playerId: "self", position: { x: 5, y: 6 }, state: "playing" },
+        { playerId: "goal-runner", position: { x: 13, y: 14 }, state: "playing" }
+      ]
+    });
+
+    expect(projection.visibleTileKeys).toContain("0,0");
+    expect(projection.visibleTileKeys).toContain("14,14");
+    expect(projection.visiblePlayerIds).toContain("goal-runner");
+  });
+
+  it("hides maze players outside the viewer's 7x7 vision window", () => {
+    const projection = createVisibilityProjection({
+      map,
+      selfPlayerId: "self",
+      members: [
+        { playerId: "self", position: { x: 5, y: 6 }, state: "playing" },
+        { playerId: "nearby", position: { x: 7, y: 6 }, state: "playing" },
+        { playerId: "faraway", position: { x: 13, y: 10 }, state: "playing" }
+      ]
+    });
+
+    expect(projection.visiblePlayerIds).toContain("nearby");
+    expect(projection.visiblePlayerIds).not.toContain("faraway");
+  });
+
+  it("reveals the entire map and every player to finishers", () => {
+    const projection = createVisibilityProjection({
+      map,
+      selfPlayerId: "self",
+      members: [
+        { playerId: "self", position: { x: 13, y: 14 }, state: "finished" },
+        { playerId: "faraway", position: { x: 1, y: 13 }, state: "playing" }
+      ]
+    });
+
+    expect(projection.showFullMap).toBe(true);
+    expect(projection.visibleTileKeys).toContain("14,14");
+    expect(projection.visibleTileKeys).toContain("0,0");
+    expect(projection.visiblePlayerIds).toEqual(["self", "faraway"]);
+  });
+});
