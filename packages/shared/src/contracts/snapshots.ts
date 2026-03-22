@@ -13,6 +13,17 @@ export type RoomMemberView = {
   isHost: boolean;
 };
 
+export type MapView = {
+  mapId: string;
+  width: number;
+  height: number;
+  tiles: string[];
+  startZone: ZoneBounds;
+  goalZone: ZoneBounds;
+  startSlots: GridPosition[];
+  visibilityRadius: number;
+};
+
 export type MatchView = {
   matchId: string;
   mapId: string;
@@ -22,14 +33,7 @@ export type MatchView = {
   endedAt: string | null;
   finishOrder: string[];
   results: ResultEntry[];
-  map: {
-    width: number;
-    height: number;
-    tiles: string[];
-    startZone: ZoneBounds;
-    goalZone: ZoneBounds;
-    visibilityRadius: number;
-  };
+  map: MapView;
 };
 
 export type RoomSnapshot = {
@@ -42,5 +46,6 @@ export type RoomSnapshot = {
     maxPlayers: number;
   };
   members: RoomMemberView[];
+  previewMap: MapView | null;
   match: MatchView | null;
 };

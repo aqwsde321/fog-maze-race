@@ -74,6 +74,8 @@ describe("US1 race flow contract", () => {
     const hostJoined = await once(host, "ROOM_JOINED");
     expect(hostJoined.snapshot.room.name).toBe("Alpha");
     expect(hostJoined.snapshot.room.status).toBe("waiting");
+    expect(hostJoined.snapshot.previewMap?.mapId).toBe("training-lap");
+    expect(hostJoined.snapshot.previewMap?.startSlots.length).toBeGreaterThan(0);
 
     const guestRoomList = await once(guest, "ROOM_LIST_UPDATE");
     expect(guestRoomList.rooms[0]?.name).toBe("Alpha");
@@ -81,6 +83,7 @@ describe("US1 race flow contract", () => {
     guest.emit("JOIN_ROOM", { roomId: hostJoined.roomId });
     const guestJoined = await once(guest, "ROOM_JOINED");
     expect(guestJoined.snapshot.members).toHaveLength(2);
+    expect(guestJoined.snapshot.previewMap?.mapId).toBe(hostJoined.snapshot.previewMap?.mapId);
 
     host.emit("START_GAME", { roomId: hostJoined.roomId });
     const gameStarting = await once(host, "GAME_STARTING");
@@ -128,7 +131,7 @@ describe("US1 race flow contract", () => {
     await waitFor(
       async () => {
         const snapshot = await once(host, "ROOM_STATE_UPDATE");
-        return snapshot.snapshot.room.status === "waiting";
+        return snapshot.snapshot.room.status === "waiting" && snapshot.snapshot.previewMap !== null;
       },
       1000
     );

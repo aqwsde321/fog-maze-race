@@ -5,6 +5,7 @@ export function resetRoom(roomService: RoomService, roomId: string) {
 
   runtime.room.resetToWaiting();
   roomService.setMatch(roomId, null);
+  roomService.setPreviewMap(roomId);
   roomService.syncRoomRevision(roomId);
 
   return roomService.getSnapshot(roomId);

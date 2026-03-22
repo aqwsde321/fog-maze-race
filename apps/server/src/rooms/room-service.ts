@@ -4,8 +4,9 @@ import type {
   RoomJoinedPayload,
   RoomListItem
 } from "@fog-maze-race/shared/contracts/realtime";
-import type { RoomSnapshot } from "@fog-maze-race/shared/contracts/snapshots";
+import type { MapView, RoomSnapshot } from "@fog-maze-race/shared/contracts/snapshots";
 import type { MatchStatus, RoomMemberState } from "@fog-maze-race/shared/domain/status";
+import { getMapById, getRandomMap, type MapDefinition } from "@fog-maze-race/shared/maps/map-definitions";
 
 import { MatchAggregate } from "../core/match.js";
 import { PlayerSession } from "../core/player-session.js";
@@ -26,16 +27,24 @@ const PLAYER_COLORS = [
 export type RoomRuntime = {
   room: RoomAggregate;
   match: MatchAggregate | null;
+  previewMapId: string;
 };
 
 export class RoomService {
   private readonly rooms = new Map<string, RoomRuntime>();
+  private readonly pickPreviewMap: () => MapDefinition;
 
-  constructor(private readonly revisionSync: RevisionSync) {}
+  constructor(
+    private readonly revisionSync: RevisionSync,
+    options?: { pickPreviewMap?: () => MapDefinition }
+  ) {
+    this.pickPreviewMap = options?.pickPreviewMap ?? (() => getRandomMap());
+  }
 
   createRoom(input: { session: PlayerSession; name: string }): RoomJoinedPayload {
     const roomId = randomUUID();
     const name = normalizeRoomName(input.name);
+    const previewMapId = this.pickPreviewMap().mapId;
     const room = new RoomAggregate({
       roomId,
       name,
@@ -50,7 +59,7 @@ export class RoomService {
       position: null
     });
 
-    this.rooms.set(roomId, { room, match: null });
+    this.rooms.set(roomId, { room, match: null, previewMapId });
     input.session.currentRoomId = roomId;
     this.syncRoomRevision(roomId);
 
@@ -90,6 +99,12 @@ export class RoomService {
 
   getMatch(roomId: string) {
     return this.requireRuntime(roomId).match;
+  }
+
+  setPreviewMap(roomId: string, mapId?: string) {
+    const runtime = this.requireRuntime(roomId);
+    runtime.previewMapId = mapId ?? this.pickPreviewMap().mapId;
+    this.bumpStreamRevision(roomId);
   }
 
   renameRoom(roomId: string, requestedBy: string, name: string) {
@@ -166,6 +181,7 @@ export class RoomService {
   getSnapshot(roomId: string): RoomSnapshot {
     const runtime = this.requireRuntime(roomId);
     const revision = Math.max(runtime.room.revision, this.revisionSync.peek(roomId));
+    const previewMap = getMapById(runtime.previewMapId);
 
     return {
       revision,
@@ -185,6 +201,7 @@ export class RoomService {
         finishRank: member.finishRank,
         isHost: member.playerId === runtime.room.hostPlayerId
       })),
+      previewMap: previewMap ? serializeMap(previewMap) : null,
       match: runtime.match
         ? {
             matchId: runtime.match.matchId,
@@ -195,14 +212,7 @@ export class RoomService {
             endedAt: toIso(runtime.match.endedAt),
             finishOrder: [...runtime.match.finishOrder],
             results: [...runtime.match.results],
-            map: {
-              width: runtime.match.map.width,
-              height: runtime.match.map.height,
-              tiles: [...runtime.match.map.tiles],
-              startZone: runtime.match.map.startZone,
-              goalZone: runtime.match.map.goalZone,
-              visibilityRadius: runtime.match.map.visibilityRadius
-            }
+            map: serializeMap(runtime.match.map)
           }
         : null
     };
@@ -238,6 +248,19 @@ function toIso(timestamp: number | null) {
 
 function normalizeRoomName(name: string) {
   return name.trim().slice(0, 24) || "새 방";
+}
+
+function serializeMap(map: MapDefinition): MapView {
+  return {
+    mapId: map.mapId,
+    width: map.width,
+    height: map.height,
+    tiles: [...map.tiles],
+    startZone: map.startZone,
+    goalZone: map.goalZone,
+    startSlots: [...map.startSlots],
+    visibilityRadius: map.visibilityRadius
+  };
 }
 
 export function isPlayableMemberState(state: RoomMemberState) {

@@ -1,4 +1,5 @@
 import type { Server } from "socket.io";
+import { getMapById, getRandomMap } from "@fog-maze-race/shared/maps/map-definitions";
 
 import { PlayerSession } from "../core/player-session.js";
 import { MatchService, type MatchServiceOptions } from "../matches/match-service.js";
@@ -15,7 +16,10 @@ export function buildRaceGateway(io: Server, options: MatchServiceOptions) {
   const revisionSync = new RevisionSync();
   const disconnectGrace = new DisconnectGraceRegistry();
   const sessions = new Map<string, PlayerSession>();
-  const roomService = new RoomService(revisionSync);
+  const roomService = new RoomService(revisionSync, {
+    pickPreviewMap: () =>
+      options.forcedMapId ? (getMapById(options.forcedMapId) ?? getRandomMap()) : getRandomMap()
+  });
   const matchService = new MatchService(roomService, options);
   const recoveryService = new RecoveryService(roomService, matchService, disconnectGrace, sessions, {
     graceWindowMs: options.recoveryGraceMs ?? 30_000

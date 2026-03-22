@@ -8,7 +8,6 @@ import type {
   PlayerMovedPayload,
   RoomStateUpdatePayload
 } from "@fog-maze-race/shared/contracts/realtime";
-import { getRandomMap } from "@fog-maze-race/shared/maps/map-definitions";
 
 import { MatchAggregate } from "../core/match.js";
 import { forceEndMatch } from "../rooms/force-end-match.js";
@@ -49,7 +48,7 @@ export class MatchService {
 
   startGame(roomId: string, requestedBy: string, sink: MatchEventSink) {
     const runtime = this.roomService.requireRuntime(roomId);
-    const mapId = this.options.forcedMapId ?? getRandomMap().mapId;
+    const mapId = runtime.previewMapId;
     const match = new MatchAggregate({
       matchId: randomUUID(),
       roomId,

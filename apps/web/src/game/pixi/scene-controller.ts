@@ -1,6 +1,6 @@
 import { Application, Graphics } from "pixi.js";
 
-import type { RoomSnapshot } from "@fog-maze-race/shared/contracts/snapshots";
+import type { MapView, RoomSnapshot } from "@fog-maze-race/shared/contracts/snapshots";
 import { createVisibilityProjection, toTileKey } from "@fog-maze-race/shared/visibility/apply-visibility";
 import { isInsideZone, type MapDefinition } from "@fog-maze-race/shared/maps/map-definitions";
 
@@ -38,48 +38,59 @@ export async function createSceneController(container: HTMLDivElement): Promise<
       fogLayer.clear();
 
       const match = snapshot?.match;
-      if (!snapshot || !match) {
+      const map = match?.map ?? snapshot?.previewMap;
+      if (!snapshot || !map) {
         drawPlaceholder(tileLayer);
         return;
       }
 
-      app.renderer.resize(match.map.width * TILE_SIZE, match.map.height * TILE_SIZE);
+      app.renderer.resize(map.width * TILE_SIZE, map.height * TILE_SIZE);
 
-      const projection = selfPlayerId
+      const renderMembers =
+        !match && snapshot.previewMap
+          ? snapshot.members.map((member, index) => ({
+              ...member,
+              position: snapshot.previewMap?.startSlots[index] ?? null
+            }))
+          : snapshot.members;
+
+      const projection = match && selfPlayerId
         ? createVisibilityProjection({
-            map: toVisibilityMap(match),
+            map: toVisibilityMap(map),
             selfPlayerId,
-            members: snapshot.members.map((member) => ({
+            members: renderMembers.map((member) => ({
               playerId: member.playerId,
               position: member.position,
               state: member.state
             }))
           })
         : {
-            showFullMap: false,
+            showFullMap: true,
             visibleTileKeys: [],
-            visiblePlayerIds: []
+            visiblePlayerIds: renderMembers
+              .filter((member) => Boolean(member.position))
+              .map((member) => member.playerId)
           };
 
       const visibleTileSet = new Set(projection.visibleTileKeys);
       const visiblePlayerSet = new Set(projection.visiblePlayerIds);
 
-      for (let y = 0; y < match.map.height; y += 1) {
-        for (let x = 0; x < match.map.width; x += 1) {
-          const tile = match.map.tiles[y]?.[x] ?? "#";
+      for (let y = 0; y < map.height; y += 1) {
+        for (let x = 0; x < map.width; x += 1) {
+          const tile = map.tiles[y]?.[x] ?? "#";
           const position = { x, y };
           const isVisible = projection.showFullMap || visibleTileSet.has(toTileKey(position));
 
           tileLayer
             .rect(x * TILE_SIZE, y * TILE_SIZE, TILE_SIZE - 2, TILE_SIZE - 2)
             .fill({
-              color: pickTileColor(tile, match, position, isVisible),
+              color: pickTileColor(tile, map, position, isVisible),
               alpha: isVisible ? 1 : 0.4
             });
         }
       }
 
-      for (const member of snapshot.members) {
+      for (const member of renderMembers) {
         if (!member.position || (!projection.showFullMap && !visiblePlayerSet.has(member.playerId))) {
           continue;
         }
@@ -95,12 +106,14 @@ export async function createSceneController(container: HTMLDivElement): Promise<
         }
       }
 
-      renderFogOverlay(fogLayer, {
-        match,
-        tileSize: TILE_SIZE,
-        visibleTileKeys: projection.visibleTileKeys,
-        showFullMap: projection.showFullMap
-      });
+      if (match) {
+        renderFogOverlay(fogLayer, {
+          match,
+          tileSize: TILE_SIZE,
+          visibleTileKeys: projection.visibleTileKeys,
+          showFullMap: projection.showFullMap
+        });
+      }
     },
     destroy() {
       app.destroy({ removeView: true }, true);
@@ -117,12 +130,12 @@ function drawPlaceholder(graphics: Graphics) {
     .stroke({ color: 0x38bdf8, width: 2, alpha: 0.3 });
 }
 
-function pickTileColor(tile: string, match: NonNullable<RoomSnapshot["match"]>, position: { x: number; y: number }, isVisible: boolean) {
-  if (isInsideZone(match.map.startZone, position)) {
+function pickTileColor(tile: string, map: MapView, position: { x: number; y: number }, isVisible: boolean) {
+  if (isInsideZone(map.startZone, position)) {
     return isVisible ? 0x0ea5e9 : 0x164e63;
   }
 
-  if (isInsideZone(match.map.goalZone, position)) {
+  if (isInsideZone(map.goalZone, position)) {
     return isVisible ? 0xfacc15 : 0x713f12;
   }
 
@@ -137,17 +150,17 @@ function toPixiColor(color: string) {
   return Number.parseInt(color.replace("#", ""), 16);
 }
 
-function toVisibilityMap(match: NonNullable<RoomSnapshot["match"]>): MapDefinition {
+function toVisibilityMap(map: MapView): MapDefinition {
   return {
-    mapId: match.mapId,
-    name: match.mapId,
-    width: match.map.width,
-    height: match.map.height,
-    tiles: match.map.tiles,
-    startZone: match.map.startZone,
-    goalZone: match.map.goalZone,
-    startSlots: [],
+    mapId: map.mapId,
+    name: map.mapId,
+    width: map.width,
+    height: map.height,
+    tiles: map.tiles,
+    startZone: map.startZone,
+    goalZone: map.goalZone,
+    startSlots: map.startSlots,
     mazeEntrance: [],
-    visibilityRadius: match.map.visibilityRadius
+    visibilityRadius: map.visibilityRadius
   };
 }
