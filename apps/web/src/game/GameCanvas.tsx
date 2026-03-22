@@ -1,9 +1,10 @@
-import { useEffect, useRef, type CSSProperties } from "react";
+import { useEffect, useRef, useState, type CSSProperties } from "react";
 
 import type { RoomSnapshot } from "@fog-maze-race/shared/contracts/snapshots";
 import { isInsideZone } from "@fog-maze-race/shared/maps/map-definitions";
 
 import { createSceneController, type SceneController } from "./pixi/scene-controller.js";
+import { createBoardLayout } from "./pixi/renderers/board-render.js";
 
 type GameCanvasProps = {
   snapshot: RoomSnapshot | null;
@@ -87,42 +88,105 @@ function StartZonePreview({
   snapshot: RoomSnapshot;
   selfPlayerId: string | null;
 }) {
+  const stageRef = useRef<HTMLDivElement | null>(null);
+  const [viewport, setViewport] = useState({ width: 960, height: 540 });
   const map = snapshot.match?.map ?? snapshot.previewMap;
+
+  useEffect(() => {
+    const element = stageRef.current;
+    if (!element) {
+      return;
+    }
+
+    const updateSize = () => {
+      setViewport({
+        width: element.clientWidth || 960,
+        height: element.clientHeight || 540
+      });
+    };
+
+    updateSize();
+    if (typeof ResizeObserver === "undefined") {
+      return;
+    }
+
+    const observer = new ResizeObserver(() => {
+      updateSize();
+    });
+    observer.observe(element);
+
+    return () => {
+      observer.disconnect();
+    };
+  }, []);
+
   if (!map) {
     return <div data-testid="game-canvas" style={canvasShellStyle} />;
   }
 
-  const zoneWidth = map.startZone.maxX - map.startZone.minX + 1;
-  const zoneHeight = map.startZone.maxY - map.startZone.minY + 1;
-  const tileSize = 82;
   const members = snapshot.members.filter((member) => member.position && isInsideZone(map.startZone, member.position));
+  const layout = createBoardLayout(map, {
+    viewportWidth: viewport.width,
+    viewportHeight: viewport.height
+  });
+  const startZoneWidth = map.startZone.maxX - map.startZone.minX + 1;
+  const startZoneHeight = map.startZone.maxY - map.startZone.minY + 1;
+  const panelPadding = Math.max(6, Math.floor(layout.tileSize * 0.26));
+  const dotSize = Math.max(12, Math.floor(layout.tileSize * 0.6));
+  const startPanel = toPanelBox(layout, map.startZone, panelPadding);
+  const mazePanel = toPanelBox(layout, map.mazeZone, panelPadding);
 
   return (
     <div data-testid="game-canvas" style={canvasShellStyle}>
-      <div
-        style={{
-          ...previewBoardStyle,
-          width: zoneWidth * tileSize,
-          height: zoneHeight * tileSize,
-          gridTemplateColumns: `repeat(${zoneWidth}, ${tileSize}px)`,
-          gridTemplateRows: `repeat(${zoneHeight}, ${tileSize}px)`
-        }}
-      >
-        {Array.from({ length: zoneWidth * zoneHeight }, (_, index) => (
-          <div key={index} style={previewTileStyle} />
-        ))}
+      <div ref={stageRef} data-testid="preview-stage" style={previewStageStyle}>
+        <div
+          data-testid="preview-maze-panel"
+          style={{
+            ...previewPanelStyle,
+            ...mazePanel,
+            background:
+              "radial-gradient(circle at 35% 30%, rgba(15, 23, 42, 0.96), rgba(2, 6, 23, 0.985))",
+            borderColor: "rgba(29, 78, 216, 0.22)",
+            boxShadow: "inset 0 0 0 1px rgba(15, 23, 42, 0.88), 0 18px 54px rgba(2, 6, 23, 0.22)"
+          }}
+        />
+        <div
+          data-testid="preview-start-panel"
+          style={{
+            ...previewPanelStyle,
+            ...startPanel,
+            background: "rgba(8, 27, 44, 0.96)",
+            borderColor: "rgba(34, 211, 238, 0.34)"
+          }}
+        />
+        <div
+          style={{
+            position: "absolute",
+            left: `${layout.offsetX + map.startZone.minX * layout.tileSize}px`,
+            top: `${layout.offsetY + map.startZone.minY * layout.tileSize}px`,
+            width: `${startZoneWidth * layout.tileSize}px`,
+            height: `${startZoneHeight * layout.tileSize}px`,
+            display: "grid",
+            gridTemplateColumns: `repeat(${startZoneWidth}, ${layout.tileSize}px)`,
+            gridTemplateRows: `repeat(${startZoneHeight}, ${layout.tileSize}px)`
+          }}
+        >
+          {Array.from({ length: startZoneWidth * startZoneHeight }, (_, index) => (
+            <div key={index} data-testid="preview-start-tile" style={previewTileStyle(layout.tileSize)} />
+          ))}
+        </div>
         {members.map((member) => {
           const position = member.position!;
-          const x = (position.x - map.startZone.minX) * tileSize + tileSize / 2;
-          const y = (position.y - map.startZone.minY) * tileSize + tileSize / 2;
+          const x = layout.offsetX + position.x * layout.tileSize + layout.tileSize / 2 - dotSize / 2;
+          const y = layout.offsetY + position.y * layout.tileSize + layout.tileSize / 2 - dotSize / 2;
 
           return (
             <div
               key={member.playerId}
               style={{
-                ...playerDotStyle,
-                left: x,
-                top: y,
+                ...playerDotStyle(dotSize),
+                left: `${x}px`,
+                top: `${y}px`,
                 background: member.color,
                 boxShadow:
                   member.playerId === selfPlayerId
@@ -141,36 +205,52 @@ const canvasShellStyle: CSSProperties = {
   width: "100%",
   minHeight: "420px",
   height: "clamp(420px, 62vh, 760px)",
-  display: "grid",
-  placeItems: "center",
+  position: "relative",
   borderRadius: "26px",
   overflow: "hidden",
   background: "rgba(7, 17, 31, 0.94)",
   border: "1px solid rgba(56, 189, 248, 0.18)"
 };
 
-const previewBoardStyle: CSSProperties = {
+const previewStageStyle: CSSProperties = {
   position: "relative",
-  display: "grid",
-  padding: "20px",
-  borderRadius: "28px",
-  background: "rgba(8, 27, 44, 0.92)",
-  border: "1px solid rgba(34, 211, 238, 0.34)",
-  boxShadow: "0 18px 54px rgba(2, 6, 23, 0.3)"
-};
-
-const previewTileStyle: CSSProperties = {
   width: "100%",
-  height: "100%",
-  border: "1px solid rgba(4, 52, 78, 0.9)",
-  background: "#34c3df"
+  height: "100%"
 };
 
-const playerDotStyle: CSSProperties = {
+const previewPanelStyle: CSSProperties = {
   position: "absolute",
-  width: "34px",
-  height: "34px",
-  marginLeft: "-17px",
-  marginTop: "-17px",
-  borderRadius: "999px"
+  borderRadius: "24px",
+  border: "1px solid rgba(148, 163, 184, 0.18)"
 };
+
+function previewTileStyle(tileSize: number): CSSProperties {
+  return {
+    width: "100%",
+    height: "100%",
+    border: `1px solid rgba(4, 52, 78, ${tileSize >= 22 ? 0.9 : 0.72})`,
+    background: "#34c3df"
+  };
+}
+
+function playerDotStyle(dotSize: number): CSSProperties {
+  return {
+    position: "absolute",
+    width: `${dotSize}px`,
+    height: `${dotSize}px`,
+    borderRadius: "999px"
+  };
+}
+
+function toPanelBox(
+  layout: ReturnType<typeof createBoardLayout>,
+  bounds: { minX: number; minY: number; maxX: number; maxY: number },
+  padding: number
+): CSSProperties {
+  return {
+    left: `${layout.offsetX + bounds.minX * layout.tileSize - padding}px`,
+    top: `${layout.offsetY + bounds.minY * layout.tileSize - padding}px`,
+    width: `${(bounds.maxX - bounds.minX + 1) * layout.tileSize + padding * 2 - 2}px`,
+    height: `${(bounds.maxY - bounds.minY + 1) * layout.tileSize + padding * 2 - 2}px`
+  };
+}
