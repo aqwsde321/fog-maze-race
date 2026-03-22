@@ -8,6 +8,8 @@ export function renderFogOverlay(
   input: {
     match: MatchView;
     tileSize: number;
+    offsetX: number;
+    offsetY: number;
     visibleTileKeys: string[];
     showFullMap: boolean;
   }
@@ -27,7 +29,12 @@ export function renderFogOverlay(
       }
 
       graphics
-        .rect(x * input.tileSize, y * input.tileSize, input.tileSize, input.tileSize)
+        .rect(
+          input.offsetX + x * input.tileSize,
+          input.offsetY + y * input.tileSize,
+          input.tileSize,
+          input.tileSize
+        )
         .fill({ color: 0x020617, alpha: 0.78 });
     }
   }

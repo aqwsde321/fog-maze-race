@@ -17,7 +17,7 @@ describe("createVisibilityProjection", () => {
     });
 
     expect(projection.visibleTileKeys).toContain("0,0");
-    expect(projection.visibleTileKeys).toContain("14,14");
+    expect(projection.visibleTileKeys).toContain("13,14");
     expect(projection.visiblePlayerIds).toContain("goal-runner");
   });
 
@@ -47,7 +47,7 @@ describe("createVisibilityProjection", () => {
     });
 
     expect(projection.showFullMap).toBe(true);
-    expect(projection.visibleTileKeys).toContain("14,14");
+    expect(projection.visibleTileKeys).toContain("13,14");
     expect(projection.visibleTileKeys).toContain("0,0");
     expect(projection.visiblePlayerIds).toEqual(["self", "faraway"]);
   });

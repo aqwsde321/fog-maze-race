@@ -20,9 +20,11 @@ export type MapDefinition = {
   visibilityRadius: number;
 };
 
+const MAX_ROOM_PLAYERS = 15;
+
 const MAP_ALPHA_ROWS = [
   "SSSSS##########",
-  "SSSSS#........#",
+  "SSSSS.........#",
   "SSSSS#.######.#",
   "SSSSS#.#....#.#",
   "#####.#.##.#..#",
@@ -34,14 +36,14 @@ const MAP_ALPHA_ROWS = [
   "###.#....##.#.#",
   "#...#.##.##...#",
   "#.###.##.####.#",
-  "#......##....G#",
-  "##########GGGG#"
+  "#......##.....#",
+  "##########...G#"
 ];
 
 const MAP_BETA_ROWS = [
-  "SSSS###########",
-  "SSSS#.........#",
-  "SSSS#.#######.#",
+  "SSSSS##########",
+  "SSSSS.........#",
+  "SSSSS#.######.#",
   "####.#.....##.#",
   "#....#.###.##.#",
   "#.####.#.#....#",
@@ -52,14 +54,14 @@ const MAP_BETA_ROWS = [
   "#...#.##.####.#",
   "#.###....#..#.#",
   "#.....####..#.#",
-  "#.########..#G#",
-  "#..........GGG#"
+  "#.########...G#",
+  "#.............#"
 ];
 
 const TRAINING_LAP_ROWS = [
-  "SSS######",
-  "SSS....GG",
-  "SSS######"
+  "SSSSS#####",
+  "SSSSS...G#",
+  "SSSSS#####"
 ];
 
 function createMap(
@@ -90,54 +92,53 @@ export const MAP_DEFINITIONS: MapDefinition[] = [
     "training-lap",
     "Training Lap",
     TRAINING_LAP_ROWS,
-    { minX: 0, minY: 0, maxX: 2, maxY: 2 },
-    { minX: 7, minY: 0, maxX: 8, maxY: 2 },
-    [
-      { x: 0, y: 1 },
-      { x: 1, y: 1 },
-      { x: 2, y: 1 },
-      { x: 0, y: 0 },
-      { x: 1, y: 0 },
-      { x: 2, y: 0 },
-      { x: 0, y: 2 },
-      { x: 1, y: 2 },
-      { x: 2, y: 2 }
-    ],
-    [{ x: 3, y: 1 }]
+    { minX: 0, minY: 0, maxX: 4, maxY: 2 },
+    { minX: 8, minY: 1, maxX: 8, maxY: 1 },
+    createZoneSlots({ minX: 0, minY: 0, maxX: 4, maxY: 2 }, [1, 0, 2]),
+    [{ x: 5, y: 1 }]
   ),
   createMap(
     "alpha-run",
     "Alpha Run",
     MAP_ALPHA_ROWS,
     { minX: 0, minY: 0, maxX: 4, maxY: 3 },
-    { minX: 10, minY: 13, maxX: 14, maxY: 14 },
-    [
-      { x: 1, y: 1 },
-      { x: 2, y: 1 },
-      { x: 3, y: 1 },
-      { x: 1, y: 2 },
-      { x: 2, y: 2 },
-      { x: 3, y: 2 }
-    ],
+    { minX: 13, minY: 14, maxX: 13, maxY: 14 },
+    createZoneSlots({ minX: 0, minY: 0, maxX: 4, maxY: 3 }, [1, 2, 0, 3]).slice(0, MAX_ROOM_PLAYERS),
     [{ x: 5, y: 1 }]
   ),
   createMap(
     "beta-dash",
     "Beta Dash",
     MAP_BETA_ROWS,
-    { minX: 0, minY: 0, maxX: 3, maxY: 2 },
-    { minX: 11, minY: 13, maxX: 14, maxY: 14 },
-    [
-      { x: 0, y: 0 },
-      { x: 1, y: 0 },
-      { x: 2, y: 0 },
-      { x: 0, y: 1 },
-      { x: 1, y: 1 },
-      { x: 2, y: 1 }
-    ],
-    [{ x: 4, y: 1 }]
+    { minX: 0, minY: 0, maxX: 4, maxY: 2 },
+    { minX: 13, minY: 13, maxX: 13, maxY: 13 },
+    createZoneSlots({ minX: 0, minY: 0, maxX: 4, maxY: 2 }, [1, 0, 2]),
+    [{ x: 5, y: 1 }]
   )
 ];
+
+function createZoneSlots(zone: ZoneBounds, preferredRowOrder?: number[]) {
+  const slots: GridPosition[] = [];
+  const remainingRows = [];
+
+  for (let y = zone.minY; y <= zone.maxY; y += 1) {
+    if (!preferredRowOrder?.includes(y)) {
+      remainingRows.push(y);
+    }
+  }
+
+  const rowOrder = [...(preferredRowOrder ?? []), ...remainingRows].filter(
+    (y) => y >= zone.minY && y <= zone.maxY
+  );
+
+  for (const y of rowOrder) {
+    for (let x = zone.minX; x <= zone.maxX; x += 1) {
+      slots.push({ x, y });
+    }
+  }
+
+  return slots;
+}
 
 export function getMapById(mapId: string): MapDefinition | undefined {
   return MAP_DEFINITIONS.find((definition) => definition.mapId === mapId);

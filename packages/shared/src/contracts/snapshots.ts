@@ -21,6 +21,7 @@ export type MapView = {
   startZone: ZoneBounds;
   goalZone: ZoneBounds;
   startSlots: GridPosition[];
+  mazeEntrance: GridPosition[];
   visibilityRadius: number;
 };
 

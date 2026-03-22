@@ -2,11 +2,10 @@ import { Application, Graphics } from "pixi.js";
 
 import type { MapView, RoomSnapshot } from "@fog-maze-race/shared/contracts/snapshots";
 import { createVisibilityProjection, toTileKey } from "@fog-maze-race/shared/visibility/apply-visibility";
-import { isInsideZone, type MapDefinition } from "@fog-maze-race/shared/maps/map-definitions";
+import type { MapDefinition } from "@fog-maze-race/shared/maps/map-definitions";
 
+import { createBoardLayout, getTileVisual } from "./renderers/board-render.js";
 import { renderFogOverlay } from "./renderers/fog-renderer.js";
-
-const TILE_SIZE = 36;
 
 export type SceneController = {
   render: (snapshot: RoomSnapshot | null, selfPlayerId: string | null) => void;
@@ -44,7 +43,11 @@ export async function createSceneController(container: HTMLDivElement): Promise<
         return;
       }
 
-      app.renderer.resize(map.width * TILE_SIZE, map.height * TILE_SIZE);
+      const layout = createBoardLayout(map, {
+        viewportWidth: container.clientWidth || 640,
+        viewportHeight: container.clientHeight || 360
+      });
+      app.renderer.resize(layout.viewportWidth, layout.viewportHeight);
 
       const renderMembers =
         !match && snapshot.previewMap
@@ -80,13 +83,21 @@ export async function createSceneController(container: HTMLDivElement): Promise<
           const tile = map.tiles[y]?.[x] ?? "#";
           const position = { x, y };
           const isVisible = projection.showFullMap || visibleTileSet.has(toTileKey(position));
+          const visual = getTileVisual({
+            tile,
+            map,
+            position,
+            isVisible
+          });
 
           tileLayer
-            .rect(x * TILE_SIZE, y * TILE_SIZE, TILE_SIZE - 2, TILE_SIZE - 2)
-            .fill({
-              color: pickTileColor(tile, map, position, isVisible),
-              alpha: isVisible ? 1 : 0.4
-            });
+            .rect(
+              layout.offsetX + x * layout.tileSize,
+              layout.offsetY + y * layout.tileSize,
+              layout.tileSize - 2,
+              layout.tileSize - 2
+            )
+            .fill({ color: visual.fillColor, alpha: visual.alpha });
         }
       }
 
@@ -95,13 +106,15 @@ export async function createSceneController(container: HTMLDivElement): Promise<
           continue;
         }
 
-        const centerX = member.position.x * TILE_SIZE + TILE_SIZE / 2;
-        const centerY = member.position.y * TILE_SIZE + TILE_SIZE / 2;
-        playerLayer.circle(centerX, centerY, TILE_SIZE * 0.24).fill({ color: toPixiColor(member.color) });
+        const centerX = layout.offsetX + member.position.x * layout.tileSize + layout.tileSize / 2;
+        const centerY = layout.offsetY + member.position.y * layout.tileSize + layout.tileSize / 2;
+        playerLayer
+          .circle(centerX, centerY, layout.tileSize * 0.24)
+          .fill({ color: toPixiColor(member.color) });
 
         if (member.playerId === selfPlayerId) {
           playerLayer
-            .circle(centerX, centerY, TILE_SIZE * 0.3)
+            .circle(centerX, centerY, layout.tileSize * 0.3)
             .stroke({ color: 0xf8fafc, width: 3, alpha: 0.95 });
         }
       }
@@ -109,7 +122,9 @@ export async function createSceneController(container: HTMLDivElement): Promise<
       if (match) {
         renderFogOverlay(fogLayer, {
           match,
-          tileSize: TILE_SIZE,
+          tileSize: layout.tileSize,
+          offsetX: layout.offsetX,
+          offsetY: layout.offsetY,
           visibleTileKeys: projection.visibleTileKeys,
           showFullMap: projection.showFullMap
         });
@@ -130,22 +145,6 @@ function drawPlaceholder(graphics: Graphics) {
     .stroke({ color: 0x38bdf8, width: 2, alpha: 0.3 });
 }
 
-function pickTileColor(tile: string, map: MapView, position: { x: number; y: number }, isVisible: boolean) {
-  if (isInsideZone(map.startZone, position)) {
-    return isVisible ? 0x0ea5e9 : 0x164e63;
-  }
-
-  if (isInsideZone(map.goalZone, position)) {
-    return isVisible ? 0xfacc15 : 0x713f12;
-  }
-
-  if (tile === "#") {
-    return isVisible ? 0x334155 : 0x172033;
-  }
-
-  return isVisible ? 0x122033 : 0x0b1220;
-}
-
 function toPixiColor(color: string) {
   return Number.parseInt(color.replace("#", ""), 16);
 }
@@ -160,7 +159,7 @@ function toVisibilityMap(map: MapView): MapDefinition {
     startZone: map.startZone,
     goalZone: map.goalZone,
     startSlots: map.startSlots,
-    mazeEntrance: [],
+    mazeEntrance: map.mazeEntrance,
     visibilityRadius: map.visibilityRadius
   };
 }
