@@ -40,7 +40,7 @@ export function renderFogOverlay(
           input.tileSize,
           input.tileSize
         )
-        .fill({ color: 0x020617, alpha: 0.78 });
+        .fill({ color: 0x020617, alpha: 1 });
     }
   }
 }

@@ -38,7 +38,7 @@ const TRAINING_LAP_MAZE_ROWS = [
   "....."
 ];
 
-const ALPHA_RUN_MAZE_ROWS = [
+const ALPHA_RUN_CORE_ROWS = [
   "...................",
   ".###..#....##...#..",
   ".#....#.##....#.#..",
@@ -60,7 +60,7 @@ const ALPHA_RUN_MAZE_ROWS = [
   "..................."
 ];
 
-const BETA_DASH_MAZE_ROWS = [
+const BETA_DASH_CORE_ROWS = [
   "...................",
   "..##...#..###...##.",
   ".#..#..#....#.#....",
@@ -127,12 +127,12 @@ export const MAP_DEFINITIONS: MapDefinition[] = [
   createMap(
     "alpha-run",
     "Alpha Run",
-    ALPHA_RUN_MAZE_ROWS
+    expandMazeRows(ALPHA_RUN_CORE_ROWS, 3)
   ),
   createMap(
     "beta-dash",
     "Beta Dash",
-    BETA_DASH_MAZE_ROWS
+    expandMazeRows(BETA_DASH_CORE_ROWS, 3)
   )
 ];
 
@@ -157,6 +157,17 @@ function createConnectorTiles() {
     x: START_ZONE.maxX + 1,
     y: START_ZONE.minY + index
   }));
+}
+
+function expandMazeRows(coreRows: string[], padding: number) {
+  const width = (coreRows[0]?.length ?? 0) + padding * 2;
+  const spacerRow = ".".repeat(width);
+
+  return [
+    ...Array.from({ length: padding }, () => spacerRow),
+    ...coreRows.map((row) => `${".".repeat(padding)}${row}${".".repeat(padding)}`),
+    ...Array.from({ length: padding }, () => spacerRow)
+  ];
 }
 
 function findGoal(rows: string[]) {

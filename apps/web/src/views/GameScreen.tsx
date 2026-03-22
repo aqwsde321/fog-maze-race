@@ -1,4 +1,4 @@
-import type { CSSProperties } from "react";
+import { useEffect, useRef, type CSSProperties } from "react";
 
 import type { Direction } from "@fog-maze-race/shared/domain/grid-position";
 import type { RoomSnapshot } from "@fog-maze-race/shared/contracts/snapshots";
@@ -29,8 +29,17 @@ export function GameScreen({
   onLeaveRoom,
   onMove
 }: GameScreenProps) {
+  const canvasFrameRef = useRef<HTMLDivElement | null>(null);
   const isHost = snapshot.room.hostPlayerId === selfPlayerId;
   const canStart = snapshot.room.status === "waiting" && isHost;
+
+  useEffect(() => {
+    if (snapshot.room.status !== "playing") {
+      return;
+    }
+
+    canvasFrameRef.current?.focus();
+  }, [snapshot.room.status]);
 
   return (
     <section style={shellStyle}>
@@ -66,7 +75,12 @@ export function GameScreen({
         </header>
 
         <div
+          ref={canvasFrameRef}
+          data-testid="game-shell"
           style={canvasFrameStyle}
+          onPointerDown={() => {
+            canvasFrameRef.current?.focus();
+          }}
           onKeyDown={(event) => {
             if (snapshot.room.status !== "playing") {
               return;
@@ -78,6 +92,7 @@ export function GameScreen({
             }
 
             event.preventDefault();
+            event.stopPropagation();
             onMove(direction);
           }}
           tabIndex={0}

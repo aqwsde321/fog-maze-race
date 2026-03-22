@@ -138,27 +138,6 @@ export function App() {
     socket.connect();
   }, [nickname, playerId]);
 
-  useEffect(() => {
-    if (!snapshot || snapshot.room.status !== "playing") {
-      return;
-    }
-
-    function handleKeyDown(event: KeyboardEvent) {
-      const direction = toDirection(event.key);
-      if (!direction) {
-        return;
-      }
-
-      event.preventDefault();
-      handleMove(direction);
-    }
-
-    window.addEventListener("keydown", handleKeyDown);
-    return () => {
-      window.removeEventListener("keydown", handleKeyDown);
-    };
-  }, [snapshot]);
-
   function handleEnterLobby() {
     const nextNickname = nickname.trim().slice(0, 5);
     if (!nextNickname) {
@@ -280,21 +259,6 @@ export function App() {
       </div>
     </main>
   );
-}
-
-function toDirection(key: string): Direction | null {
-  switch (key) {
-    case "ArrowUp":
-      return "up";
-    case "ArrowDown":
-      return "down";
-    case "ArrowLeft":
-      return "left";
-    case "ArrowRight":
-      return "right";
-    default:
-      return null;
-  }
 }
 
 const pageStyle: CSSProperties = {

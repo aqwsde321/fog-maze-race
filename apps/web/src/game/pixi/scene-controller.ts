@@ -41,6 +41,7 @@ export async function createSceneController(container: HTMLDivElement): Promise<
 
       const match = snapshot?.match;
       const map = match?.map ?? snapshot?.previewMap;
+      const mode = match ? "live" : "preview";
       if (!snapshot || !map) {
         drawPlaceholder(tileLayer);
         return;
@@ -49,9 +50,9 @@ export async function createSceneController(container: HTMLDivElement): Promise<
       const layout = createBoardLayout(map, {
         viewportWidth: container.clientWidth || 640,
         viewportHeight: container.clientHeight || 360
-      });
+      }, mode === "preview" ? map.startZone : undefined);
       app.renderer.resize(layout.viewportWidth, layout.viewportHeight);
-      drawZonePanels(panelLayer, layout, map);
+      drawZonePanels(panelLayer, layout, map, mode);
 
       const renderMembers =
         !match && snapshot.previewMap
@@ -91,7 +92,8 @@ export async function createSceneController(container: HTMLDivElement): Promise<
             tile,
             map,
             position,
-            isVisible
+            isVisible,
+            mode
           });
           if (!visual) {
             continue;
@@ -175,19 +177,24 @@ function toVisibilityMap(map: MapView): MapDefinition {
 function drawZonePanels(
   graphics: Graphics,
   layout: ReturnType<typeof createBoardLayout>,
-  map: Pick<MapView, "startZone" | "mazeZone" | "connectorTiles">
+  map: Pick<MapView, "startZone" | "mazeZone" | "connectorTiles">,
+  mode: "live" | "preview"
 ) {
-  drawPanel(graphics, layout, map.mazeZone, {
-    fillColor: 0x081325,
-    fillAlpha: 0.92,
-    strokeColor: 0x1d4f91,
-    strokeAlpha: 0.35
-  });
   drawPanel(graphics, layout, map.startZone, {
     fillColor: 0x0a1b2c,
     fillAlpha: 0.95,
     strokeColor: 0x22d3ee,
     strokeAlpha: 0.36
+  });
+  if (mode === "preview") {
+    return;
+  }
+
+  drawPanel(graphics, layout, map.mazeZone, {
+    fillColor: 0x081325,
+    fillAlpha: 0.92,
+    strokeColor: 0x1d4f91,
+    strokeAlpha: 0.35
   });
   drawPanel(graphics, layout, toBounds(map.connectorTiles), {
     fillColor: 0x0d2731,

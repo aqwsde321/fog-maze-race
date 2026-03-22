@@ -46,8 +46,8 @@ describe("MAP_DEFINITIONS", () => {
       }
 
       if (map.mapId !== "training-lap") {
-        expect(zoneWidth(map.mazeZone)).toBeGreaterThanOrEqual(17);
-        expect(zoneHeight(map.mazeZone)).toBeGreaterThanOrEqual(17);
+        expect(zoneWidth(map.mazeZone)).toBe(25);
+        expect(zoneHeight(map.mazeZone)).toBe(25);
         expect(outerEdgeWalkableRatio(map)).toBeGreaterThan(0.7);
       }
     }
