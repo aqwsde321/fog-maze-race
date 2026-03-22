@@ -42,6 +42,9 @@ test("US3 hosts can rename rooms, hand off authority, and force-end the next rou
     await expect(guest.page.getByTestId("room-status")).toContainText("playing", {
       timeout: 6_000
     });
+    await expect(guest.page.getByTestId("countdown-overlay")).toBeHidden({
+      timeout: 6_000
+    });
 
     await guest.page.getByRole("button", { name: "강제 종료" }).click();
     await expect(guest.page.getByTestId("results-overlay")).toBeVisible({

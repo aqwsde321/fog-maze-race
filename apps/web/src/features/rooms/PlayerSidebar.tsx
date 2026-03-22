@@ -10,7 +10,10 @@ type PlayerSidebarProps = {
 export function PlayerSidebar({ snapshot, selfPlayerId }: PlayerSidebarProps) {
   return (
     <aside style={sidebarStyle}>
-      <h3 style={titleStyle}>플레이어</h3>
+      <div style={headerStyle}>
+        <h3 style={titleStyle}>플레이어</h3>
+        <span style={countStyle}>{snapshot.members.length}</span>
+      </div>
       <div style={listStyle}>
         {snapshot.members.map((member) => (
           <article key={member.playerId} style={memberCardStyle}>
@@ -31,9 +34,9 @@ export function PlayerSidebar({ snapshot, selfPlayerId }: PlayerSidebarProps) {
                 </p>
               </div>
             </div>
-            <strong style={rankStyle}>
-              {member.finishRank ? `${member.finishRank}위` : member.state === "playing" ? "주행 중" : "-"}
-            </strong>
+            <span style={rankStyle}>
+              {member.finishRank ? `${member.finishRank}위` : member.state === "playing" ? "주행" : member.state === "waiting" ? "대기" : "-"}
+            </span>
           </article>
         ))}
       </div>
@@ -42,44 +45,61 @@ export function PlayerSidebar({ snapshot, selfPlayerId }: PlayerSidebarProps) {
 }
 
 const sidebarStyle: CSSProperties = {
-  width: "300px",
-  minWidth: "300px",
-  maxWidth: "300px",
-  padding: "18px",
-  borderRadius: "20px",
+  width: "252px",
+  minWidth: "252px",
+  maxWidth: "252px",
+  padding: "14px 15px",
+  borderRadius: "18px",
   background: "linear-gradient(180deg, rgba(8, 15, 30, 0.9), rgba(7, 16, 30, 0.86))",
   border: "1px solid rgba(148, 163, 184, 0.08)",
   boxShadow: "0 12px 32px rgba(2, 6, 23, 0.16)",
   boxSizing: "border-box"
 };
 
+const headerStyle: CSSProperties = {
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "space-between"
+};
+
 const titleStyle: CSSProperties = {
   margin: 0,
-  fontSize: "1.6rem",
+  fontSize: "1.3rem",
   lineHeight: 1
+};
+
+const countStyle: CSSProperties = {
+  minWidth: "26px",
+  height: "26px",
+  display: "inline-grid",
+  placeItems: "center",
+  borderRadius: "999px",
+  fontSize: "0.82rem",
+  color: "#cbd5e1",
+  background: "rgba(15, 23, 42, 0.9)",
+  border: "1px solid rgba(148, 163, 184, 0.08)"
 };
 
 const listStyle: CSSProperties = {
   display: "grid",
-  gap: "10px",
-  marginTop: "14px"
+  gap: "2px",
+  marginTop: "10px"
 };
 
 const memberCardStyle: CSSProperties = {
   display: "flex",
   justifyContent: "space-between",
-  gap: "10px",
+  gap: "8px",
   alignItems: "center",
-  padding: "12px 13px",
-  borderRadius: "14px",
-  background: "rgba(15, 23, 42, 0.6)",
-  border: "1px solid rgba(148, 163, 184, 0.04)"
+  padding: "10px 4px",
+  borderBottom: "1px solid rgba(148, 163, 184, 0.06)"
 };
 
 const identityStyle: CSSProperties = {
   display: "flex",
-  gap: "10px",
-  alignItems: "center"
+  gap: "9px",
+  alignItems: "center",
+  minWidth: 0
 };
 
 const colorDotStyle: CSSProperties = {
@@ -90,16 +110,21 @@ const colorDotStyle: CSSProperties = {
 };
 
 const nameStyle: CSSProperties = {
-  display: "block"
+  display: "block",
+  fontSize: "0.98rem",
+  lineHeight: 1.1
 };
 
 const metaStyle: CSSProperties = {
-  margin: "4px 0 0",
+  margin: "3px 0 0",
   color: "#94a3b8",
-  fontSize: "0.85rem"
+  fontSize: "0.8rem"
 };
 
 const rankStyle: CSSProperties = {
   color: "#fde68a",
-  fontSize: "0.92rem"
+  fontSize: "0.78rem",
+  letterSpacing: "0.08em",
+  textTransform: "uppercase",
+  whiteSpace: "nowrap"
 };

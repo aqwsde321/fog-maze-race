@@ -27,12 +27,16 @@ test("US1 players can finish a race and return to waiting", async ({ browser }) 
     await expect.poll(async () => readLayout(host.page)).toEqual(waitingLayout);
 
     await host.page.getByRole("button", { name: "시작" }).click();
-    await expect(host.page.getByTestId("room-status")).toContainText("countdown");
+    await expect(host.page.getByTestId("countdown-overlay")).toBeVisible();
+    await expect(host.page.getByTestId("room-status")).toContainText("playing");
 
     const countdownLayout = await readLayout(host.page);
     await host.page.keyboard.press("ArrowRight");
     await expect.poll(async () => readLayout(host.page)).toEqual(countdownLayout);
 
+    await expect(host.page.getByTestId("countdown-overlay")).toBeHidden({
+      timeout: 6_000
+    });
     await expect(host.page.getByTestId("room-status")).toContainText("playing", {
       timeout: 6_000
     });

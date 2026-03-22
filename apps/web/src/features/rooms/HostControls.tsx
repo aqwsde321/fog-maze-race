@@ -2,17 +2,10 @@ import { useEffect, useState, type CSSProperties } from "react";
 
 type HostControlsProps = {
   roomName: string;
-  roomStatus: "waiting" | "countdown" | "playing" | "ended";
   onRenameRoom: (name: string) => void;
-  onForceEndRoom: () => void;
 };
 
-export function HostControls({
-  roomName,
-  roomStatus,
-  onRenameRoom,
-  onForceEndRoom
-}: HostControlsProps) {
+export function HostControls({ roomName, onRenameRoom }: HostControlsProps) {
   const [draftName, setDraftName] = useState(roomName);
 
   useEffect(() => {
@@ -21,7 +14,7 @@ export function HostControls({
 
   return (
     <div style={panelStyle}>
-      <label htmlFor="rename-room-name" style={labelStyle}>
+      <label htmlFor="rename-room-name" style={hiddenLabelStyle}>
         방 이름 수정
       </label>
       <div style={rowStyle}>
@@ -30,6 +23,7 @@ export function HostControls({
           name="rename-room-name"
           value={draftName}
           onChange={(event) => setDraftName(event.target.value)}
+          placeholder="방 이름 수정"
           style={inputStyle}
         />
         <button
@@ -40,30 +34,24 @@ export function HostControls({
           이름 변경
         </button>
       </div>
-      <button
-        type="button"
-        onClick={onForceEndRoom}
-        disabled={roomStatus === "waiting"}
-        style={forceEndButtonStyle}
-      >
-        강제 종료
-      </button>
     </div>
   );
 }
 
 const panelStyle: CSSProperties = {
-  display: "grid",
-  gap: "8px",
-  minWidth: "256px"
+  minWidth: "248px"
 };
 
-const labelStyle: CSSProperties = {
-  margin: 0,
-  color: "#94a3b8",
-  fontSize: "0.76rem",
-  letterSpacing: "0.1em",
-  textTransform: "uppercase"
+const hiddenLabelStyle: CSSProperties = {
+  position: "absolute",
+  width: "1px",
+  height: "1px",
+  padding: 0,
+  margin: "-1px",
+  overflow: "hidden",
+  clip: "rect(0, 0, 0, 0)",
+  whiteSpace: "nowrap",
+  border: 0
 };
 
 const rowStyle: CSSProperties = {
@@ -73,8 +61,8 @@ const rowStyle: CSSProperties = {
 };
 
 const inputStyle: CSSProperties = {
-  minHeight: "42px",
-  padding: "10px 12px",
+  minHeight: "40px",
+  padding: "9px 12px",
   borderRadius: "14px",
   border: "1px solid rgba(148, 163, 184, 0.24)",
   background: "rgba(15, 23, 42, 0.7)",
@@ -82,22 +70,11 @@ const inputStyle: CSSProperties = {
 };
 
 const renameButtonStyle: CSSProperties = {
-  minHeight: "42px",
+  minHeight: "40px",
   padding: "10px 14px",
   borderRadius: "14px",
   border: "1px solid rgba(56, 189, 248, 0.24)",
   background: "rgba(56, 189, 248, 0.12)",
   color: "#bae6fd",
-  cursor: "pointer"
-};
-
-const forceEndButtonStyle: CSSProperties = {
-  justifySelf: "start",
-  minHeight: "42px",
-  padding: "10px 14px",
-  borderRadius: "14px",
-  border: "1px solid rgba(248, 113, 113, 0.24)",
-  background: "rgba(239, 68, 68, 0.14)",
-  color: "#fecaca",
   cursor: "pointer"
 };

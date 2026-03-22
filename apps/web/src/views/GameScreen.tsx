@@ -33,6 +33,7 @@ export function GameScreen({
   const isHost = snapshot.room.hostPlayerId === selfPlayerId;
   const canStart = snapshot.room.status === "waiting" && isHost;
   const canMove = snapshot.room.status === "waiting" || snapshot.room.status === "countdown" || snapshot.room.status === "playing";
+  const displayStatus = snapshot.room.status === "countdown" ? "playing" : snapshot.room.status;
 
   useEffect(() => {
     if (!canMove) {
@@ -102,27 +103,33 @@ export function GameScreen({
           {isHost ? (
             <HostControls
               roomName={snapshot.room.name}
-              roomStatus={snapshot.room.status}
               onRenameRoom={onRenameRoom}
-              onForceEndRoom={onForceEndRoom}
             />
           ) : null}
           <div style={statusPanelStyle}>
             <p style={labelStyle}>Status</p>
             <strong data-testid="room-status" style={statusValueStyle}>
-              {snapshot.room.status}
-              {snapshot.room.status === "countdown" && countdownValue !== null ? ` · ${countdownValue}` : ""}
+              {displayStatus}
             </strong>
           </div>
-          <div style={buttonRowStyle}>
+          <div style={actionRailStyle}>
             {isHost ? (
-              <button type="button" onClick={onStartGame} disabled={!canStart} style={startButtonStyle}>
-                시작
-              </button>
+              <div style={dangerGroupStyle}>
+                <button type="button" onClick={onForceEndRoom} disabled={snapshot.room.status === "waiting"} style={dangerButtonStyle}>
+                  강제 종료
+                </button>
+              </div>
             ) : null}
-            <button type="button" onClick={onLeaveRoom} style={ghostButtonStyle}>
-              나가기
-            </button>
+            <div style={buttonRowStyle}>
+              {isHost ? (
+                <button type="button" onClick={onStartGame} disabled={!canStart} style={startButtonStyle}>
+                  시작
+                </button>
+              ) : null}
+              <button type="button" onClick={onLeaveRoom} style={ghostButtonStyle}>
+                나가기
+              </button>
+            </div>
           </div>
         </header>
 
@@ -184,7 +191,7 @@ function isEditableTarget(target: EventTarget | null) {
 const shellStyle: CSSProperties = {
   position: "relative",
   display: "grid",
-  gridTemplateColumns: "minmax(0, 1fr) 300px",
+  gridTemplateColumns: "minmax(0, 1fr) 252px",
   gap: "16px",
   width: "100%",
   maxWidth: "1360px",
@@ -203,13 +210,13 @@ const mainColumnStyle: CSSProperties = {
 
 const topBarStyle: CSSProperties = {
   display: "grid",
-  gridTemplateColumns: "minmax(0, 1fr) minmax(260px, auto) auto auto",
+  gridTemplateColumns: "minmax(0, 1fr) minmax(248px, auto) auto auto",
   gap: "12px",
   width: "100%",
   minWidth: 0,
   boxSizing: "border-box",
   alignItems: "center",
-  padding: "14px 18px",
+  padding: "12px 16px",
   borderRadius: "20px",
   overflow: "hidden",
   background: "linear-gradient(180deg, rgba(8, 15, 30, 0.92), rgba(7, 16, 30, 0.88))",
@@ -226,20 +233,34 @@ const labelStyle: CSSProperties = {
 };
 
 const roomNameStyle: CSSProperties = {
-  margin: "6px 0 0",
-  fontSize: "1.52rem",
+  margin: "4px 0 0",
+  fontSize: "1.46rem",
   lineHeight: 1.05
 };
 
 const statusPanelStyle: CSSProperties = {
-  padding: "0 2px"
+  padding: "0 2px",
+  minWidth: "72px"
 };
 
 const statusValueStyle: CSSProperties = {
   display: "block",
   marginTop: "4px",
-  fontSize: "0.95rem",
+  fontSize: "0.92rem",
   color: "#f8fafc"
+};
+
+const actionRailStyle: CSSProperties = {
+  display: "flex",
+  alignItems: "center",
+  gap: "12px"
+};
+
+const dangerGroupStyle: CSSProperties = {
+  display: "flex",
+  alignItems: "center",
+  paddingRight: "12px",
+  borderRight: "1px solid rgba(148, 163, 184, 0.12)"
 };
 
 const buttonRowStyle: CSSProperties = {
@@ -248,9 +269,19 @@ const buttonRowStyle: CSSProperties = {
   alignItems: "center"
 };
 
+const dangerButtonStyle: CSSProperties = {
+  minHeight: "40px",
+  padding: "9px 13px",
+  borderRadius: "14px",
+  border: "1px solid rgba(248, 113, 113, 0.2)",
+  background: "rgba(239, 68, 68, 0.12)",
+  color: "#fecaca",
+  cursor: "pointer"
+};
+
 const startButtonStyle: CSSProperties = {
-  minHeight: "44px",
-  padding: "10px 15px",
+  minHeight: "40px",
+  padding: "9px 14px",
   borderRadius: "16px",
   border: 0,
   background: "linear-gradient(135deg, #38bdf8, #0ea5e9)",
@@ -260,8 +291,8 @@ const startButtonStyle: CSSProperties = {
 };
 
 const ghostButtonStyle: CSSProperties = {
-  minHeight: "44px",
-  padding: "10px 15px",
+  minHeight: "40px",
+  padding: "9px 14px",
   borderRadius: "16px",
   border: "1px solid rgba(148, 163, 184, 0.22)",
   background: "transparent",
