@@ -29,11 +29,35 @@ describe("RoomService", () => {
 
     const colors = service.getSnapshot(created.roomId).members.map((member) => member.color);
 
-    expect(colors).toEqual(["#ff5c7a", "#ff8a5b"]);
+    expect(colors).toEqual(["#ff5f7a", "#ff8c42"]);
     expect(colors).not.toContain("#22d3ee");
     expect(colors).not.toContain("#14b8a6");
     expect(colors).not.toContain("#facc15");
     expect(colors).not.toContain("#64748b");
+  });
+
+  it("keeps the first 15 assigned player colors unique", () => {
+    const service = new RoomService(new RevisionSync());
+    const room = service.createRoom({
+      session: new PlayerSession({
+        playerId: "p0",
+        nickname: "P0"
+      }),
+      name: "Alpha"
+    });
+
+    for (let index = 1; index < 15; index += 1) {
+      service.joinRoom({
+        roomId: room.roomId,
+        session: new PlayerSession({
+          playerId: `p${index}`,
+          nickname: `P${index}`
+        })
+      });
+    }
+
+    const colors = service.getSnapshot(room.roomId).members.map((member) => member.color);
+    expect(new Set(colors).size).toBe(15);
   });
 
   it("includes the result display duration in ended match snapshots", () => {

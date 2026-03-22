@@ -195,8 +195,8 @@ function StartZonePreview({
                 background: member.color,
                 boxShadow:
                   member.playerId === selfPlayerId
-                    ? "0 0 0 4px rgba(248,250,252,0.92)"
-                    : "0 0 0 3px rgba(255,255,255,0.08)"
+                    ? "0 0 0 3px rgba(8,17,31,0.96), 0 0 0 6px rgba(248,250,252,0.92)"
+                    : "0 0 0 3px rgba(8,17,31,0.96)"
               }}
             />
           );

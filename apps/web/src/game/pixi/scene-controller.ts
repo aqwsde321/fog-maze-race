@@ -120,7 +120,8 @@ export async function createSceneController(container: HTMLDivElement): Promise<
         const centerY = layout.offsetY + member.position.y * layout.tileSize + layout.tileSize / 2;
         playerLayer
           .circle(centerX, centerY, layout.tileSize * 0.24)
-          .fill({ color: toPixiColor(member.color) });
+          .fill({ color: toPixiColor(member.color) })
+          .stroke({ color: 0x08111f, width: 3, alpha: 0.96 });
 
         if (member.playerId === selfPlayerId) {
           playerLayer

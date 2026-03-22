@@ -15,9 +15,10 @@ export function PlayerSidebar({ snapshot, selfPlayerId }: PlayerSidebarProps) {
         <span style={countStyle}>{snapshot.members.length}</span>
       </div>
       <div style={listStyle}>
-        {snapshot.members.map((member) => (
+        {snapshot.members.map((member, index) => (
           <article key={member.playerId} style={memberCardStyle}>
             <div style={identityStyle}>
+              <span style={orderChipStyle}>{index + 1}</span>
               <span
                 style={{
                   ...colorDotStyle,
@@ -103,11 +104,26 @@ const identityStyle: CSSProperties = {
   minWidth: 0
 };
 
+const orderChipStyle: CSSProperties = {
+  minWidth: "18px",
+  height: "18px",
+  display: "inline-grid",
+  placeItems: "center",
+  borderRadius: "999px",
+  fontSize: "0.66rem",
+  fontWeight: 700,
+  color: "#94a3b8",
+  background: "rgba(15, 23, 42, 0.92)",
+  border: "1px solid rgba(148, 163, 184, 0.1)",
+  flexShrink: 0
+};
+
 const colorDotStyle: CSSProperties = {
   width: "11px",
   height: "11px",
   borderRadius: "999px",
-  boxShadow: "0 0 0 3px rgba(255,255,255,0.08)"
+  boxShadow: "0 0 0 3px rgba(8,17,31,0.92)",
+  flexShrink: 0
 };
 
 const nameStyle: CSSProperties = {
