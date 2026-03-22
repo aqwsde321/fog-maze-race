@@ -1,8 +1,8 @@
 import type {
   PlayerMovedPayload,
   RoomStateUpdatePayload
-} from "../../../../packages/shared/src/contracts/realtime.js";
-import type { RoomSnapshot } from "../../../../packages/shared/src/contracts/snapshots.js";
+} from "@fog-maze-race/shared/contracts/realtime";
+import type { RoomSnapshot } from "@fog-maze-race/shared/contracts/snapshots";
 import { create } from "zustand";
 
 type RoomState = {

@@ -110,15 +110,15 @@ description: "Task list for Fog Maze Race MVP implementation"
 
 ### Tests for User Story 3 ⚠️
 
-- [ ] T025 [P] [US3] Write failing room administration contract tests in `/Users/jino/study/project/fog-maze-race/apps/server/tests/contracts/us3-room-admin.contract.test.ts`
-- [ ] T026 [P] [US3] Write failing room administration browser flow test in `/Users/jino/study/project/fog-maze-race/tests/e2e/us3-room-admin.spec.ts`
+- [x] T025 [P] [US3] Write failing room administration contract tests in `/Users/jino/study/project/fog-maze-race/apps/server/tests/contracts/us3-room-admin.contract.test.ts`
+- [x] T026 [P] [US3] Write failing room administration browser flow test in `/Users/jino/study/project/fog-maze-race/tests/e2e/us3-room-admin.spec.ts`
 
 ### Implementation for User Story 3
 
-- [ ] T027 [US3] Implement room list projection updates, room rename, and force-end commands in `/Users/jino/study/project/fog-maze-race/apps/server/src/rooms/room-service.ts` and `/Users/jino/study/project/fog-maze-race/apps/server/src/ws/handlers/admin-handlers.ts`
-- [ ] T028 [US3] Implement host reassignment and forced result generation in `/Users/jino/study/project/fog-maze-race/apps/server/src/rooms/reassign-host.ts` and `/Users/jino/study/project/fog-maze-race/apps/server/src/rooms/force-end-match.ts`
-- [ ] T029 [US3] Implement room list refresh, rename controls, and host-only actions in `/Users/jino/study/project/fog-maze-race/apps/web/src/features/rooms/RoomListPanel.tsx` and `/Users/jino/study/project/fog-maze-race/apps/web/src/features/rooms/HostControls.tsx`
-- [ ] T030 [US3] Implement forced-end result rendering and make US3 tests pass in `/Users/jino/study/project/fog-maze-race/apps/web/src/features/rooms/ResultOverlay.tsx` and `/Users/jino/study/project/fog-maze-race/apps/web/src/views/GameScreen.tsx`
+- [x] T027 [US3] Implement room list projection updates, room rename, and force-end commands in `/Users/jino/study/project/fog-maze-race/apps/server/src/rooms/room-service.ts` and `/Users/jino/study/project/fog-maze-race/apps/server/src/ws/handlers/admin-handlers.ts`
+- [x] T028 [US3] Implement host reassignment and forced result generation in `/Users/jino/study/project/fog-maze-race/apps/server/src/core/room.ts` and `/Users/jino/study/project/fog-maze-race/apps/server/src/rooms/force-end-match.ts`
+- [x] T029 [US3] Implement room list refresh, rename controls, and host-only actions in `/Users/jino/study/project/fog-maze-race/apps/web/src/features/rooms/HostControls.tsx` and `/Users/jino/study/project/fog-maze-race/apps/web/src/app/App.tsx`
+- [x] T030 [US3] Implement forced-end result rendering and make US3 tests pass in `/Users/jino/study/project/fog-maze-race/apps/web/src/features/rooms/ResultOverlay.tsx` and `/Users/jino/study/project/fog-maze-race/apps/web/src/views/GameScreen.tsx`
 
 **Checkpoint**: All user stories are independently functional and support repeat play in the same room lifecycle
 
@@ -128,9 +128,9 @@ description: "Task list for Fog Maze Race MVP implementation"
 
 **Purpose**: Close the loop on deployment, documentation, and confidence checks that affect multiple user stories
 
-- [ ] T031 [P] Add production build and start scripts for same-origin deployment in `/Users/jino/study/project/fog-maze-race/package.json` and `/Users/jino/study/project/fog-maze-race/apps/server/src/app/server.ts`
-- [ ] T032 [P] Add a 15-player render and transport smoke test in `/Users/jino/study/project/fog-maze-race/tests/e2e/perf-smoke.spec.ts`
-- [ ] T033 Validate the developer runbook against the implementation and update `/Users/jino/study/project/fog-maze-race/specs/001-fog-maze-race/quickstart.md`
+- [x] T031 [P] Add production build and start scripts for same-origin deployment in `/Users/jino/study/project/fog-maze-race/package.json` and `/Users/jino/study/project/fog-maze-race/apps/server/src/app/server.ts`
+- [x] T032 [P] Add a 15-player render and transport smoke test in `/Users/jino/study/project/fog-maze-race/tests/e2e/perf-smoke.spec.ts`
+- [x] T033 Validate the developer runbook against the implementation and update `/Users/jino/study/project/fog-maze-race/specs/001-fog-maze-race/quickstart.md`
 
 ---
 

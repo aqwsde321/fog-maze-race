@@ -2,18 +2,16 @@
 
 ## Goal
 
-Get the first playable vertical slice running locally with the minimum amount of tooling
-and infrastructure.
+Run the playable MVP locally, validate the three user stories, and start the same-origin
+production server that serves both the web client and Socket.IO backend.
 
 ## Prerequisites
 
 - Node.js 22 LTS
-- `pnpm` workspace support
+- `pnpm` 10+
 - Modern desktop browser
 
-## Recommended Bootstrap
-
-### 1. Create the workspace layout
+## Workspace Layout
 
 ```text
 apps/server
@@ -22,98 +20,73 @@ packages/shared
 tests/e2e
 ```
 
-### 2. Scaffold the web client
+## Tech Stack
 
-- Use Vite React TypeScript for `apps/web`.
-- Keep React responsible for page layout, overlays, sidebar, and session/room flow.
-- Keep the maze canvas inside a dedicated `GameCanvas` boundary.
+- `apps/web`: React 19, Vite 7, PixiJS 8, Zustand
+- `apps/server`: Fastify 5, Socket.IO 4.x
+- `packages/shared`: shared contracts, map definitions, visibility rules
+- Tests: Vitest, Playwright
 
-### 3. Scaffold the server
+## Local Development
 
-- Create a TypeScript Node service in `apps/server`.
-- Start with Fastify for HTTP bootstrapping and health checks.
-- Mount Socket.IO on the same server instance.
-
-### 4. Create the shared package first
-
-Implement these shared modules before UI polish:
-
-- room and match status enums
-- event payload types
-- snapshot shapes
-- map definitions
-- visibility helper types
-
-## Suggested Dependency Split
-
-### `apps/web`
-
-- `react`
-- `react-dom`
-- `pixi.js`
-- `socket.io-client`
-- `zustand`
-
-### `apps/server`
-
-- `fastify`
-- `socket.io`
-
-### Workspace development tools
-
-- `typescript`
-- `vite`
-- `vitest`
-- `@testing-library/react`
-- `playwright`
-- `tsx`
-
-## Recommended Local Commands
-
-Once the workspace is scaffolded, keep the command surface small:
+Install dependencies and run the web client plus authoritative server together:
 
 ```bash
 pnpm install
 pnpm dev
+```
+
+- Web client: `http://127.0.0.1:4173`
+- Server health check: `http://127.0.0.1:3000/health`
+
+## Core Validation
+
+Run the required static and automated checks:
+
+```bash
+pnpm typecheck
 pnpm test
 pnpm test:e2e
+```
+
+Key browser flows covered in `tests/e2e`:
+
+- `us1-race-flow.spec.ts`: room create/join, countdown, movement, finish, waiting reset
+- `us2-reconnect.spec.ts`: disconnect grace, reconnect restore, timeout leave
+- `us3-room-admin.spec.ts`: room rename, host reassignment, force-end, waiting reset
+- `perf-smoke.spec.ts`: 15-player join and start smoke check
+
+## Production Build
+
+Build all workspaces, then run the production server:
+
+```bash
 pnpm build
 pnpm start
 ```
 
-Suggested behavior:
+Production behavior:
 
-- `pnpm dev`: runs `apps/server` and `apps/web` concurrently
-- `pnpm start`: runs the production server, which also serves the built frontend assets
+- `apps/web/dist` is served by `apps/server`
+- Socket.IO uses the same origin as the page
+- Health check remains available at `GET /health`
 
-## Fastest MVP Build Order
+## Manual MVP Checklist
 
-1. Implement shared contracts and map definitions.
-2. Implement the authoritative room and match state engine on the server.
-3. Add Socket.IO connection, room join/leave, countdown, and movement commands.
-4. Add reconnect grace handling and full snapshot resync.
-5. Build the React shell for nickname entry, room list, and sidebar.
-6. Build the PixiJS renderer for map, fog, and player markers.
-7. Add result screen and automatic reset to `waiting`.
-8. Cover the main loop with Playwright multi-client tests.
-
-## Local Validation Checklist
-
-- Two browsers can connect to the same room.
-- Host can start a match from the game screen.
-- Both clients see synchronized countdown transitions.
-- Movement is authoritative and walls block correctly.
-- Fog rules hide off-vision maze players.
-- Finishing reveals the whole map only to the finisher.
-- Disconnect and reconnect within 30 seconds restores the player.
-- Result screen returns the room to `waiting` after 6 seconds.
+- Two or more players can create and join a waiting room.
+- Only the host can start, rename, or force-end a room.
+- Server-authoritative movement blocks walls and broadcasts positions.
+- Fog of war hides off-vision maze players until the finisher reveal.
+- Disconnect within the grace window restores the player state and position.
+- Leaving or timing out excludes the player from completion logic.
+- Results show finish order or `나감`, then the room returns to `waiting`.
 
 ## Deployment Shape
 
 - One Render Web Service
 - Same-origin static asset delivery and Socket.IO transport
-- One instance only for MVP
-- Health check through `GET /health`
+- Single instance only for MVP
+- In-memory runtime state with client-side localStorage for nickname/player identity
 
-If active-match continuity across deploys or multi-instance scale becomes important, the
-next step is shared session storage plus a multi-instance Socket.IO adapter.
+If persistent rooms, zero-downtime recovery, or multi-instance scale becomes necessary,
+add external session/state storage and a multi-instance Socket.IO adapter.

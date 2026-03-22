@@ -1,4 +1,4 @@
-import type { PlayerConnectionState } from "../../../../packages/shared/src/domain/status.js";
+import type { PlayerConnectionState } from "@fog-maze-race/shared/domain/status";
 
 export class PlayerSession {
   readonly playerId: string;

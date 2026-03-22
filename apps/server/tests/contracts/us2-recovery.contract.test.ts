@@ -6,8 +6,8 @@ import type {
   GameEndedPayload,
   RoomJoinedPayload,
   RoomStateUpdatePayload
-} from "../../../../packages/shared/src/contracts/realtime.js";
-import type { RoomSnapshot } from "../../../../packages/shared/src/contracts/snapshots.js";
+} from "@fog-maze-race/shared/contracts/realtime";
+import type { RoomSnapshot } from "@fog-maze-race/shared/contracts/snapshots";
 import { buildServer } from "../../src/app/server.js";
 
 type EventMap = {

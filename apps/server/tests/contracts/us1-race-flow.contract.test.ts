@@ -10,7 +10,7 @@ import type {
   RoomJoinedPayload,
   RoomListUpdatePayload,
   RoomStateUpdatePayload
-} from "../../../../packages/shared/src/contracts/realtime.js";
+} from "@fog-maze-race/shared/contracts/realtime";
 import { buildServer } from "../../src/app/server.js";
 
 type EventMap = {

@@ -3,40 +3,40 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "main": "./src/index.ts",
-  "types": "./src/index.ts",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
   "exports": {
     ".": {
-      "types": "./src/index.ts",
-      "default": "./src/index.ts"
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
     },
     "./contracts/realtime": {
-      "types": "./src/contracts/realtime.ts",
-      "default": "./src/contracts/realtime.ts"
+      "types": "./dist/contracts/realtime.d.ts",
+      "default": "./dist/contracts/realtime.js"
     },
     "./contracts/snapshots": {
-      "types": "./src/contracts/snapshots.ts",
-      "default": "./src/contracts/snapshots.ts"
+      "types": "./dist/contracts/snapshots.d.ts",
+      "default": "./dist/contracts/snapshots.js"
     },
     "./domain/grid-position": {
-      "types": "./src/domain/grid-position.ts",
-      "default": "./src/domain/grid-position.ts"
+      "types": "./dist/domain/grid-position.d.ts",
+      "default": "./dist/domain/grid-position.js"
     },
     "./domain/result-entry": {
-      "types": "./src/domain/result-entry.ts",
-      "default": "./src/domain/result-entry.ts"
+      "types": "./dist/domain/result-entry.d.ts",
+      "default": "./dist/domain/result-entry.js"
     },
     "./domain/status": {
-      "types": "./src/domain/status.ts",
-      "default": "./src/domain/status.ts"
+      "types": "./dist/domain/status.d.ts",
+      "default": "./dist/domain/status.js"
     },
     "./maps/map-definitions": {
-      "types": "./src/maps/map-definitions.ts",
-      "default": "./src/maps/map-definitions.ts"
+      "types": "./dist/maps/map-definitions.d.ts",
+      "default": "./dist/maps/map-definitions.js"
     },
     "./visibility/apply-visibility": {
-      "types": "./src/visibility/apply-visibility.ts",
-      "default": "./src/visibility/apply-visibility.ts"
+      "types": "./dist/visibility/apply-visibility.d.ts",
+      "default": "./dist/visibility/apply-visibility.js"
     }
   },
   "scripts": {

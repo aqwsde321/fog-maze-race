@@ -1,5 +1,5 @@
 import type { Server, Socket } from "socket.io";
-import type { ConnectedPayload } from "../../../../../packages/shared/src/contracts/realtime.js";
+import type { ConnectedPayload } from "@fog-maze-race/shared/contracts/realtime";
 
 import type { MatchEventSink } from "../../matches/match-service.js";
 import { RoomService } from "../../rooms/room-service.js";

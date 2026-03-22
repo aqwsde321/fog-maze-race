@@ -3,15 +3,15 @@ import {
   samePosition,
   type Direction,
   type GridPosition
-} from "../../../../packages/shared/src/domain/grid-position.js";
-import type { ResultEntry } from "../../../../packages/shared/src/domain/result-entry.js";
-import type { MatchStatus } from "../../../../packages/shared/src/domain/status.js";
+} from "@fog-maze-race/shared/domain/grid-position";
+import type { ResultEntry } from "@fog-maze-race/shared/domain/result-entry";
+import type { MatchStatus } from "@fog-maze-race/shared/domain/status";
 import {
   getMapById,
   isInsideZone,
   isWalkableTile,
   type MapDefinition
-} from "../../../../packages/shared/src/maps/map-definitions.js";
+} from "@fog-maze-race/shared/maps/map-definitions";
 
 export class MatchAggregate {
   readonly matchId: string;
