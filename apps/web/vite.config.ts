@@ -1,14 +1,17 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 
+const webPort = Number(process.env.VITE_PORT ?? 4173);
+const proxyTarget = process.env.VITE_PROXY_TARGET ?? "http://127.0.0.1:3000";
+
 export default defineConfig({
   plugins: [react()],
   server: {
     host: "127.0.0.1",
-    port: 4173,
+    port: webPort,
     proxy: {
       "/socket.io": {
-        target: "http://127.0.0.1:3000",
+        target: proxyTarget,
         ws: true
       }
     }
