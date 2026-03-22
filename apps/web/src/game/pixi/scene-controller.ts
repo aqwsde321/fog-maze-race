@@ -77,6 +77,7 @@ export async function createSceneController(container: HTMLDivElement): Promise<
         : {
             showFullMap: true,
             visibleTileKeys: [],
+            tileVisibilityByKey: {},
             visiblePlayerIds: renderMembers
               .filter((member) => Boolean(member.position))
               .map((member) => member.playerId)
@@ -138,6 +139,7 @@ export async function createSceneController(container: HTMLDivElement): Promise<
           offsetX: layout.offsetX,
           offsetY: layout.offsetY,
           visibleTileKeys: projection.visibleTileKeys,
+          tileVisibilityByKey: projection.tileVisibilityByKey,
           showFullMap: projection.showFullMap
         });
       }

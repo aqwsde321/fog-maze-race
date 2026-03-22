@@ -15,6 +15,7 @@ export type VisibilityMember = {
 export type VisibilityProjection = {
   showFullMap: boolean;
   visibleTileKeys: string[];
+  tileVisibilityByKey: Record<string, number>;
   visiblePlayerIds: string[];
 };
 
@@ -33,18 +34,21 @@ export function createVisibilityProjection(input: {
     return {
       showFullMap: false,
       visibleTileKeys: [],
+      tileVisibilityByKey: {},
       visiblePlayerIds: []
     };
   }
 
   const showFullMap = self.state === "finished";
   const visibleTiles = new Set<string>();
+  const tileVisibilityByKey: Record<string, number> = {};
   const visiblePlayerIds = new Set<string>();
 
   if (showFullMap) {
     for (let y = 0; y < input.map.height; y += 1) {
       for (let x = 0; x < input.map.width; x += 1) {
         visibleTiles.add(toTileKey({ x, y }));
+        tileVisibilityByKey[toTileKey({ x, y })] = 1;
       }
     }
 
@@ -55,6 +59,7 @@ export function createVisibilityProjection(input: {
     return {
       showFullMap,
       visibleTileKeys: [...visibleTiles],
+      tileVisibilityByKey,
       visiblePlayerIds: [...visiblePlayerIds]
     };
   }
@@ -62,13 +67,21 @@ export function createVisibilityProjection(input: {
   for (let y = 0; y < input.map.height; y += 1) {
     for (let x = 0; x < input.map.width; x += 1) {
       const position = { x, y };
+      const tileKey = toTileKey(position);
+      const clarity = getTileVisibilityClarity(self.position, position, input.map.visibilityRadius);
       if (
         isInsideZone(input.map.startZone, position) ||
         isConnectorTile(input.map, position) ||
         isInsideZone(input.map.goalZone, position) ||
-        withinVision(self.position, position, input.map.visibilityRadius)
+        clarity > 0
       ) {
-        visibleTiles.add(toTileKey(position));
+        visibleTiles.add(tileKey);
+        tileVisibilityByKey[tileKey] =
+          isInsideZone(input.map.startZone, position) ||
+          isConnectorTile(input.map, position) ||
+          isInsideZone(input.map.goalZone, position)
+            ? 1
+            : clarity;
       }
     }
   }
@@ -82,7 +95,7 @@ export function createVisibilityProjection(input: {
       isInsideZone(input.map.startZone, member.position) ||
       isConnectorTile(input.map, member.position) ||
       isInsideZone(input.map.goalZone, member.position) ||
-      withinVision(self.position, member.position, input.map.visibilityRadius)
+      getTileVisibilityClarity(self.position, member.position, input.map.visibilityRadius) > 0
     ) {
       visiblePlayerIds.add(member.playerId);
     }
@@ -91,13 +104,21 @@ export function createVisibilityProjection(input: {
   return {
     showFullMap,
     visibleTileKeys: [...visibleTiles],
+    tileVisibilityByKey,
     visiblePlayerIds: [...visiblePlayerIds]
   };
 }
 
-function withinVision(origin: GridPosition, target: GridPosition, radius: number): boolean {
-  return (
-    Math.abs(origin.x - target.x) <= radius &&
-    Math.abs(origin.y - target.y) <= radius
-  );
+function getTileVisibilityClarity(origin: GridPosition, target: GridPosition, radius: number): number {
+  const distance = Math.hypot(target.x - origin.x, target.y - origin.y);
+  if (distance > radius) {
+    return 0;
+  }
+
+  const normalizedDistance = distance / Math.max(radius, 1);
+  return clamp(1 - normalizedDistance * 0.72, 0.28, 1);
+}
+
+function clamp(value: number, min: number, max: number) {
+  return Math.min(max, Math.max(min, value));
 }

@@ -86,7 +86,7 @@ authoritative 상태는 서버에 존재하며, 클라이언트에는 전체 방
 | `goalZone` | `ZoneBounds` | 미로 내부 단일 골 타일 |
 | `startSlots` | `GridPosition[]` | 시작 영역의 15개 고정 슬롯 |
 | `connectorTiles` | `GridPosition[]` | 시작 구역과 미로를 잇는 `1x5` 세로 통로 |
-| `visibilityRadius` | integer | 기본 3칸으로, 실제 시야는 7x7 |
+| `visibilityRadius` | integer | 기본 3칸으로, 실제 시야는 반경 3칸 원형 근사 |
 
 ### `ResultEntry`
 
