@@ -1,8 +1,8 @@
-import type { GridPosition } from "../../../../packages/shared/src/domain/grid-position.js";
+import type { GridPosition } from "@fog-maze-race/shared/domain/grid-position";
 import type {
   RoomMemberState,
   RoomStatus
-} from "../../../../packages/shared/src/domain/status.js";
+} from "@fog-maze-race/shared/domain/status";
 
 export type RoomMemberRecord = {
   playerId: string;

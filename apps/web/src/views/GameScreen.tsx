@@ -3,6 +3,7 @@ import type { CSSProperties } from "react";
 import type { Direction } from "@fog-maze-race/shared/domain/grid-position";
 import type { RoomSnapshot } from "@fog-maze-race/shared/contracts/snapshots";
 
+import { HostControls } from "../features/rooms/HostControls.js";
 import { PlayerSidebar } from "../features/rooms/PlayerSidebar.js";
 import { ResultOverlay } from "../features/rooms/ResultOverlay.js";
 import { GameCanvas } from "../game/GameCanvas.js";
@@ -12,6 +13,9 @@ type GameScreenProps = {
   selfPlayerId: string | null;
   countdownValue: number | null;
   onStartGame: () => void;
+  onRenameRoom: (name: string) => void;
+  onForceEndRoom: () => void;
+  onLeaveRoom: () => void;
   onMove: (direction: Direction) => void;
 };
 
@@ -20,6 +24,9 @@ export function GameScreen({
   selfPlayerId,
   countdownValue,
   onStartGame,
+  onRenameRoom,
+  onForceEndRoom,
+  onLeaveRoom,
   onMove
 }: GameScreenProps) {
   const isHost = snapshot.room.hostPlayerId === selfPlayerId;
@@ -33,6 +40,14 @@ export function GameScreen({
             <p style={labelStyle}>Room</p>
             <h2 style={roomNameStyle}>{snapshot.room.name}</h2>
           </div>
+          {isHost ? (
+            <HostControls
+              roomName={snapshot.room.name}
+              roomStatus={snapshot.room.status}
+              onRenameRoom={onRenameRoom}
+              onForceEndRoom={onForceEndRoom}
+            />
+          ) : null}
           <div style={statusPanelStyle}>
             <p style={labelStyle}>Status</p>
             <strong data-testid="room-status" style={statusValueStyle}>
@@ -44,7 +59,7 @@ export function GameScreen({
             <button type="button" onClick={onStartGame} disabled={!canStart} style={startButtonStyle}>
               시작
             </button>
-            <button type="button" disabled style={ghostButtonStyle}>
+            <button type="button" onClick={onLeaveRoom} style={ghostButtonStyle}>
               나가기
             </button>
           </div>
@@ -108,7 +123,7 @@ const mainColumnStyle: CSSProperties = {
 
 const topBarStyle: CSSProperties = {
   display: "grid",
-  gridTemplateColumns: "minmax(0, 1fr) auto auto",
+  gridTemplateColumns: "minmax(0, 1fr) minmax(260px, auto) auto auto",
   gap: "16px",
   alignItems: "center",
   padding: "20px 24px",
@@ -161,7 +176,8 @@ const ghostButtonStyle: CSSProperties = {
   borderRadius: "999px",
   border: "1px solid rgba(148, 163, 184, 0.22)",
   background: "transparent",
-  color: "#94a3b8"
+  color: "#94a3b8",
+  cursor: "pointer"
 };
 
 const canvasFrameStyle: CSSProperties = {

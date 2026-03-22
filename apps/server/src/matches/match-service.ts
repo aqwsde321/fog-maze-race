@@ -7,10 +7,11 @@ import type {
   PlayerFinishedPayload,
   PlayerMovedPayload,
   RoomStateUpdatePayload
-} from "../../../../packages/shared/src/contracts/realtime.js";
-import { getRandomMap } from "../../../../packages/shared/src/maps/map-definitions.js";
+} from "@fog-maze-race/shared/contracts/realtime";
+import { getRandomMap } from "@fog-maze-race/shared/maps/map-definitions";
 
 import { MatchAggregate } from "../core/match.js";
+import { forceEndMatch } from "../rooms/force-end-match.js";
 import { resetRoom } from "../rooms/reset-room.js";
 import { RoomService } from "../rooms/room-service.js";
 
@@ -192,6 +193,20 @@ export class MatchService {
       snapshot: this.roomService.getSnapshot(roomId)
     });
     sink.emitRoomListUpdate();
+  }
+
+  forceEnd(roomId: string, requestedBy: string, sink: MatchEventSink) {
+    const runtime = this.roomService.findRuntime(roomId);
+    if (!runtime || !runtime.match) {
+      return;
+    }
+
+    if (runtime.room.hostPlayerId !== requestedBy) {
+      throw new Error("HOST_ONLY");
+    }
+
+    forceEndMatch(runtime.room, runtime.match);
+    this.finishGame(roomId, sink);
   }
 
   private scheduleCountdown(roomId: string, sink: MatchEventSink, initialDelayMs: number) {

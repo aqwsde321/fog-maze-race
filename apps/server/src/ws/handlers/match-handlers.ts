@@ -2,11 +2,12 @@ import type { Server, Socket } from "socket.io";
 import type {
   MovePayload,
   StartGamePayload
-} from "../../../../../packages/shared/src/contracts/realtime.js";
+} from "@fog-maze-race/shared/contracts/realtime";
 
 import { PlayerSession } from "../../core/player-session.js";
 import { MatchService } from "../../matches/match-service.js";
 import { RoomService } from "../../rooms/room-service.js";
+import { emitError, requireSession } from "./handler-support.js";
 import { createRoomEventSink } from "./recovery-handlers.js";
 
 type MatchHandlerDeps = {
@@ -25,39 +26,33 @@ export function registerMatchHandlers({
   matchService
 }: MatchHandlerDeps) {
   socket.on("START_GAME", (payload: StartGamePayload) => {
-    const session = requireSession(socket, sessions);
-    matchService.startGame(
-      payload.roomId,
-      session.playerId,
-      createRoomEventSink(io, roomService, payload.roomId)
-    );
+    try {
+      const session = requireSession(socket, sessions);
+      matchService.startGame(
+        payload.roomId,
+        session.playerId,
+        createRoomEventSink(io, roomService, payload.roomId)
+      );
+    } catch (error) {
+      emitError(socket, error);
+    }
   });
 
   socket.on("MOVE", (payload: MovePayload) => {
-    const session = requireSession(socket, sessions);
+    try {
+      const session = requireSession(socket, sessions);
 
-    matchService.move(
-      payload.roomId,
-      session.playerId,
-      {
-        direction: payload.direction,
-        inputSeq: payload.inputSeq
-      },
-      createRoomEventSink(io, roomService, payload.roomId)
-    );
+      matchService.move(
+        payload.roomId,
+        session.playerId,
+        {
+          direction: payload.direction,
+          inputSeq: payload.inputSeq
+        },
+        createRoomEventSink(io, roomService, payload.roomId)
+      );
+    } catch (error) {
+      emitError(socket, error);
+    }
   });
-}
-
-function requireSession(socket: Socket, sessions: Map<string, PlayerSession>) {
-  const playerId = socket.data.playerId as string | undefined;
-  if (!playerId) {
-    throw new Error("UNKNOWN");
-  }
-
-  const session = sessions.get(playerId);
-  if (!session) {
-    throw new Error("UNKNOWN");
-  }
-
-  return session;
 }

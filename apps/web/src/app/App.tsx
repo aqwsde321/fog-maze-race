@@ -5,6 +5,7 @@ import type {
   ConnectedPayload,
   CountdownPayload,
   ErrorPayload,
+  RoomLeftPayload,
   RoomJoinedPayload,
   RoomListItem,
   RoomListUpdatePayload,
@@ -33,6 +34,7 @@ export function App() {
   const snapshot = useRoomStore((state) => state.snapshot);
   const replaceSnapshot = useRoomStore((state) => state.replaceSnapshot);
   const applyMove = useRoomStore((state) => state.applyMove);
+  const clearRoom = useRoomStore((state) => state.clearRoom);
 
   const [roomName, setRoomName] = useState("Alpha");
   const [rooms, setRooms] = useState<RoomListItem[]>([]);
@@ -89,6 +91,15 @@ export function App() {
       setCountdownValue(payload.value);
     };
 
+    const handleRoomLeft = (payload: RoomLeftPayload) => {
+      if (payload.playerId !== (playerId ?? selfPlayerId)) {
+        return;
+      }
+
+      setCountdownValue(null);
+      clearRoom();
+    };
+
     const handleError = (payload: ErrorPayload) => {
       setLastError(payload.message);
     };
@@ -98,6 +109,7 @@ export function App() {
     socket.on("CONNECTED", handleConnected);
     socket.on("ROOM_LIST_UPDATE", handleRoomList);
     socket.on("ROOM_JOINED", handleRoomJoined);
+    socket.on("ROOM_LEFT", handleRoomLeft);
     socket.on("ROOM_STATE_UPDATE", handleRoomState);
     socket.on("COUNTDOWN", handleCountdown);
     socket.on("PLAYER_MOVED", applyMove);
@@ -107,6 +119,7 @@ export function App() {
       socket.off("CONNECTED", handleConnected);
       socket.off("ROOM_LIST_UPDATE", handleRoomList);
       socket.off("ROOM_JOINED", handleRoomJoined);
+      socket.off("ROOM_LEFT", handleRoomLeft);
       socket.off("ROOM_STATE_UPDATE", handleRoomState);
       socket.off("COUNTDOWN", handleCountdown);
       socket.off("PLAYER_MOVED", applyMove);
@@ -114,7 +127,7 @@ export function App() {
       socket.off("connect", handleConnectTransport);
       socket.off("disconnect", handleDisconnectTransport);
     };
-  }, [applyMove, nickname, playerId, replaceSnapshot, setConnectionState, setNickname, setPlayerId]);
+  }, [applyMove, clearRoom, nickname, playerId, replaceSnapshot, selfPlayerId, setConnectionState, setNickname, setPlayerId]);
 
   useEffect(() => {
     const socket = socketRef.current;
@@ -183,6 +196,37 @@ export function App() {
     socketRef.current.emit("START_GAME", { roomId: snapshot.room.roomId });
   }
 
+  function handleRenameRoom(name: string) {
+    if (!snapshot) {
+      return;
+    }
+
+    socketRef.current.emit("RENAME_ROOM", {
+      roomId: snapshot.room.roomId,
+      name
+    });
+  }
+
+  function handleForceEndRoom() {
+    if (!snapshot) {
+      return;
+    }
+
+    socketRef.current.emit("FORCE_END_ROOM", {
+      roomId: snapshot.room.roomId
+    });
+  }
+
+  function handleLeaveRoom() {
+    if (!snapshot) {
+      return;
+    }
+
+    socketRef.current.emit("LEAVE_ROOM", {
+      roomId: snapshot.room.roomId
+    });
+  }
+
   function handleMove(direction: Direction) {
     if (!snapshot) {
       return;
@@ -227,6 +271,9 @@ export function App() {
             selfPlayerId={selfPlayerId}
             countdownValue={countdownValue}
             onStartGame={handleStartGame}
+            onRenameRoom={handleRenameRoom}
+            onForceEndRoom={handleForceEndRoom}
+            onLeaveRoom={handleLeaveRoom}
             onMove={handleMove}
           />
         )}

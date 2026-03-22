@@ -4,23 +4,28 @@ import type {
   CountdownPayload,
   CreateRoomPayload,
   ErrorPayload,
+  ForceEndRoomPayload,
   GameStartingPayload,
+  LeaveRoomPayload,
   PlayerFinishedPayload,
   GameEndedPayload,
   JoinRoomPayload,
   MovePayload,
   PlayerMovedPayload,
+  RenameRoomPayload,
   RoomJoinedPayload,
+  RoomLeftPayload,
   RoomListUpdatePayload,
   RoomStateUpdatePayload,
   StartGamePayload
-} from "../../../../packages/shared/src/contracts/realtime.js";
+} from "@fog-maze-race/shared/contracts/realtime";
 import { io, type Socket } from "socket.io-client";
 
 export type RaceSocketEvents = {
   CONNECTED: (payload: ConnectedPayload) => void;
   ROOM_LIST_UPDATE: (payload: RoomListUpdatePayload) => void;
   ROOM_JOINED: (payload: RoomJoinedPayload) => void;
+  ROOM_LEFT: (payload: RoomLeftPayload) => void;
   ROOM_STATE_UPDATE: (payload: RoomStateUpdatePayload) => void;
   GAME_STARTING: (payload: GameStartingPayload) => void;
   COUNTDOWN: (payload: CountdownPayload) => void;
@@ -34,7 +39,10 @@ export type RaceSocketCommands = {
   CONNECT: (payload: ConnectPayload) => void;
   CREATE_ROOM: (payload: CreateRoomPayload) => void;
   JOIN_ROOM: (payload: JoinRoomPayload) => void;
+  LEAVE_ROOM: (payload: LeaveRoomPayload) => void;
+  RENAME_ROOM: (payload: RenameRoomPayload) => void;
   START_GAME: (payload: StartGamePayload) => void;
+  FORCE_END_ROOM: (payload: ForceEndRoomPayload) => void;
   MOVE: (payload: MovePayload) => void;
 };
 

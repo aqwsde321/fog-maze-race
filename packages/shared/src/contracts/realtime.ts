@@ -21,7 +21,16 @@ export type LeaveRoomPayload = {
   roomId: string;
 };
 
+export type RenameRoomPayload = {
+  roomId: string;
+  name: string;
+};
+
 export type StartGamePayload = {
+  roomId: string;
+};
+
+export type ForceEndRoomPayload = {
   roomId: string;
 };
 

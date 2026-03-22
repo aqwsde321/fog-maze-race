@@ -3,9 +3,9 @@ import { randomUUID } from "node:crypto";
 import type {
   RoomJoinedPayload,
   RoomListItem
-} from "../../../../packages/shared/src/contracts/realtime.js";
-import type { RoomSnapshot } from "../../../../packages/shared/src/contracts/snapshots.js";
-import type { MatchStatus, RoomMemberState } from "../../../../packages/shared/src/domain/status.js";
+} from "@fog-maze-race/shared/contracts/realtime";
+import type { RoomSnapshot } from "@fog-maze-race/shared/contracts/snapshots";
+import type { MatchStatus, RoomMemberState } from "@fog-maze-race/shared/domain/status";
 
 import { MatchAggregate } from "../core/match.js";
 import { PlayerSession } from "../core/player-session.js";
@@ -90,6 +90,17 @@ export class RoomService {
 
   getMatch(roomId: string) {
     return this.requireRuntime(roomId).match;
+  }
+
+  renameRoom(roomId: string, requestedBy: string, name: string) {
+    const runtime = this.requireRuntime(roomId);
+    if (runtime.room.hostPlayerId !== requestedBy) {
+      throw new Error("HOST_ONLY");
+    }
+
+    runtime.room.rename(normalizeRoomName(name));
+    this.syncRoomRevision(roomId);
+    return this.getSnapshot(roomId);
   }
 
   findRuntime(roomId: string) {

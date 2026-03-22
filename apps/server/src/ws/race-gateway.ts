@@ -7,6 +7,7 @@ import { RoomService } from "../rooms/room-service.js";
 import { DisconnectGraceRegistry } from "./disconnect-grace.js";
 import { RevisionSync } from "./revision-sync.js";
 import { createRoomEventSink, handlePlayerDisconnect } from "./handlers/recovery-handlers.js";
+import { registerAdminHandlers } from "./handlers/admin-handlers.js";
 import { registerMatchHandlers } from "./handlers/match-handlers.js";
 import { registerSessionHandlers } from "./handlers/session-handlers.js";
 
@@ -30,6 +31,13 @@ export function buildRaceGateway(io: Server, options: MatchServiceOptions) {
       recoveryService
     });
     registerMatchHandlers({
+      io,
+      socket,
+      sessions,
+      roomService,
+      matchService
+    });
+    registerAdminHandlers({
       io,
       socket,
       sessions,
