@@ -1,35 +1,35 @@
-# Specification Quality Checklist: Fog Maze Race MVP
+# 요구사항 명세 품질 체크리스트: Fog Maze Race MVP
 
-**Purpose**: 계획 단계로 넘어가기 전에 요구사항 명세의 완성도와 품질을 검증한다.
-**Created**: 2026-03-22
-**Feature**: [spec.md](../spec.md)
+**목적**: 계획 단계로 넘어가기 전에 요구사항 명세의 완성도와 품질을 검증한다.
+**작성일**: 2026-03-22
+**기능 문서**: [spec.md](../spec.md)
 
-## Content Quality
+## 내용 품질
 
-- [x] No implementation details (languages, frameworks, APIs)
-- [x] Focused on user value and business needs
-- [x] Written for non-technical stakeholders
-- [x] All mandatory sections completed
+- [x] 구현 세부사항(언어, 프레임워크, API)이 들어가지 않았다.
+- [x] 사용자 가치와 비즈니스 요구에 집중했다.
+- [x] 비기술 이해관계자 기준으로 읽을 수 있게 작성했다.
+- [x] 필수 섹션을 모두 채웠다.
 
-## Requirement Completeness
+## 요구사항 완성도
 
-- [x] No [NEEDS CLARIFICATION] markers remain
-- [x] Requirements are testable and unambiguous
-- [x] Success criteria are measurable
-- [x] Success criteria are technology-agnostic (no implementation details)
-- [x] All acceptance scenarios are defined
-- [x] Edge cases are identified
-- [x] Scope is clearly bounded
-- [x] Dependencies and assumptions identified
+- [x] `[NEEDS CLARIFICATION]` 표식이 남아 있지 않다.
+- [x] 요구사항이 테스트 가능하고 모호하지 않다.
+- [x] 성공 기준이 측정 가능하다.
+- [x] 성공 기준이 기술 독립적이다.
+- [x] 모든 인수 시나리오가 정의되어 있다.
+- [x] 엣지 케이스가 식별되어 있다.
+- [x] 범위가 명확히 제한되어 있다.
+- [x] 의존성과 가정이 식별되어 있다.
 
-## Feature Readiness
+## 기능 준비 상태
 
-- [x] All functional requirements have clear acceptance criteria
-- [x] User scenarios cover primary flows
-- [x] Feature meets measurable outcomes defined in Success Criteria
-- [x] No implementation details leak into specification
+- [x] 모든 기능 요구사항에 명확한 인수 기준이 있다.
+- [x] 사용자 시나리오가 핵심 흐름을 덮고 있다.
+- [x] 기능이 성공 기준의 측정 가능한 결과를 만족한다.
+- [x] 구현 세부사항이 스펙으로 새지 않았다.
 
-## Notes
+## 메모
 
 - 검증 1회차에서 모든 항목을 통과했다.
-- 구현 세부 명칭 대신 사용자 흐름, 상태 전환, 복구 규칙, MVP 범위 중심으로 정리했다.
+- 구현 세부 명칭 대신 사용자 흐름, 상태 전환, 복구 규칙, MVP 범위를 중심으로 정리했다.

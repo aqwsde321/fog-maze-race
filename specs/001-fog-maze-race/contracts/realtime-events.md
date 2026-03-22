@@ -1,24 +1,23 @@
-# Realtime Events Contract
+# 실시간 이벤트 계약
 
-## Transport
+## 전송 계층
 
-- Same-origin Socket.IO connection on the backend web service
-- One logical namespace for the game service
-- Server-side room channel naming pattern: `room:{roomId}`
-- All authoritative snapshot payloads carry a monotonically increasing `revision`
+- 백엔드 웹 서비스와 같은 오리진의 `Socket.IO` 연결
+- 게임 서비스용 논리 네임스페이스는 하나만 사용
+- 서버 측 room 채널 이름 규칙: `room:{roomId}`
+- 모든 authoritative 스냅샷 페이로드는 단조 증가하는 `revision`을 포함
 
-## Command Model
+## 명령 모델
 
-- Client messages are requests or commands.
-- Server messages are either snapshots, deltas, lifecycle events, or errors.
-- When a client reconnects or detects drift, the server must prefer sending a full
-  snapshot over replaying a long delta chain.
+- 클라이언트 메시지는 요청 또는 명령이다.
+- 서버 메시지는 스냅샷, 델타, 생명주기 이벤트, 에러 중 하나다.
+- 클라이언트가 재접속하거나 드리프트를 감지하면, 서버는 긴 델타 재생보다 전체 스냅샷 전송을 우선한다.
 
-## Client -> Server Events
+## 클라이언트 -> 서버 이벤트
 
 ### `CONNECT`
 
-Initial session binding or reconnect attempt.
+초기 세션 연결 또는 재접속 시도다.
 
 ```ts
 type ConnectPayload = {
@@ -28,13 +27,11 @@ type ConnectPayload = {
 };
 ```
 
-**Rules**
+**규칙**
 
-- `nickname` is required and must satisfy the 1-5 character limit.
-- If `playerId` matches a disconnected member still inside the 30-second grace window, the
-  server attempts recovery.
-- If recovery fails, the server creates or refreshes a normal session and returns current
-  room list state.
+- `nickname`은 필수이며 1~5자 제한을 만족해야 한다.
+- `playerId`가 30초 유예 안의 disconnected 멤버와 일치하면 서버는 복구를 시도한다.
+- 복구에 실패하면 서버는 일반 세션을 새로 만들거나 갱신하고 현재 방 목록 상태를 돌려준다.
 
 ### `CREATE_ROOM`
 
@@ -44,10 +41,10 @@ type CreateRoomPayload = {
 };
 ```
 
-**Rules**
+**규칙**
 
-- Caller becomes host.
-- Caller must not already belong to another room.
+- 호출자는 방장이 된다.
+- 호출자는 이미 다른 방에 속해 있으면 안 된다.
 
 ### `JOIN_ROOM`
 
@@ -57,10 +54,10 @@ type JoinRoomPayload = {
 };
 ```
 
-**Rules**
+**규칙**
 
-- Allowed only while the room status is `waiting`.
-- Reject when room is full.
+- 방 상태가 `waiting`일 때만 허용한다.
+- 방이 가득 차 있으면 거절한다.
 
 ### `LEAVE_ROOM`
 
@@ -70,10 +67,10 @@ type LeaveRoomPayload = {
 };
 ```
 
-**Rules**
+**규칙**
 
-- Manual leave is final for the active round.
-- Leaving updates the room snapshot and room list immediately.
+- 수동 나가기는 현재 라운드에 대해 최종 이탈로 본다.
+- 나가면 방 스냅샷과 방 목록이 즉시 갱신된다.
 
 ### `START_GAME`
 
@@ -83,11 +80,11 @@ type StartGamePayload = {
 };
 ```
 
-**Rules**
+**규칙**
 
-- Host only.
-- Allowed only in `waiting`.
-- Chooses a random map, assigns start slots, and begins countdown.
+- 방장만 호출할 수 있다.
+- `waiting` 상태에서만 허용한다.
+- 무작위 맵을 고르고, 시작 슬롯을 배정한 뒤 카운트다운을 시작한다.
 
 ### `MOVE`
 
@@ -99,17 +96,16 @@ type MovePayload = {
 };
 ```
 
-**Rules**
+**규칙**
 
-- Client sends direction only.
-- Server validates room state, player membership, wall collision, and match status before
-  updating position.
+- 클라이언트는 방향만 전송한다.
+- 서버는 방 상태, 멤버십, 벽 충돌, 매치 상태를 검증한 뒤 위치를 갱신한다.
 
-## Server -> Client Events
+## 서버 -> 클라이언트 이벤트
 
 ### `CONNECTED`
 
-Sent after `CONNECT`.
+`CONNECT` 이후 전송된다.
 
 ```ts
 type ConnectedPayload = {
@@ -122,7 +118,7 @@ type ConnectedPayload = {
 
 ### `ROOM_LIST_UPDATE`
 
-Authoritative list used by the lobby screen.
+로비 화면에서 사용하는 authoritative 방 목록이다.
 
 ```ts
 type RoomListUpdatePayload = {
@@ -138,7 +134,7 @@ type RoomListUpdatePayload = {
 
 ### `ROOM_JOINED`
 
-Sent when the local player successfully enters or recovers a room.
+로컬 플레이어가 방 입장이나 재복구에 성공했을 때 전송한다.
 
 ```ts
 type RoomJoinedPayload = {
@@ -160,7 +156,7 @@ type RoomLeftPayload = {
 
 ### `ROOM_STATE_UPDATE`
 
-Primary full snapshot event.
+기본 전체 스냅샷 이벤트다.
 
 ```ts
 type RoomStateUpdatePayload = {
@@ -169,11 +165,10 @@ type RoomStateUpdatePayload = {
 };
 ```
 
-**Usage**
+**용도**
 
-- Sent after create, join, leave, host reassignment, reconnect recovery, force end, and
-  any other state transition where a client may drift.
-- Client must replace its local authoritative snapshot with this payload.
+- 생성, 입장, 나가기, 방장 위임, 재접속 복구, 강제 종료 등 클라이언트 드리프트 가능성이 있는 모든 상태 전이 뒤에 보낸다.
+- 클라이언트는 이 페이로드로 로컬 authoritative 스냅샷을 통째로 교체해야 한다.
 
 ### `GAME_STARTING`
 
@@ -199,7 +194,7 @@ type CountdownPayload = {
 
 ### `PLAYER_MOVED`
 
-Delta event for responsive updates during play.
+플레이 중 반응성 있는 갱신을 위한 델타 이벤트다.
 
 ```ts
 type PlayerMovedPayload = {
@@ -256,10 +251,9 @@ type ErrorPayload = {
 };
 ```
 
-## Recovery Rules
+## 복구 규칙
 
-- Temporary disconnects may deliver missed deltas if Socket.IO recovery succeeds.
-- The client must still accept `ROOM_STATE_UPDATE` as the ultimate recovery mechanism.
-- Manual leave does not qualify for recovery.
-- If recovery fails or revision drift is detected, the server sends a fresh snapshot and
-  the client discards stale local state.
+- 일시적인 연결 끊김에서는 `Socket.IO` 복구가 성공하면 누락된 델타를 일부 다시 받을 수 있다.
+- 그래도 최종 복구 기준은 항상 `ROOM_STATE_UPDATE`여야 한다.
+- 수동 나가기는 복구 대상이 아니다.
+- 복구가 실패하거나 revision 드리프트가 감지되면 서버는 새 스냅샷을 보내고, 클라이언트는 오래된 로컬 상태를 버린다.

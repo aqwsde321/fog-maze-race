@@ -1,18 +1,17 @@
-# HTTP Endpoints Contract
+# HTTP 엔드포인트 계약
 
-## Purpose
+## 목적
 
-The MVP exposes almost all gameplay behavior through realtime events. The public HTTP
-surface is intentionally small and exists only for service health and static asset
-delivery.
+MVP의 대부분 게임 동작은 실시간 이벤트로 노출한다. 공개 HTTP 표면은 의도적으로 작게
+유지하며, 서비스 헬스 체크와 정적 자산 제공에만 사용한다.
 
-## Public Endpoints
+## 공개 엔드포인트
 
 ### `GET /health`
 
-Service health check used by deployment and uptime monitoring.
+배포와 업타임 모니터링에 사용하는 서비스 헬스 체크다.
 
-**Response 200**
+**200 응답**
 
 ```json
 {
@@ -25,16 +24,15 @@ Service health check used by deployment and uptime monitoring.
 
 ### `GET /`
 
-Serves the built frontend application shell.
+빌드된 프론트엔드 앱 셸을 제공한다.
 
-**Behavior**
+**동작**
 
-- Returns the SPA entry document.
-- Browser routes are handled client-side after initial load.
+- SPA 진입 HTML 문서를 반환한다.
+- 최초 로드 이후 브라우저 라우트는 클라이언트가 처리한다.
 
-## Notes
+## 참고
 
-- No public REST CRUD API is required for rooms in MVP.
-- Room listing, joinability, match state, and result data are synchronized via the
-  realtime contract.
-- The HTTP server and realtime transport share one public origin and one public port.
+- MVP에서는 방을 위한 공개 REST CRUD API가 필요하지 않다.
+- 방 목록, 입장 가능 여부, 매치 상태, 결과 데이터는 실시간 계약으로 동기화한다.
+- HTTP 서버와 실시간 전송은 하나의 공개 오리진과 하나의 공개 포트를 공유한다.
