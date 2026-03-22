@@ -337,14 +337,14 @@ const backgroundMeshStyle: CSSProperties = {
 const contentStyle: CSSProperties = {
   position: "relative",
   width: "100%",
-  maxWidth: "1240px",
+  maxWidth: "1360px",
   margin: "0 auto",
   display: "grid",
   justifyItems: "stretch"
 };
 
 const errorStyle: CSSProperties = {
-  width: "min(1240px, 100%)",
+  width: "min(1360px, 100%)",
   margin: "0 0 18px",
   padding: "14px 16px",
   borderRadius: "16px",

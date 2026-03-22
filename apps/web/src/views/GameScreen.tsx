@@ -182,28 +182,34 @@ function isEditableTarget(target: EventTarget | null) {
 const shellStyle: CSSProperties = {
   position: "relative",
   display: "grid",
-  gridTemplateColumns: "minmax(0, 1fr) minmax(280px, 300px)",
+  gridTemplateColumns: "minmax(0, 1fr) 300px",
   gap: "20px",
   width: "100%",
-  maxWidth: "1240px",
+  maxWidth: "1360px",
   margin: "0 auto",
-  alignItems: "start"
+  alignItems: "start",
+  overflowX: "hidden"
 };
 
 const mainColumnStyle: CSSProperties = {
+  width: "100%",
   minWidth: 0,
   display: "grid",
-  gap: "18px"
+  gap: "18px",
+  overflowX: "hidden"
 };
 
 const topBarStyle: CSSProperties = {
   display: "grid",
   gridTemplateColumns: "minmax(0, 1fr) minmax(260px, auto) auto auto",
   gap: "16px",
+  width: "100%",
   minWidth: 0,
+  boxSizing: "border-box",
   alignItems: "center",
   padding: "20px 24px",
   borderRadius: "26px",
+  overflow: "hidden",
   background: "rgba(8, 15, 30, 0.9)",
   border: "1px solid rgba(148, 163, 184, 0.18)"
 };
@@ -258,8 +264,11 @@ const ghostButtonStyle: CSSProperties = {
 
 const canvasFrameStyle: CSSProperties = {
   position: "relative",
+  width: "100%",
+  boxSizing: "border-box",
   padding: "18px",
   borderRadius: "28px",
+  overflow: "hidden",
   background: "linear-gradient(180deg, rgba(8, 15, 30, 0.94), rgba(7, 17, 31, 0.98))",
   border: "1px solid rgba(148, 163, 184, 0.12)",
   outline: "none"

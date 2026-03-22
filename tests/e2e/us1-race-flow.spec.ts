@@ -70,6 +70,8 @@ async function readLayout(page: Page) {
   return page.evaluate(() => ({
     scrollX: window.scrollX,
     scrollY: window.scrollY,
-    roomX: document.querySelector("h2")?.getBoundingClientRect().x ?? 0
+    roomX: document.querySelector("h2")?.getBoundingClientRect().x ?? 0,
+    shellWidth: document.querySelector('[data-testid="game-shell"]')?.getBoundingClientRect().width ?? 0,
+    sidebarWidth: document.querySelector("aside")?.getBoundingClientRect().width ?? 0
   }));
 }
