@@ -8,6 +8,14 @@ import type {
   PlayerMovedPayload,
   RoomStateUpdatePayload
 } from "@fog-maze-race/shared/contracts/realtime";
+import {
+  movePosition,
+  samePosition
+} from "@fog-maze-race/shared/domain/grid-position";
+import {
+  isInsideZone,
+  isWalkableTile
+} from "@fog-maze-race/shared/maps/map-definitions";
 
 import { MatchAggregate } from "../core/match.js";
 import { forceEndMatch } from "../rooms/force-end-match.js";
@@ -87,10 +95,37 @@ export class MatchService {
     if (!runtime) {
       return;
     }
-    const match = runtime.match;
     const member = runtime.room.getMember(playerId);
+    const match = runtime.match;
 
-    if (!match || runtime.room.status !== "playing" || !member || member.state !== "playing" || !member.position) {
+    if (!member || !member.position) {
+      return;
+    }
+
+    if (runtime.room.status === "waiting" || runtime.room.status === "countdown") {
+      if (member.state === "disconnected" || member.state === "left" || member.state === "finished") {
+        return;
+      }
+
+      const map = match?.map ?? this.roomService.getPreviewMap(roomId);
+      if (!map) {
+        return;
+      }
+
+      const nextPosition = movePosition(member.position, input.direction);
+      if (
+        samePosition(member.position, nextPosition) ||
+        !isInsideZone(map.startZone, nextPosition) ||
+        !isWalkableTile(map, nextPosition)
+      ) {
+        return;
+      }
+
+      this.emitPositionUpdate(roomId, playerId, nextPosition, input.inputSeq, sink);
+      return;
+    }
+
+    if (!match || runtime.room.status !== "playing" || member.state !== "playing") {
       return;
     }
 
@@ -131,20 +166,7 @@ export class MatchService {
       return;
     }
 
-    this.roomService.syncRoomRevision(roomId);
-    const revision = this.roomService.getSnapshot(roomId).revision;
-
-    sink.emitPlayerMoved({
-      roomId,
-      playerId,
-      position: nextPosition,
-      inputSeq: input.inputSeq,
-      revision
-    });
-    sink.emitRoomState({
-      roomId,
-      snapshot: this.roomService.getSnapshot(roomId)
-    });
+    this.emitPositionUpdate(roomId, playerId, nextPosition, input.inputSeq, sink);
   }
 
   dispose() {
@@ -301,6 +323,30 @@ export class MatchService {
       sink.emitRoomState({ roomId, snapshot });
       sink.emitRoomListUpdate();
     }, this.options.resultsDurationMs);
+  }
+
+  private emitPositionUpdate(
+    roomId: string,
+    playerId: string,
+    position: { x: number; y: number },
+    inputSeq: number,
+    sink: MatchEventSink
+  ) {
+    this.roomService.requireRuntime(roomId).room.updateMemberPosition(playerId, position);
+    this.roomService.syncRoomRevision(roomId);
+    const snapshot = this.roomService.getSnapshot(roomId);
+
+    sink.emitPlayerMoved({
+      roomId,
+      playerId,
+      position,
+      inputSeq,
+      revision: snapshot.revision
+    });
+    sink.emitRoomState({
+      roomId,
+      snapshot
+    });
   }
 
   private getTimerBucket(roomId: string): TimerBucket {

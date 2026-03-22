@@ -58,7 +58,7 @@ export async function createSceneController(container: HTMLDivElement): Promise<
         !match && snapshot.previewMap
           ? snapshot.members.map((member, index) => ({
               ...member,
-              position: snapshot.previewMap?.startSlots[index] ?? null
+              position: member.position ?? snapshot.previewMap?.startSlots[index] ?? null
             }))
           : snapshot.members;
 

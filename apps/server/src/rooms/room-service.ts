@@ -45,6 +45,7 @@ export class RoomService {
     const roomId = randomUUID();
     const name = normalizeRoomName(input.name);
     const previewMapId = this.pickPreviewMap().mapId;
+    const previewMap = getMapById(previewMapId);
     const room = new RoomAggregate({
       roomId,
       name,
@@ -56,7 +57,7 @@ export class RoomService {
       nickname: input.session.nickname,
       color: PLAYER_COLORS[0],
       state: "waiting",
-      position: null
+      position: previewMap?.startSlots[0] ?? null
     });
 
     this.rooms.set(roomId, { room, match: null, previewMapId });
@@ -73,13 +74,14 @@ export class RoomService {
   joinRoom(input: { roomId: string; session: PlayerSession }): RoomJoinedPayload {
     const runtime = this.requireRuntime(input.roomId);
     const nextColor = PLAYER_COLORS[runtime.room.listMembers().length % PLAYER_COLORS.length]!;
+    const previewMap = getMapById(runtime.previewMapId);
 
     runtime.room.join({
       playerId: input.session.playerId,
       nickname: input.session.nickname,
       color: nextColor,
       state: "waiting",
-      position: null
+      position: previewMap?.startSlots[runtime.room.listMembers().length] ?? previewMap?.startSlots.at(-1) ?? null
     });
 
     input.session.currentRoomId = input.roomId;
@@ -99,6 +101,11 @@ export class RoomService {
 
   getMatch(roomId: string) {
     return this.requireRuntime(roomId).match;
+  }
+
+  getPreviewMap(roomId: string) {
+    const runtime = this.requireRuntime(roomId);
+    return getMapById(runtime.previewMapId) ?? null;
   }
 
   setPreviewMap(roomId: string, mapId?: string) {

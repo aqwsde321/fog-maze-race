@@ -32,14 +32,53 @@ export function GameScreen({
   const canvasFrameRef = useRef<HTMLDivElement | null>(null);
   const isHost = snapshot.room.hostPlayerId === selfPlayerId;
   const canStart = snapshot.room.status === "waiting" && isHost;
+  const canMove = snapshot.room.status === "waiting" || snapshot.room.status === "countdown" || snapshot.room.status === "playing";
 
   useEffect(() => {
-    if (snapshot.room.status !== "playing") {
+    if (!canMove) {
       return;
     }
 
-    canvasFrameRef.current?.focus();
-  }, [snapshot.room.status]);
+    canvasFrameRef.current?.focus({ preventScroll: true });
+  }, [canMove, snapshot.room.status]);
+
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      const direction = toDirection(event.key);
+      if (!direction) {
+        return;
+      }
+
+      if (isEditableTarget(event.target)) {
+        return;
+      }
+
+      event.preventDefault();
+      event.stopPropagation();
+
+      if (!canMove) {
+        return;
+      }
+
+      onMove(direction);
+    };
+
+    const handleKeyUp = (event: KeyboardEvent) => {
+      if (!toDirection(event.key) || isEditableTarget(event.target)) {
+        return;
+      }
+
+      event.preventDefault();
+      event.stopPropagation();
+    };
+
+    window.addEventListener("keydown", handleKeyDown, { capture: true });
+    window.addEventListener("keyup", handleKeyUp, { capture: true });
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown, { capture: true });
+      window.removeEventListener("keyup", handleKeyUp, { capture: true });
+    };
+  }, [canMove, onMove]);
 
   return (
     <section style={shellStyle}>
@@ -79,25 +118,19 @@ export function GameScreen({
           data-testid="game-shell"
           style={canvasFrameStyle}
           onPointerDown={() => {
-            canvasFrameRef.current?.focus();
-          }}
-          onKeyDown={(event) => {
-            if (snapshot.room.status !== "playing") {
-              return;
-            }
-
-            const direction = toDirection(event.key);
-            if (!direction) {
-              return;
-            }
-
-            event.preventDefault();
-            event.stopPropagation();
-            onMove(direction);
+            canvasFrameRef.current?.focus({ preventScroll: true });
           }}
           tabIndex={0}
         >
           <GameCanvas snapshot={snapshot} selfPlayerId={selfPlayerId} />
+          {snapshot.room.status === "countdown" && countdownValue !== null ? (
+            <div data-testid="countdown-overlay" style={countdownOverlayStyle}>
+              <div style={countdownCardStyle}>
+                <p style={countdownLabelStyle}>시작까지</p>
+                <strong style={countdownValueStyle}>{countdownValue}</strong>
+              </div>
+            </div>
+          ) : null}
           <ResultOverlay snapshot={snapshot} />
         </div>
       </div>
@@ -120,6 +153,19 @@ function toDirection(key: string): Direction | null {
     default:
       return null;
   }
+}
+
+function isEditableTarget(target: EventTarget | null) {
+  if (!(target instanceof HTMLElement)) {
+    return false;
+  }
+
+  if (target.isContentEditable) {
+    return true;
+  }
+
+  const tagName = target.tagName.toLowerCase();
+  return tagName === "input" || tagName === "textarea" || tagName === "select";
 }
 
 const shellStyle: CSSProperties = {
@@ -202,4 +248,39 @@ const canvasFrameStyle: CSSProperties = {
   background: "linear-gradient(180deg, rgba(8, 15, 30, 0.94), rgba(7, 17, 31, 0.98))",
   border: "1px solid rgba(148, 163, 184, 0.12)",
   outline: "none"
+};
+
+const countdownOverlayStyle: CSSProperties = {
+  position: "absolute",
+  inset: 0,
+  display: "grid",
+  placeItems: "center",
+  pointerEvents: "none"
+};
+
+const countdownCardStyle: CSSProperties = {
+  minWidth: "min(320px, calc(100% - 48px))",
+  padding: "28px 40px",
+  borderRadius: "28px",
+  background: "rgba(2, 6, 23, 0.76)",
+  border: "1px solid rgba(56, 189, 248, 0.28)",
+  boxShadow: "0 24px 80px rgba(2, 6, 23, 0.42)",
+  textAlign: "center",
+  backdropFilter: "blur(8px)"
+};
+
+const countdownLabelStyle: CSSProperties = {
+  margin: 0,
+  color: "#7dd3fc",
+  letterSpacing: "0.18em",
+  textTransform: "uppercase",
+  fontSize: "0.9rem"
+};
+
+const countdownValueStyle: CSSProperties = {
+  display: "block",
+  marginTop: "10px",
+  fontSize: "clamp(4rem, 10vw, 7rem)",
+  lineHeight: 1,
+  color: "#f8fafc"
 };

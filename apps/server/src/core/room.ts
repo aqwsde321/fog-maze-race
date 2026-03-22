@@ -135,7 +135,7 @@ export class RoomAggregate {
     const members = this.listMembers();
 
     members.forEach((member, index) => {
-      member.position = startSlots[index] ?? startSlots[startSlots.length - 1] ?? null;
+      member.position = member.position ?? startSlots[index] ?? startSlots[startSlots.length - 1] ?? null;
       member.state = "waiting";
       member.finishRank = null;
       member.finishedAt = null;

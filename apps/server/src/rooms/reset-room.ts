@@ -6,6 +6,10 @@ export function resetRoom(roomService: RoomService, roomId: string) {
   runtime.room.resetToWaiting();
   roomService.setMatch(roomId, null);
   roomService.setPreviewMap(roomId);
+  const previewMap = roomService.getPreviewMap(roomId);
+  if (previewMap) {
+    runtime.room.seedMatchPositions(previewMap.startSlots);
+  }
   roomService.syncRoomRevision(roomId);
 
   return roomService.getSnapshot(roomId);

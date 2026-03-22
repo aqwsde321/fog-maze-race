@@ -62,7 +62,7 @@ describe("GameScreen keyboard control", () => {
     expect(onMove).toHaveBeenCalledWith("right");
   });
 
-  it("ignores arrow keys while waiting", async () => {
+  it("handles arrow keys while waiting so the player can move in the start zone", async () => {
     const onMove = vi.fn();
 
     await renderScreen(buildSnapshot("waiting"), onMove);
@@ -75,8 +75,28 @@ describe("GameScreen keyboard control", () => {
 
     getGameShell().dispatchEvent(event);
 
-    expect(event.defaultPrevented).toBe(false);
-    expect(onMove).not.toHaveBeenCalled();
+    expect(event.defaultPrevented).toBe(true);
+    expect(onMove).toHaveBeenCalledWith("right");
+  });
+
+  it("renders a centered countdown overlay during countdown", async () => {
+    await act(async () => {
+      root.render(
+        <GameScreen
+          snapshot={buildSnapshot("countdown")}
+          selfPlayerId="player-1"
+          countdownValue={3}
+          onStartGame={vi.fn()}
+          onRenameRoom={vi.fn()}
+          onForceEndRoom={vi.fn()}
+          onLeaveRoom={vi.fn()}
+          onMove={vi.fn()}
+        />
+      );
+    });
+
+    const overlay = container.querySelector('[data-testid="countdown-overlay"]');
+    expect(overlay?.textContent).toContain("3");
   });
 
   async function renderScreen(snapshot: RoomSnapshot, onMove: (direction: Direction) => void) {
@@ -128,6 +148,56 @@ function buildSnapshot(status: RoomSnapshot["room"]["status"]): RoomSnapshot {
       }
     ],
     previewMap: null,
-    match: null
+    match: status === "countdown" || status === "playing"
+      ? {
+          matchId: "match-1",
+          mapId: "training-lap",
+          status: status === "countdown" ? "countdown" : "playing",
+          countdownValue: status === "countdown" ? 3 : null,
+          startedAt: null,
+          endedAt: null,
+          finishOrder: [],
+          results: [],
+          map: {
+            mapId: "training-lap",
+            width: 9,
+            height: 5,
+            tiles: [
+              "SSSC.#...",
+              "SSSC....G",
+              "SSSC.#.#.",
+              "SSSC.#...",
+              "SSSC....."
+            ],
+            startZone: {
+              minX: 0,
+              minY: 0,
+              maxX: 2,
+              maxY: 4
+            },
+            mazeZone: {
+              minX: 4,
+              minY: 0,
+              maxX: 8,
+              maxY: 4
+            },
+            goalZone: {
+              minX: 8,
+              minY: 1,
+              maxX: 8,
+              maxY: 1
+            },
+            startSlots: [{ x: 0, y: 1 }],
+            connectorTiles: [
+              { x: 3, y: 0 },
+              { x: 3, y: 1 },
+              { x: 3, y: 2 },
+              { x: 3, y: 3 },
+              { x: 3, y: 4 }
+            ],
+            visibilityRadius: 3
+          }
+        }
+      : null
   };
 }

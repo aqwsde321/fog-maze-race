@@ -43,6 +43,22 @@ export function App() {
   const [lastError, setLastError] = useState<string | null>(null);
 
   useEffect(() => {
+    const previousHtmlOverflowX = document.documentElement.style.overflowX;
+    const previousBodyOverflowX = document.body.style.overflowX;
+    const previousBodyMargin = document.body.style.margin;
+
+    document.documentElement.style.overflowX = "hidden";
+    document.body.style.overflowX = "hidden";
+    document.body.style.margin = "0";
+
+    return () => {
+      document.documentElement.style.overflowX = previousHtmlOverflowX;
+      document.body.style.overflowX = previousBodyOverflowX;
+      document.body.style.margin = previousBodyMargin;
+    };
+  }, []);
+
+  useEffect(() => {
     const socket = socketRef.current;
 
     const handleConnectTransport = () => {
@@ -263,9 +279,11 @@ export function App() {
 
 const pageStyle: CSSProperties = {
   position: "relative",
+  width: "100%",
   minHeight: "100vh",
   padding: "32px 18px 44px",
-  overflow: "hidden",
+  overflowX: "hidden",
+  overflowY: "hidden",
   background: "linear-gradient(180deg, #030712, #081120 38%, #06111d 100%)",
   color: "#e2e8f0",
   fontFamily: "\"Pretendard\", \"IBM Plex Sans KR\", sans-serif"

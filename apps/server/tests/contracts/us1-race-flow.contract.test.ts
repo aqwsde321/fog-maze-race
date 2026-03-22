@@ -76,6 +76,7 @@ describe("US1 race flow contract", () => {
     expect(hostJoined.snapshot.room.status).toBe("waiting");
     expect(hostJoined.snapshot.previewMap?.mapId).toBe("training-lap");
     expect(hostJoined.snapshot.previewMap?.startSlots.length).toBeGreaterThan(0);
+    expect(hostJoined.snapshot.members[0]?.position).toEqual({ x: 0, y: 1 });
 
     const guestRoomList = await once(guest, "ROOM_LIST_UPDATE");
     expect(guestRoomList.rooms[0]?.name).toBe("Alpha");
@@ -84,10 +85,39 @@ describe("US1 race flow contract", () => {
     const guestJoined = await once(guest, "ROOM_JOINED");
     expect(guestJoined.snapshot.members).toHaveLength(2);
     expect(guestJoined.snapshot.previewMap?.mapId).toBe(hostJoined.snapshot.previewMap?.mapId);
+    expect(guestJoined.snapshot.members[1]?.position).toEqual({ x: 1, y: 1 });
+
+    host.emit("MOVE", { roomId: hostJoined.roomId, direction: "right", inputSeq: 1 });
+    await waitFor(
+      async () => {
+        const snapshot = await once(host, "ROOM_STATE_UPDATE");
+        const hostMember = snapshot.snapshot.members.find((member) => member.playerId === hostConnected.playerId);
+        return (
+          snapshot.snapshot.room.status === "waiting" &&
+          hostMember?.position?.x === 1 &&
+          hostMember.position.y === 1
+        );
+      },
+      1_000
+    );
 
     host.emit("START_GAME", { roomId: hostJoined.roomId });
     const gameStarting = await once(host, "GAME_STARTING");
     expect(gameStarting.mapId).toBe("training-lap");
+
+    host.emit("MOVE", { roomId: hostJoined.roomId, direction: "right", inputSeq: 2 });
+    await waitFor(
+      async () => {
+        const snapshot = await once(host, "ROOM_STATE_UPDATE");
+        const hostMember = snapshot.snapshot.members.find((member) => member.playerId === hostConnected.playerId);
+        return (
+          snapshot.snapshot.room.status === "countdown" &&
+          hostMember?.position?.x === 2 &&
+          hostMember.position.y === 1
+        );
+      },
+      1_000
+    );
 
     const countdownEvents: number[] = [];
     const finishEvents: PlayerFinishedPayload[] = [];
