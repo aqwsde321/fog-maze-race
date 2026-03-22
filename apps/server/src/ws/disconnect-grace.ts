@@ -28,6 +28,14 @@ export class DisconnectGraceRegistry {
     return record;
   }
 
+  get(playerId: string) {
+    return this.records.get(playerId) ?? null;
+  }
+
+  delete(playerId: string) {
+    this.records.delete(playerId);
+  }
+
   expire(now = Date.now()) {
     const expired: DisconnectRecord[] = [];
 

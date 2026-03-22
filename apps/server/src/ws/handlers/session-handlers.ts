@@ -8,8 +8,10 @@ import type {
 } from "../../../../../packages/shared/src/contracts/realtime.js";
 
 import { PlayerSession } from "../../core/player-session.js";
+import { RecoveryService } from "../../rooms/recovery-service.js";
 import { RoomService } from "../../rooms/room-service.js";
 import { DisconnectGraceRegistry } from "../disconnect-grace.js";
+import { recoverPlayerConnection } from "./recovery-handlers.js";
 
 type SessionHandlerDeps = {
   io: Server;
@@ -17,6 +19,7 @@ type SessionHandlerDeps = {
   sessions: Map<string, PlayerSession>;
   roomService: RoomService;
   disconnectGrace: DisconnectGraceRegistry;
+  recoveryService: RecoveryService;
 };
 
 export function registerSessionHandlers({
@@ -24,19 +27,32 @@ export function registerSessionHandlers({
   socket,
   sessions,
   roomService,
-  disconnectGrace
+  disconnectGrace,
+  recoveryService
 }: SessionHandlerDeps) {
   socket.on("CONNECT", (payload: ConnectPayload) => {
     try {
       const session = resolveSession(payload, sessions, disconnectGrace);
       socket.data.playerId = session.playerId;
 
-      socket.emit("CONNECTED", {
-        playerId: session.playerId,
-        nickname: session.nickname,
-        recovered: false,
-        currentRoomId: session.currentRoomId
+      const recovery = recoverPlayerConnection({
+        session,
+        recoveryService
       });
+      socket.emit("CONNECTED", recovery.connected);
+
+      if (recovery.recoveredRoom) {
+        socket.join(recovery.recoveredRoom.roomId);
+        socket.emit("ROOM_JOINED", {
+          roomId: recovery.recoveredRoom.roomId,
+          snapshot: recovery.recoveredRoom.snapshot,
+          selfPlayerId: session.playerId
+        });
+        io.to(recovery.recoveredRoom.roomId).emit("ROOM_STATE_UPDATE", {
+          roomId: recovery.recoveredRoom.roomId,
+          snapshot: recovery.recoveredRoom.snapshot
+        });
+      }
 
       emitRoomListAsync(socket, roomService);
     } catch (error) {
@@ -97,7 +113,6 @@ function resolveSession(
 
   session.nickname = nickname;
   session.reconnect();
-  disconnectGrace.recover(playerId);
   sessions.set(playerId, session);
 
   return session;

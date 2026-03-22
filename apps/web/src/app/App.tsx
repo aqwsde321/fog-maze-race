@@ -11,6 +11,7 @@ import type {
   RoomStateUpdatePayload
 } from "@fog-maze-race/shared/contracts/realtime";
 
+import { ConnectionBanner } from "../features/session/ConnectionBanner.js";
 import { NicknameGate } from "../features/session/NicknameGate.js";
 import { RoomListPanel } from "../features/rooms/RoomListPanel.js";
 import { GameScreen } from "../views/GameScreen.js";
@@ -44,6 +45,15 @@ export function App() {
 
     const handleConnectTransport = () => {
       setConnectionState("connecting");
+
+      if (!nickname.trim()) {
+        return;
+      }
+
+      socket.emit("CONNECT", {
+        nickname: nickname.trim().slice(0, 5),
+        playerId: playerId ?? undefined
+      });
     };
 
     const handleDisconnectTransport = () => {
@@ -104,7 +114,16 @@ export function App() {
       socket.off("connect", handleConnectTransport);
       socket.off("disconnect", handleDisconnectTransport);
     };
-  }, [applyMove, replaceSnapshot, setConnectionState, setNickname, setPlayerId]);
+  }, [applyMove, nickname, playerId, replaceSnapshot, setConnectionState, setNickname, setPlayerId]);
+
+  useEffect(() => {
+    const socket = socketRef.current;
+    if (!nickname.trim() || !playerId || socket.connected) {
+      return;
+    }
+
+    socket.connect();
+  }, [nickname, playerId]);
 
   useEffect(() => {
     if (!snapshot || snapshot.room.status !== "playing") {
@@ -137,14 +156,15 @@ export function App() {
     setConnectionState("connecting");
     setNickname(nextNickname);
 
-    if (!socket.connected) {
-      socket.connect();
+    if (socket.connected) {
+      socket.emit("CONNECT", {
+        nickname: nextNickname,
+        playerId: playerId ?? undefined
+      });
+      return;
     }
 
-    socket.emit("CONNECT", {
-      nickname: nextNickname,
-      playerId: playerId ?? undefined
-    });
+    socket.connect();
   }
 
   function handleCreateRoom() {
@@ -181,6 +201,7 @@ export function App() {
       <div style={backgroundGlowStyle} />
       <div style={backgroundMeshStyle} />
       <div style={contentStyle}>
+        <ConnectionBanner connectionState={connectionState} />
         {lastError ? <p style={errorStyle}>{lastError}</p> : null}
         {!snapshot ? (
           connectionState === "connected" ? (

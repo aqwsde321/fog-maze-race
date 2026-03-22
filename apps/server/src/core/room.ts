@@ -60,9 +60,10 @@ export class RoomAggregate {
   leave(playerId: string) {
     const member = this.members.get(playerId);
     if (!member) {
-      return;
+      return null;
     }
 
+    const removedMember: RoomMemberRecord = { ...member };
     member.state = "left";
     this.members.delete(playerId);
 
@@ -72,6 +73,39 @@ export class RoomAggregate {
     }
 
     this.bumpRevision();
+    return removedMember;
+  }
+
+  markMemberDisconnected(playerId: string) {
+    const member = this.members.get(playerId);
+    if (!member) {
+      throw new Error("NOT_IN_ROOM");
+    }
+
+    if (member.state === "playing" || member.state === "waiting") {
+      member.state = "disconnected";
+      this.bumpRevision();
+    }
+
+    return member;
+  }
+
+  recoverMember(playerId: string) {
+    const member = this.members.get(playerId);
+    if (!member) {
+      throw new Error("RECOVERY_FAILED");
+    }
+
+    if (member.finishRank !== null) {
+      member.state = "finished";
+    } else if (this.status === "playing") {
+      member.state = "playing";
+    } else {
+      member.state = "waiting";
+    }
+
+    this.bumpRevision();
+    return member;
   }
 
   rename(nextName: string) {
@@ -171,6 +205,10 @@ export class RoomAggregate {
 
   getMember(playerId: string) {
     return this.members.get(playerId);
+  }
+
+  hasMembers() {
+    return this.members.size > 0;
   }
 
   private bumpRevision() {

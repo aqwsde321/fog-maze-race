@@ -2,9 +2,11 @@ import type { Server } from "socket.io";
 
 import { PlayerSession } from "../core/player-session.js";
 import { MatchService, type MatchServiceOptions } from "../matches/match-service.js";
+import { RecoveryService } from "../rooms/recovery-service.js";
 import { RoomService } from "../rooms/room-service.js";
 import { DisconnectGraceRegistry } from "./disconnect-grace.js";
 import { RevisionSync } from "./revision-sync.js";
+import { createRoomEventSink, handlePlayerDisconnect } from "./handlers/recovery-handlers.js";
 import { registerMatchHandlers } from "./handlers/match-handlers.js";
 import { registerSessionHandlers } from "./handlers/session-handlers.js";
 
@@ -14,6 +16,9 @@ export function buildRaceGateway(io: Server, options: MatchServiceOptions) {
   const sessions = new Map<string, PlayerSession>();
   const roomService = new RoomService(revisionSync);
   const matchService = new MatchService(roomService, options);
+  const recoveryService = new RecoveryService(roomService, matchService, disconnectGrace, sessions, {
+    graceWindowMs: options.recoveryGraceMs ?? 30_000
+  });
 
   io.on("connection", (socket) => {
     registerSessionHandlers({
@@ -21,7 +26,8 @@ export function buildRaceGateway(io: Server, options: MatchServiceOptions) {
       socket,
       sessions,
       roomService,
-      disconnectGrace
+      disconnectGrace,
+      recoveryService
     });
     registerMatchHandlers({
       io,
@@ -41,9 +47,11 @@ export function buildRaceGateway(io: Server, options: MatchServiceOptions) {
       if (!session || !session.currentRoomId) {
         return;
       }
-
-      session.disconnect();
-      disconnectGrace.markDisconnected(playerId, session.currentRoomId);
+      handlePlayerDisconnect({
+        playerId,
+        recoveryService,
+        sink: createRoomEventSink(io, roomService, session.currentRoomId)
+      });
     });
   });
 
@@ -53,7 +61,9 @@ export function buildRaceGateway(io: Server, options: MatchServiceOptions) {
     sessions,
     roomService,
     matchService,
+    recoveryService,
     dispose() {
+      recoveryService.dispose();
       matchService.dispose();
       roomService.dispose();
     }

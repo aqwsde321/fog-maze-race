@@ -92,6 +92,54 @@ export class RoomService {
     return this.requireRuntime(roomId).match;
   }
 
+  findRuntime(roomId: string) {
+    return this.rooms.get(roomId) ?? null;
+  }
+
+  disconnectPlayer(roomId: string, playerId: string) {
+    const runtime = this.requireRuntime(roomId);
+    runtime.room.markMemberDisconnected(playerId);
+    this.syncRoomRevision(roomId);
+    return this.getSnapshot(roomId);
+  }
+
+  recoverPlayer(roomId: string, playerId: string) {
+    const runtime = this.requireRuntime(roomId);
+    runtime.room.recoverMember(playerId);
+    this.syncRoomRevision(roomId);
+    return this.getSnapshot(roomId);
+  }
+
+  removePlayer(roomId: string, playerId: string) {
+    const runtime = this.requireRuntime(roomId);
+    const removedMember = runtime.room.leave(playerId);
+    if (!removedMember) {
+      return {
+        removedMember: null,
+        snapshot: this.getSnapshot(roomId),
+        deleted: false
+      };
+    }
+
+    const deleted = !runtime.room.hasMembers();
+    if (deleted) {
+      this.rooms.delete(roomId);
+      this.revisionSync.reset(roomId, 0);
+      return {
+        removedMember,
+        snapshot: null,
+        deleted
+      };
+    }
+
+    this.syncRoomRevision(roomId);
+    return {
+      removedMember,
+      snapshot: this.getSnapshot(roomId),
+      deleted
+    };
+  }
+
   listRooms(): RoomListItem[] {
     return [...this.rooms.values()]
       .map(({ room }) => ({

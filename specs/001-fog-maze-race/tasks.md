@@ -89,14 +89,14 @@ description: "Task list for Fog Maze Race MVP implementation"
 
 ### Tests for User Story 2 ⚠️
 
-- [ ] T020 [P] [US2] Write failing recovery and timeout contract tests in `/Users/jino/study/project/fog-maze-race/apps/server/tests/contracts/us2-recovery.contract.test.ts`
-- [ ] T021 [P] [US2] Write failing reconnect recovery browser test in `/Users/jino/study/project/fog-maze-race/tests/e2e/us2-reconnect.spec.ts`
+- [x] T020 [P] [US2] Write failing recovery and timeout contract tests in `/Users/jino/study/project/fog-maze-race/apps/server/tests/contracts/us2-recovery.contract.test.ts`
+- [x] T021 [P] [US2] Write failing reconnect recovery browser test in `/Users/jino/study/project/fog-maze-race/tests/e2e/us2-reconnect.spec.ts`
 
 ### Implementation for User Story 2
 
-- [ ] T022 [US2] Implement disconnect grace tracking, reconnect eligibility, and timeout removal in `/Users/jino/study/project/fog-maze-race/apps/server/src/rooms/recovery-service.ts` and `/Users/jino/study/project/fog-maze-race/apps/server/src/ws/disconnect-grace.ts`
-- [ ] T023 [US2] Implement reconnect snapshot resync and revision gap handling in `/Users/jino/study/project/fog-maze-race/apps/server/src/ws/handlers/recovery-handlers.ts` and `/Users/jino/study/project/fog-maze-race/apps/web/src/stores/roomStore.ts`
-- [ ] T024 [US2] Implement disconnect banners, reconnect UX, and make US2 tests pass in `/Users/jino/study/project/fog-maze-race/apps/web/src/features/session/ConnectionBanner.tsx` and `/Users/jino/study/project/fog-maze-race/apps/web/src/services/socket-client.ts`
+- [x] T022 [US2] Implement disconnect grace tracking, reconnect eligibility, and timeout removal in `/Users/jino/study/project/fog-maze-race/apps/server/src/rooms/recovery-service.ts` and `/Users/jino/study/project/fog-maze-race/apps/server/src/ws/disconnect-grace.ts`
+- [x] T023 [US2] Implement reconnect snapshot resync and revision gap handling in `/Users/jino/study/project/fog-maze-race/apps/server/src/ws/handlers/recovery-handlers.ts` and `/Users/jino/study/project/fog-maze-race/apps/web/src/stores/roomStore.ts`
+- [x] T024 [US2] Implement disconnect banners, reconnect UX, and make US2 tests pass in `/Users/jino/study/project/fog-maze-race/apps/web/src/features/session/ConnectionBanner.tsx` and `/Users/jino/study/project/fog-maze-race/apps/web/src/services/socket-client.ts`
 
 **Checkpoint**: User Stories 1 and 2 both work independently, and recovery no longer depends on page refresh or manual admin action
 

@@ -7,6 +7,7 @@ import type {
 import { PlayerSession } from "../../core/player-session.js";
 import { MatchService } from "../../matches/match-service.js";
 import { RoomService } from "../../rooms/room-service.js";
+import { createRoomEventSink } from "./recovery-handlers.js";
 
 type MatchHandlerDeps = {
   io: Server;
@@ -25,20 +26,11 @@ export function registerMatchHandlers({
 }: MatchHandlerDeps) {
   socket.on("START_GAME", (payload: StartGamePayload) => {
     const session = requireSession(socket, sessions);
-
-    matchService.startGame(payload.roomId, session.playerId, {
-      emitGameStarting: (gameStarting) => io.to(payload.roomId).emit("GAME_STARTING", gameStarting),
-      emitCountdown: (countdown) => io.to(payload.roomId).emit("COUNTDOWN", countdown),
-      emitPlayerMoved: (playerMoved) => io.to(payload.roomId).emit("PLAYER_MOVED", playerMoved),
-      emitPlayerFinished: (playerFinished) =>
-        io.to(payload.roomId).emit("PLAYER_FINISHED", playerFinished),
-      emitGameEnded: (gameEnded) => io.to(payload.roomId).emit("GAME_ENDED", gameEnded),
-      emitRoomState: (roomState) => io.to(payload.roomId).emit("ROOM_STATE_UPDATE", roomState),
-      emitRoomListUpdate: () =>
-        io.emit("ROOM_LIST_UPDATE", {
-          rooms: roomService.listRooms()
-        })
-    });
+    matchService.startGame(
+      payload.roomId,
+      session.playerId,
+      createRoomEventSink(io, roomService, payload.roomId)
+    );
   });
 
   socket.on("MOVE", (payload: MovePayload) => {
@@ -51,19 +43,7 @@ export function registerMatchHandlers({
         direction: payload.direction,
         inputSeq: payload.inputSeq
       },
-      {
-        emitGameStarting: () => undefined,
-        emitCountdown: () => undefined,
-        emitPlayerMoved: (playerMoved) => io.to(payload.roomId).emit("PLAYER_MOVED", playerMoved),
-        emitPlayerFinished: (playerFinished) =>
-          io.to(payload.roomId).emit("PLAYER_FINISHED", playerFinished),
-        emitGameEnded: (gameEnded) => io.to(payload.roomId).emit("GAME_ENDED", gameEnded),
-        emitRoomState: (roomState) => io.to(payload.roomId).emit("ROOM_STATE_UPDATE", roomState),
-        emitRoomListUpdate: () =>
-          io.emit("ROOM_LIST_UPDATE", {
-            rooms: roomService.listRooms()
-          })
-      }
+      createRoomEventSink(io, roomService, payload.roomId)
     );
   });
 }

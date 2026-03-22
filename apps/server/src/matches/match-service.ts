@@ -24,10 +24,13 @@ type MatchEventSink = {
   emitRoomListUpdate: () => void;
 };
 
+export type { MatchEventSink };
+
 export type MatchServiceOptions = {
   countdownStepMs: number;
   resultsDurationMs: number;
   forcedMapId?: string | null;
+  recoveryGraceMs?: number;
 };
 
 type TimerBucket = {
@@ -80,7 +83,10 @@ export class MatchService {
     input: Pick<MovePayload, "direction" | "inputSeq">,
     sink: MatchEventSink
   ) {
-    const runtime = this.roomService.requireRuntime(roomId);
+    const runtime = this.roomService.findRuntime(roomId);
+    if (!runtime) {
+      return;
+    }
     const match = runtime.match;
     const member = runtime.room.getMember(playerId);
 
@@ -152,6 +158,42 @@ export class MatchService {
     this.timers.clear();
   }
 
+  handlePlayerLeft(
+    roomId: string,
+    member: { playerId: string; nickname: string; color: string } | null,
+    sink: MatchEventSink
+  ) {
+    const runtime = this.roomService.findRuntime(roomId);
+    if (!member) {
+      if (runtime) {
+        sink.emitRoomListUpdate();
+      }
+      return;
+    }
+
+    if (!runtime) {
+      sink.emitRoomListUpdate();
+      return;
+    }
+
+    if (runtime.match) {
+      runtime.match.markLeft(member);
+    }
+
+    this.roomService.syncRoomRevision(roomId);
+
+    if (runtime.room.status === "playing" && runtime.room.allMembersFinished()) {
+      this.finishGame(roomId, sink);
+      return;
+    }
+
+    sink.emitRoomState({
+      roomId,
+      snapshot: this.roomService.getSnapshot(roomId)
+    });
+    sink.emitRoomListUpdate();
+  }
+
   private scheduleCountdown(roomId: string, sink: MatchEventSink, initialDelayMs: number) {
     const bucket = this.getTimerBucket(roomId);
     bucket.countdown.forEach((timer) => clearTimeout(timer));
@@ -162,7 +204,10 @@ export class MatchService {
     values.forEach((value, index) => {
       const delay = initialDelayMs + this.options.countdownStepMs * index;
       const timer = setTimeout(() => {
-        const runtime = this.roomService.requireRuntime(roomId);
+        const runtime = this.roomService.findRuntime(roomId);
+        if (!runtime) {
+          return;
+        }
         const match = runtime.match;
         if (!match) {
           return;
@@ -201,7 +246,10 @@ export class MatchService {
   }
 
   private finishGame(roomId: string, sink: MatchEventSink) {
-    const runtime = this.roomService.requireRuntime(roomId);
+    const runtime = this.roomService.findRuntime(roomId);
+    if (!runtime) {
+      return;
+    }
     const match = runtime.match;
     if (!match) {
       return;
@@ -230,6 +278,11 @@ export class MatchService {
     }
 
     bucket.reset = setTimeout(() => {
+      const activeRuntime = this.roomService.findRuntime(roomId);
+      if (!activeRuntime) {
+        return;
+      }
+
       const snapshot = resetRoom(this.roomService, roomId);
       sink.emitRoomState({ roomId, snapshot });
       sink.emitRoomListUpdate();

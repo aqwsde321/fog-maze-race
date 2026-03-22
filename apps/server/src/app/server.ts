@@ -8,6 +8,7 @@ export type BuildServerOptions = {
   countdownStepMs?: number;
   resultsDurationMs?: number;
   forcedMapId?: string | null;
+  recoveryGraceMs?: number;
 };
 
 export async function buildServer(options: BuildServerOptions = {}) {
@@ -22,7 +23,8 @@ export async function buildServer(options: BuildServerOptions = {}) {
   const gateway = buildRaceGateway(io, {
     countdownStepMs: options.countdownStepMs ?? Number(process.env.COUNTDOWN_STEP_MS ?? 1_000),
     resultsDurationMs: options.resultsDurationMs ?? Number(process.env.RESULTS_DURATION_MS ?? 6_000),
-    forcedMapId: options.forcedMapId ?? process.env.FORCED_MAP_ID ?? null
+    forcedMapId: options.forcedMapId ?? process.env.FORCED_MAP_ID ?? null,
+    recoveryGraceMs: options.recoveryGraceMs ?? Number(process.env.RECOVERY_GRACE_MS ?? 30_000)
   });
 
   app.get("/health", async () => ({
