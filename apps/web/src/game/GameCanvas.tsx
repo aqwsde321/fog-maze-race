@@ -5,7 +5,14 @@ import { isInsideZone } from "@fog-maze-race/shared/maps/map-definitions";
 
 import { createSceneController, type SceneController } from "./pixi/scene-controller.js";
 import { createBoardLayout } from "./pixi/renderers/board-render.js";
-import { buildPlayerMarkerMetaMap, getPatternBackground, type PlayerPattern } from "./player-marker.js";
+import {
+  buildPlayerMarkerMetaMap,
+  getMarkerLabelFontSize,
+  getPatternBackground,
+  PLAYER_MARKER_DIAMETER_RATIO,
+  PLAYER_MARKER_PATTERN_ALPHA_PREVIEW,
+  type PlayerPattern
+} from "./player-marker.js";
 import { getPlayerRenderOrder } from "./player-render-order.js";
 
 type GameCanvasProps = {
@@ -133,7 +140,7 @@ function StartZonePreview({
   const startZoneWidth = map.startZone.maxX - map.startZone.minX + 1;
   const startZoneHeight = map.startZone.maxY - map.startZone.minY + 1;
   const panelPadding = Math.max(6, Math.floor(layout.tileSize * 0.26));
-  const dotSize = Math.max(14, Math.floor(layout.tileSize * 0.54));
+  const dotSize = Math.max(15, Math.floor(layout.tileSize * PLAYER_MARKER_DIAMETER_RATIO));
   const startPanel = toPanelBox(layout, map.startZone, panelPadding);
   const mazePanel = toPanelBox(layout, map.mazeZone, panelPadding);
   const markerMetaMap = buildPlayerMarkerMetaMap(snapshot.members);
@@ -201,8 +208,8 @@ function StartZonePreview({
                 background: member.color,
                 boxShadow:
                   member.playerId === selfPlayerId
-                    ? "0 0 0 3px rgba(8,17,31,0.96), 0 0 0 6px rgba(248,250,252,0.92)"
-                    : "0 0 0 3px rgba(8,17,31,0.96)"
+                    ? "0 0 0 2px rgba(8,17,31,0.96), 0 0 0 4px rgba(248,250,252,0.92)"
+                    : "0 0 0 2px rgba(8,17,31,0.96)"
               }}
             >
               <span
@@ -297,7 +304,7 @@ function playerPatternStyle(pattern: PlayerPattern, color: string): CSSPropertie
     position: "absolute",
     inset: "8%",
     borderRadius: "999px",
-    backgroundImage: getPatternBackground(pattern, color, 0.28)
+    backgroundImage: getPatternBackground(pattern, color, PLAYER_MARKER_PATTERN_ALPHA_PREVIEW)
   };
 }
 
@@ -306,7 +313,7 @@ function playerLabelStyle(color: string, dotSize: number, labelLength = 1): CSSP
     position: "relative",
     zIndex: 1,
     color,
-    fontSize: `${Math.max(8, Math.floor(dotSize * (labelLength > 1 ? 0.35 : 0.44)))}px`,
+    fontSize: `${getMarkerLabelFontSize(dotSize, labelLength)}px`,
     lineHeight: 1,
     fontWeight: 800,
     letterSpacing: "-0.03em",

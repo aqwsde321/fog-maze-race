@@ -6,7 +6,14 @@ import type { MapDefinition } from "@fog-maze-race/shared/maps/map-definitions";
 
 import { createBoardLayout, getTileVisual } from "./renderers/board-render.js";
 import { renderFogOverlay } from "./renderers/fog-renderer.js";
-import { buildPlayerMarkerMetaMap, type PlayerPattern } from "../player-marker.js";
+import {
+  buildPlayerMarkerMetaMap,
+  getMarkerLabelFontSize,
+  PLAYER_MARKER_DIAMETER_RATIO,
+  PLAYER_MARKER_PATTERN_ALPHA_LIVE,
+  PLAYER_MARKER_SELF_RING_RATIO,
+  type PlayerPattern
+} from "../player-marker.js";
 import { getPlayerRenderOrder } from "../player-render-order.js";
 
 export type SceneController = {
@@ -129,18 +136,26 @@ export async function createSceneController(container: HTMLDivElement): Promise<
 
         const centerX = layout.offsetX + member.position.x * layout.tileSize + layout.tileSize / 2;
         const centerY = layout.offsetY + member.position.y * layout.tileSize + layout.tileSize / 2;
-        const markerRadius = layout.tileSize * 0.27;
+        const markerRadius = (layout.tileSize * PLAYER_MARKER_DIAMETER_RATIO) / 2;
         playerLayer
           .circle(centerX, centerY, markerRadius)
           .fill({ color: toPixiColor(member.color) })
-          .stroke({ color: 0x08111f, width: 3, alpha: 0.96 });
+          .stroke({ color: 0x08111f, width: 2.2, alpha: 0.96 });
         drawMarkerPattern(playerLayer, centerX, centerY, markerRadius * 0.92, markerMeta.pattern, markerMeta.contrastColor);
-        renderMarkerLabel(playerLabelLayer, centerX, centerY, markerMeta.label, markerMeta.contrastColor, layout.tileSize);
+        renderMarkerLabel(
+          playerLabelLayer,
+          centerX,
+          centerY,
+          markerMeta.label,
+          markerMeta.contrastColor,
+          markerRadius * 2,
+          markerMeta.label.length
+        );
 
         if (member.playerId === selfPlayerId) {
           playerLayer
-            .circle(centerX, centerY, layout.tileSize * 0.35)
-            .stroke({ color: 0xf8fafc, width: 3, alpha: 0.95 });
+            .circle(centerX, centerY, layout.tileSize * PLAYER_MARKER_SELF_RING_RATIO)
+            .stroke({ color: 0xf8fafc, width: 2.4, alpha: 0.95 });
         }
       }
 
@@ -185,7 +200,7 @@ function drawMarkerPattern(
   const stroke = {
     color: toPixiColor(color),
     width: Math.max(1.5, radius * 0.18),
-    alpha: 0.3
+    alpha: PLAYER_MARKER_PATTERN_ALPHA_LIVE
   };
 
   if (pattern === "horizontal" || pattern === "cross") {
@@ -219,7 +234,8 @@ function renderMarkerLabel(
   centerY: number,
   label: string,
   color: string,
-  tileSize: number
+  markerSize: number,
+  labelLength: number
 ) {
   const text = new Text({
     text: label,
@@ -227,7 +243,7 @@ function renderMarkerLabel(
       fill: color,
       fontFamily: "monospace",
       fontWeight: "700",
-      fontSize: Math.max(10, Math.floor(tileSize * 0.24))
+      fontSize: getMarkerLabelFontSize(markerSize, labelLength)
     }
   });
   text.anchor.set(0.5);

@@ -1,5 +1,10 @@
 export type PlayerPattern = "horizontal" | "vertical" | "diagonal-up" | "diagonal-down" | "cross";
 
+export const PLAYER_MARKER_DIAMETER_RATIO = 0.58;
+export const PLAYER_MARKER_SELF_RING_RATIO = 0.34;
+export const PLAYER_MARKER_PATTERN_ALPHA_PREVIEW = 0.34;
+export const PLAYER_MARKER_PATTERN_ALPHA_LIVE = 0.42;
+
 export type PlayerMarkerMeta = {
   order: number;
   label: string;
@@ -48,6 +53,11 @@ export function getPatternBackground(pattern: PlayerPattern, color: string, alph
         `linear-gradient(90deg, transparent 36%, ${stroke} 36%, ${stroke} 64%, transparent 64%)`
       ].join(", ");
   }
+}
+
+export function getMarkerLabelFontSize(markerSize: number, labelLength: number) {
+  const ratio = labelLength > 1 ? 0.42 : 0.52;
+  return Math.max(labelLength > 1 ? 10 : 11, Math.floor(markerSize * ratio));
 }
 
 export function getContrastTextColor(hexColor: string) {
