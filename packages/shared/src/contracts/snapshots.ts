@@ -33,6 +33,7 @@ export type MatchView = {
   countdownValue: 3 | 2 | 1 | 0 | null;
   startedAt: string | null;
   endedAt: string | null;
+  resultsDurationMs: number | null;
   finishOrder: string[];
   results: ResultEntry[];
   map: MapView;

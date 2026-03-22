@@ -40,12 +40,14 @@ export type RoomRuntime = {
 export class RoomService {
   private readonly rooms = new Map<string, RoomRuntime>();
   private readonly pickPreviewMap: () => MapDefinition;
+  private readonly resultsDurationMs: number;
 
   constructor(
     private readonly revisionSync: RevisionSync,
-    options?: { pickPreviewMap?: () => MapDefinition }
+    options?: { pickPreviewMap?: () => MapDefinition; resultsDurationMs?: number }
   ) {
     this.pickPreviewMap = options?.pickPreviewMap ?? (() => getRandomMap());
+    this.resultsDurationMs = options?.resultsDurationMs ?? 6_000;
   }
 
   createRoom(input: { session: PlayerSession; name: string }): RoomJoinedPayload {
@@ -224,6 +226,7 @@ export class RoomService {
             countdownValue: runtime.match.countdownValue,
             startedAt: toIso(runtime.match.startedAt),
             endedAt: toIso(runtime.match.endedAt),
+            resultsDurationMs: runtime.match.endedAt ? this.resultsDurationMs : null,
             finishOrder: [...runtime.match.finishOrder],
             results: [...runtime.match.results],
             map: serializeMap(runtime.match.map)

@@ -187,6 +187,7 @@ function buildSnapshot(
           countdownValue: status === "countdown" ? 3 : null,
           startedAt: null,
           endedAt: null,
+          resultsDurationMs: null,
           finishOrder: [],
           results: [],
           map: {

@@ -1,4 +1,4 @@
-import type { CSSProperties } from "react";
+import { useEffect, useState, type CSSProperties } from "react";
 
 import type { RoomSnapshot } from "@fog-maze-race/shared/contracts/snapshots";
 
@@ -7,7 +7,31 @@ type ResultOverlayProps = {
 };
 
 export function ResultOverlay({ snapshot }: ResultOverlayProps) {
-  if (snapshot.room.status !== "ended" || !snapshot.match?.results.length) {
+  const results = snapshot.match?.results ?? [];
+  const isVisible = snapshot.room.status === "ended" && results.length > 0;
+  const endsAt =
+    snapshot.match?.endedAt && snapshot.match.resultsDurationMs
+      ? new Date(snapshot.match.endedAt).getTime() + snapshot.match.resultsDurationMs
+      : null;
+
+  const [remainingSeconds, setRemainingSeconds] = useState(() => getRemainingSeconds(endsAt));
+
+  useEffect(() => {
+    setRemainingSeconds(getRemainingSeconds(endsAt));
+    if (!endsAt) {
+      return;
+    }
+
+    const timer = window.setInterval(() => {
+      setRemainingSeconds(getRemainingSeconds(endsAt));
+    }, 200);
+
+    return () => {
+      window.clearInterval(timer);
+    };
+  }, [endsAt]);
+
+  if (!isVisible) {
     return null;
   }
 
@@ -16,8 +40,11 @@ export function ResultOverlay({ snapshot }: ResultOverlayProps) {
       <section style={cardStyle}>
         <p style={eyebrowStyle}>Result</p>
         <h2 style={headingStyle}>레이스 종료</h2>
+        <p data-testid="results-reset-timer" style={timerStyle}>
+          {remainingSeconds}초 뒤 결과창이 닫히고 새 게임 대기 상태로 돌아갑니다.
+        </p>
         <div style={resultListStyle}>
-          {snapshot.match.results.map((result) => (
+          {results.map((result) => (
             <article key={result.playerId} style={resultItemStyle}>
               <strong style={placeStyle}>{result.rank ? `${result.rank}위` : "나감"}</strong>
               <div>
@@ -30,6 +57,14 @@ export function ResultOverlay({ snapshot }: ResultOverlayProps) {
       </section>
     </div>
   );
+}
+
+function getRemainingSeconds(endsAt: number | null) {
+  if (!endsAt) {
+    return 0;
+  }
+
+  return Math.max(0, Math.ceil((endsAt - Date.now()) / 1000));
 }
 
 const overlayStyle: CSSProperties = {
@@ -61,6 +96,13 @@ const eyebrowStyle: CSSProperties = {
 const headingStyle: CSSProperties = {
   margin: "10px 0 18px",
   fontSize: "2rem"
+};
+
+const timerStyle: CSSProperties = {
+  margin: "0 0 18px",
+  color: "#cbd5e1",
+  fontSize: "0.92rem",
+  lineHeight: 1.5
 };
 
 const resultListStyle: CSSProperties = {

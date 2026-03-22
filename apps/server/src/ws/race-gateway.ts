@@ -17,6 +17,7 @@ export function buildRaceGateway(io: Server, options: MatchServiceOptions) {
   const disconnectGrace = new DisconnectGraceRegistry();
   const sessions = new Map<string, PlayerSession>();
   const roomService = new RoomService(revisionSync, {
+    resultsDurationMs: options.resultsDurationMs,
     pickPreviewMap: () =>
       options.forcedMapId ? (getMapById(options.forcedMapId) ?? getRandomMap()) : getRandomMap()
   });
