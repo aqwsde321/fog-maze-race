@@ -81,14 +81,14 @@ export function getTileVisual(input: {
 
   if (isInsideZone(input.map.startZone, input.position)) {
     return {
-      fillColor: input.isVisible ? 0x22d3ee : 0x155e75,
+      fillColor: input.isVisible ? 0x26cfe6 : 0x155e75,
       alpha: input.isVisible ? 1 : 0.82
     };
   }
 
   if (isConnectorTile(input.map, input.position)) {
     return {
-      fillColor: input.isVisible ? 0x14b8a6 : 0x0f766e,
+      fillColor: input.isVisible ? 0x18b6a4 : 0x0f766e,
       alpha: input.isVisible ? 1 : 0.86
     };
   }
@@ -109,13 +109,13 @@ export function getTileVisual(input: {
 
   if (input.tile === "#") {
     return {
-      fillColor: 0x64748b,
+      fillColor: 0x7a8aa3,
       alpha: 1
     };
   }
 
   return {
-    fillColor: 0x18263b,
+    fillColor: 0x202e45,
     alpha: 1
   };
 }

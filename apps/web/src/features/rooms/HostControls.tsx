@@ -54,35 +54,37 @@ export function HostControls({
 
 const panelStyle: CSSProperties = {
   display: "grid",
-  gap: "10px",
-  minWidth: "280px"
+  gap: "8px",
+  minWidth: "256px"
 };
 
 const labelStyle: CSSProperties = {
   margin: 0,
   color: "#94a3b8",
-  fontSize: "0.82rem",
-  letterSpacing: "0.12em",
+  fontSize: "0.76rem",
+  letterSpacing: "0.1em",
   textTransform: "uppercase"
 };
 
 const rowStyle: CSSProperties = {
   display: "grid",
   gridTemplateColumns: "1fr auto",
-  gap: "10px"
+  gap: "8px"
 };
 
 const inputStyle: CSSProperties = {
-  padding: "12px 14px",
-  borderRadius: "12px",
+  minHeight: "42px",
+  padding: "10px 12px",
+  borderRadius: "14px",
   border: "1px solid rgba(148, 163, 184, 0.24)",
   background: "rgba(15, 23, 42, 0.7)",
   color: "#f8fafc"
 };
 
 const renameButtonStyle: CSSProperties = {
-  padding: "12px 14px",
-  borderRadius: "999px",
+  minHeight: "42px",
+  padding: "10px 14px",
+  borderRadius: "14px",
   border: "1px solid rgba(56, 189, 248, 0.24)",
   background: "rgba(56, 189, 248, 0.12)",
   color: "#bae6fd",
@@ -91,8 +93,9 @@ const renameButtonStyle: CSSProperties = {
 
 const forceEndButtonStyle: CSSProperties = {
   justifySelf: "start",
-  padding: "12px 16px",
-  borderRadius: "999px",
+  minHeight: "42px",
+  padding: "10px 14px",
+  borderRadius: "14px",
   border: "1px solid rgba(248, 113, 113, 0.24)",
   background: "rgba(239, 68, 68, 0.14)",
   color: "#fecaca",

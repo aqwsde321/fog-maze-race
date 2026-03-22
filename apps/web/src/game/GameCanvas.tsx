@@ -154,9 +154,9 @@ function StartZonePreview({
           style={{
             ...previewPanelStyle,
             ...startPanel,
-            background: "rgba(8, 27, 44, 0.92)",
-            borderColor: "rgba(34, 211, 238, 0.18)",
-            boxShadow: "0 10px 28px rgba(2, 6, 23, 0.16)"
+            background: "rgba(8, 27, 44, 0.88)",
+            borderColor: "rgba(34, 211, 238, 0.1)",
+            boxShadow: "none"
           }}
         />
         <div
@@ -206,7 +206,7 @@ const canvasShellStyle: CSSProperties = {
   minHeight: "420px",
   height: "clamp(420px, 62vh, 760px)",
   position: "relative",
-  borderRadius: "20px",
+  borderRadius: "18px",
   overflow: "hidden",
   background: "transparent"
 };
@@ -219,7 +219,7 @@ const previewStageStyle: CSSProperties = {
 
 const previewPanelStyle: CSSProperties = {
   position: "absolute",
-  borderRadius: "18px",
+  borderRadius: "14px",
   border: "1px solid transparent"
 };
 
@@ -227,7 +227,7 @@ function previewTileStyle(tileSize: number): CSSProperties {
   return {
     width: "100%",
     height: "100%",
-    border: `1px solid rgba(4, 52, 78, ${tileSize >= 22 ? 0.9 : 0.72})`,
+    border: `1px solid rgba(4, 52, 78, ${tileSize >= 22 ? 0.7 : 0.58})`,
     background: "#34c3df"
   };
 }

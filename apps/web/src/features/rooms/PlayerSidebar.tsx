@@ -45,43 +45,46 @@ const sidebarStyle: CSSProperties = {
   width: "300px",
   minWidth: "300px",
   maxWidth: "300px",
-  padding: "20px",
-  borderRadius: "24px",
+  padding: "18px",
+  borderRadius: "20px",
   background: "linear-gradient(180deg, rgba(8, 15, 30, 0.9), rgba(7, 16, 30, 0.86))",
-  border: "1px solid rgba(148, 163, 184, 0.12)",
+  border: "1px solid rgba(148, 163, 184, 0.08)",
   boxShadow: "0 12px 32px rgba(2, 6, 23, 0.16)",
   boxSizing: "border-box"
 };
 
 const titleStyle: CSSProperties = {
-  margin: 0
+  margin: 0,
+  fontSize: "1.6rem",
+  lineHeight: 1
 };
 
 const listStyle: CSSProperties = {
   display: "grid",
-  gap: "12px",
-  marginTop: "16px"
+  gap: "10px",
+  marginTop: "14px"
 };
 
 const memberCardStyle: CSSProperties = {
   display: "flex",
   justifyContent: "space-between",
-  gap: "12px",
+  gap: "10px",
   alignItems: "center",
-  padding: "14px",
-  borderRadius: "16px",
-  background: "rgba(15, 23, 42, 0.64)"
+  padding: "12px 13px",
+  borderRadius: "14px",
+  background: "rgba(15, 23, 42, 0.6)",
+  border: "1px solid rgba(148, 163, 184, 0.04)"
 };
 
 const identityStyle: CSSProperties = {
   display: "flex",
-  gap: "12px",
+  gap: "10px",
   alignItems: "center"
 };
 
 const colorDotStyle: CSSProperties = {
-  width: "14px",
-  height: "14px",
+  width: "13px",
+  height: "13px",
   borderRadius: "999px",
   boxShadow: "0 0 0 3px rgba(255,255,255,0.08)"
 };
@@ -91,12 +94,12 @@ const nameStyle: CSSProperties = {
 };
 
 const metaStyle: CSSProperties = {
-  margin: "6px 0 0",
+  margin: "4px 0 0",
   color: "#94a3b8",
-  fontSize: "0.88rem"
+  fontSize: "0.85rem"
 };
 
 const rankStyle: CSSProperties = {
   color: "#fde68a",
-  fontSize: "0.95rem"
+  fontSize: "0.92rem"
 };

@@ -185,7 +185,7 @@ const shellStyle: CSSProperties = {
   position: "relative",
   display: "grid",
   gridTemplateColumns: "minmax(0, 1fr) 300px",
-  gap: "20px",
+  gap: "16px",
   width: "100%",
   maxWidth: "1360px",
   margin: "0 auto",
@@ -197,58 +197,61 @@ const mainColumnStyle: CSSProperties = {
   width: "100%",
   minWidth: 0,
   display: "grid",
-  gap: "18px",
+  gap: "12px",
   overflowX: "hidden"
 };
 
 const topBarStyle: CSSProperties = {
   display: "grid",
   gridTemplateColumns: "minmax(0, 1fr) minmax(260px, auto) auto auto",
-  gap: "16px",
+  gap: "12px",
   width: "100%",
   minWidth: 0,
   boxSizing: "border-box",
   alignItems: "center",
-  padding: "20px 24px",
-  borderRadius: "26px",
+  padding: "14px 18px",
+  borderRadius: "20px",
   overflow: "hidden",
   background: "linear-gradient(180deg, rgba(8, 15, 30, 0.92), rgba(7, 16, 30, 0.88))",
-  border: "1px solid rgba(148, 163, 184, 0.12)",
+  border: "1px solid rgba(148, 163, 184, 0.08)",
   boxShadow: "0 12px 32px rgba(2, 6, 23, 0.16)"
 };
 
 const labelStyle: CSSProperties = {
   margin: 0,
   color: "#94a3b8",
-  fontSize: "0.82rem",
-  letterSpacing: "0.16em",
+  fontSize: "0.76rem",
+  letterSpacing: "0.14em",
   textTransform: "uppercase"
 };
 
 const roomNameStyle: CSSProperties = {
-  margin: "8px 0 0",
-  fontSize: "1.8rem"
+  margin: "6px 0 0",
+  fontSize: "1.52rem",
+  lineHeight: 1.05
 };
 
 const statusPanelStyle: CSSProperties = {
-  padding: "0 6px"
+  padding: "0 2px"
 };
 
 const statusValueStyle: CSSProperties = {
   display: "block",
-  marginTop: "8px",
-  fontSize: "1.02rem",
+  marginTop: "4px",
+  fontSize: "0.95rem",
   color: "#f8fafc"
 };
 
 const buttonRowStyle: CSSProperties = {
   display: "flex",
-  gap: "10px"
+  gap: "8px",
+  alignItems: "center"
 };
 
 const startButtonStyle: CSSProperties = {
-  padding: "12px 18px",
-  borderRadius: "999px",
+  minHeight: "44px",
+  padding: "10px 15px",
+  borderRadius: "16px",
   border: 0,
   background: "linear-gradient(135deg, #38bdf8, #0ea5e9)",
   color: "#082032",
@@ -257,8 +260,9 @@ const startButtonStyle: CSSProperties = {
 };
 
 const ghostButtonStyle: CSSProperties = {
-  padding: "12px 18px",
-  borderRadius: "999px",
+  minHeight: "44px",
+  padding: "10px 15px",
+  borderRadius: "16px",
   border: "1px solid rgba(148, 163, 184, 0.22)",
   background: "transparent",
   color: "#94a3b8",
@@ -269,8 +273,8 @@ const canvasFrameStyle: CSSProperties = {
   position: "relative",
   width: "100%",
   boxSizing: "border-box",
-  padding: "20px",
-  borderRadius: "26px",
+  padding: "14px",
+  borderRadius: "20px",
   overflow: "hidden",
   background: "linear-gradient(180deg, rgba(8, 15, 30, 0.82), rgba(6, 14, 26, 0.88))",
   border: "1px solid rgba(56, 189, 248, 0.12)",
