@@ -6,6 +6,7 @@ import type { MapDefinition } from "@fog-maze-race/shared/maps/map-definitions";
 
 import { createBoardLayout, getTileVisual } from "./renderers/board-render.js";
 import { renderFogOverlay } from "./renderers/fog-renderer.js";
+import { getPlayerRenderOrder } from "../player-render-order.js";
 
 export type SceneController = {
   render: (snapshot: RoomSnapshot | null, selfPlayerId: string | null) => void;
@@ -110,7 +111,7 @@ export async function createSceneController(container: HTMLDivElement): Promise<
         }
       }
 
-      for (const member of renderMembers) {
+      for (const member of getPlayerRenderOrder(renderMembers, selfPlayerId)) {
         if (!member.position || (!projection.showFullMap && !visiblePlayerSet.has(member.playerId))) {
           continue;
         }

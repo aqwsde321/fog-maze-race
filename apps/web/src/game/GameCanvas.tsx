@@ -5,6 +5,7 @@ import { isInsideZone } from "@fog-maze-race/shared/maps/map-definitions";
 
 import { createSceneController, type SceneController } from "./pixi/scene-controller.js";
 import { createBoardLayout } from "./pixi/renderers/board-render.js";
+import { getPlayerRenderOrder } from "./player-render-order.js";
 
 type GameCanvasProps = {
   snapshot: RoomSnapshot | null;
@@ -175,7 +176,7 @@ function StartZonePreview({
             <div key={index} data-testid="preview-start-tile" style={previewTileStyle(layout.tileSize)} />
           ))}
         </div>
-        {members.map((member) => {
+        {getPlayerRenderOrder(members, selfPlayerId).map((member) => {
           const position = member.position!;
           const x = layout.offsetX + position.x * layout.tileSize + layout.tileSize / 2 - dotSize / 2;
           const y = layout.offsetY + position.y * layout.tileSize + layout.tileSize / 2 - dotSize / 2;

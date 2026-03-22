@@ -99,6 +99,28 @@ describe("GameScreen keyboard control", () => {
     expect(overlay?.textContent).toContain("3");
   });
 
+  it("hides the start button for non-host players", async () => {
+    await act(async () => {
+      root.render(
+        <GameScreen
+          snapshot={buildSnapshot("waiting", {
+            hostPlayerId: "player-2",
+            selfPlayerId: "player-1"
+          })}
+          selfPlayerId="player-1"
+          countdownValue={null}
+          onStartGame={vi.fn()}
+          onRenameRoom={vi.fn()}
+          onForceEndRoom={vi.fn()}
+          onLeaveRoom={vi.fn()}
+          onMove={vi.fn()}
+        />
+      );
+    });
+
+    expect(container.textContent).not.toContain("시작");
+  });
+
   async function renderScreen(snapshot: RoomSnapshot, onMove: (direction: Direction) => void) {
     await act(async () => {
       root.render(
@@ -126,25 +148,34 @@ describe("GameScreen keyboard control", () => {
   }
 });
 
-function buildSnapshot(status: RoomSnapshot["room"]["status"]): RoomSnapshot {
+function buildSnapshot(
+  status: RoomSnapshot["room"]["status"],
+  overrides?: {
+    hostPlayerId?: string;
+    selfPlayerId?: string;
+  }
+): RoomSnapshot {
+  const selfPlayerId = overrides?.selfPlayerId ?? "player-1";
+  const hostPlayerId = overrides?.hostPlayerId ?? selfPlayerId;
+
   return {
     revision: 1,
     room: {
       roomId: "room-1",
       name: "Alpha",
       status,
-      hostPlayerId: "player-1",
+      hostPlayerId,
       maxPlayers: 15
     },
     members: [
       {
-        playerId: "player-1",
+        playerId: selfPlayerId,
         nickname: "호1",
         color: "#38bdf8",
         state: status === "playing" ? "playing" : "waiting",
         position: { x: 0, y: 1 },
         finishRank: null,
-        isHost: true
+        isHost: selfPlayerId === hostPlayerId
       }
     ],
     previewMap: null,

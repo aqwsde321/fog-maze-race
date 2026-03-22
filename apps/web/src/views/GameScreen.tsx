@@ -115,9 +115,11 @@ export function GameScreen({
             </strong>
           </div>
           <div style={buttonRowStyle}>
-            <button type="button" onClick={onStartGame} disabled={!canStart} style={startButtonStyle}>
-              시작
-            </button>
+            {isHost ? (
+              <button type="button" onClick={onStartGame} disabled={!canStart} style={startButtonStyle}>
+                시작
+              </button>
+            ) : null}
             <button type="button" onClick={onLeaveRoom} style={ghostButtonStyle}>
               나가기
             </button>

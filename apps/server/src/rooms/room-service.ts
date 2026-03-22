@@ -14,14 +14,21 @@ import { RoomAggregate } from "../core/room.js";
 import { RevisionSync } from "../ws/revision-sync.js";
 
 const PLAYER_COLORS = [
-  "#fb7185",
-  "#38bdf8",
-  "#f59e0b",
-  "#34d399",
-  "#a78bfa",
+  "#ff5c7a",
+  "#ff8a5b",
+  "#ff4d6d",
+  "#e11d48",
+  "#d946ef",
+  "#c026d3",
+  "#a855f7",
+  "#84cc16",
+  "#65a30d",
+  "#ef4444",
+  "#dc2626",
   "#f97316",
-  "#22c55e",
-  "#facc15"
+  "#ea580c",
+  "#be123c",
+  "#ec4899"
 ] as const;
 
 export type RoomRuntime = {
