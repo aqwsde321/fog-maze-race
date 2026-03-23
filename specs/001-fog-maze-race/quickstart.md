@@ -39,6 +39,7 @@ pnpm dev
 
 - 웹 클라이언트: `http://127.0.0.1:4173`
 - 서버 헬스 체크: `http://127.0.0.1:3000/health`
+- 맵 관리자 URL: `http://127.0.0.1:4173/admin/maps`
 
 ## 핵심 검증
 
@@ -56,6 +57,7 @@ pnpm test:e2e
 - `us2-reconnect.spec.ts`: 연결 유예, 재접속 복구, 유예 초과 시 이탈
 - `us3-room-admin.spec.ts`: 방 이름 변경, 방장 위임, 강제 종료, 대기 상태 복귀
 - `perf-smoke.spec.ts`: 15인 입장, 호스트 전용 시작 버튼, 시작 스모크 테스트
+- `admin-maps.spec.ts`: 관리자 URL에서 플레이 맵 생성
 
 참고:
 
@@ -75,6 +77,7 @@ pnpm start
 - `apps/web/dist`를 `apps/server`가 정적으로 서빙한다.
 - `Socket.IO`는 페이지와 같은 오리진을 사용한다.
 - 헬스 체크는 `GET /health`로 계속 제공된다.
+- 관리자 URL에서 저장한 맵은 기본값으로 `data/maps.json`에 저장된다.
 
 ## 수동 MVP 체크리스트
 
