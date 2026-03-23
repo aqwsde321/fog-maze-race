@@ -39,7 +39,8 @@ export function HostControls({ roomName, onRenameRoom }: HostControlsProps) {
 }
 
 const panelStyle: CSSProperties = {
-  minWidth: "248px"
+  width: "100%",
+  minWidth: 0
 };
 
 const hiddenLabelStyle: CSSProperties = {
@@ -61,18 +62,18 @@ const rowStyle: CSSProperties = {
 };
 
 const inputStyle: CSSProperties = {
-  minHeight: "40px",
-  padding: "9px 12px",
-  borderRadius: "14px",
+  minHeight: "38px",
+  padding: "8px 12px",
+  borderRadius: "13px",
   border: "1px solid rgba(148, 163, 184, 0.24)",
   background: "rgba(15, 23, 42, 0.7)",
   color: "#f8fafc"
 };
 
 const renameButtonStyle: CSSProperties = {
-  minHeight: "40px",
-  padding: "10px 14px",
-  borderRadius: "14px",
+  minHeight: "38px",
+  padding: "8px 13px",
+  borderRadius: "13px",
   border: "1px solid rgba(56, 189, 248, 0.24)",
   background: "rgba(56, 189, 248, 0.12)",
   color: "#bae6fd",

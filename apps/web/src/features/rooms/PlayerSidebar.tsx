@@ -47,15 +47,16 @@ export function PlayerSidebar({ snapshot, selfPlayerId }: PlayerSidebarProps) {
 }
 
 const sidebarStyle: CSSProperties = {
-  width: "252px",
-  minWidth: "252px",
-  maxWidth: "252px",
-  padding: "14px 15px",
+  width: "clamp(216px, 18vw, 236px)",
+  minWidth: "216px",
+  maxWidth: "236px",
+  padding: "12px 13px",
   borderRadius: "18px",
   background: "linear-gradient(180deg, rgba(8, 15, 30, 0.9), rgba(7, 16, 30, 0.86))",
   border: "1px solid rgba(148, 163, 184, 0.08)",
   boxShadow: "0 12px 32px rgba(2, 6, 23, 0.16)",
-  boxSizing: "border-box"
+  boxSizing: "border-box",
+  overflow: "hidden"
 };
 
 const headerStyle: CSSProperties = {
@@ -66,17 +67,17 @@ const headerStyle: CSSProperties = {
 
 const titleStyle: CSSProperties = {
   margin: 0,
-  fontSize: "1.3rem",
+  fontSize: "1.18rem",
   lineHeight: 1
 };
 
 const countStyle: CSSProperties = {
-  minWidth: "26px",
-  height: "26px",
+  minWidth: "24px",
+  height: "24px",
   display: "inline-grid",
   placeItems: "center",
   borderRadius: "999px",
-  fontSize: "0.82rem",
+  fontSize: "0.74rem",
   color: "#cbd5e1",
   background: "rgba(15, 23, 42, 0.9)",
   border: "1px solid rgba(148, 163, 184, 0.08)"
@@ -85,8 +86,8 @@ const countStyle: CSSProperties = {
 const listStyle: CSSProperties = {
   display: "grid",
   gap: "2px",
-  marginTop: "10px",
-  maxHeight: "min(70vh, 760px)",
+  marginTop: "8px",
+  maxHeight: "min(68vh, 700px)",
   overflowY: "auto",
   paddingRight: "4px"
 };
@@ -94,41 +95,41 @@ const listStyle: CSSProperties = {
 const memberCardStyle: CSSProperties = {
   display: "flex",
   justifyContent: "space-between",
-  gap: "8px",
+  gap: "6px",
   alignItems: "center",
-  padding: "10px 4px",
+  padding: "9px 2px",
   borderBottom: "1px solid rgba(148, 163, 184, 0.06)"
 };
 
 const identityStyle: CSSProperties = {
   display: "flex",
-  gap: "10px",
+  gap: "9px",
   alignItems: "center",
   minWidth: 0
 };
 
 const colorDotStyle: CSSProperties = {
-  width: "12px",
-  height: "12px",
+  width: "11px",
+  height: "11px",
   borderRadius: "999px",
   flexShrink: 0
 };
 
 const nameStyle: CSSProperties = {
   display: "block",
-  fontSize: "0.98rem",
+  fontSize: "0.92rem",
   lineHeight: 1.1
 };
 
 const metaStyle: CSSProperties = {
   margin: "3px 0 0",
   color: "#94a3b8",
-  fontSize: "0.8rem"
+  fontSize: "0.74rem"
 };
 
 const rankStyle: CSSProperties = {
   color: "#fde68a",
-  fontSize: "0.78rem",
+  fontSize: "0.72rem",
   letterSpacing: "0.08em",
   textTransform: "uppercase",
   whiteSpace: "nowrap"

@@ -96,39 +96,43 @@ export function GameScreen({
     <section style={shellStyle}>
       <div style={mainColumnStyle}>
         <header style={topBarStyle}>
-          <div>
+          <div style={roomHeaderStyle}>
             <p style={labelStyle}>Room</p>
             <h2 style={roomNameStyle}>{snapshot.room.name}</h2>
           </div>
           {isHost ? (
-            <HostControls
-              roomName={snapshot.room.name}
-              onRenameRoom={onRenameRoom}
-            />
+            <div style={hostControlsWrapStyle}>
+              <HostControls
+                roomName={snapshot.room.name}
+                onRenameRoom={onRenameRoom}
+              />
+            </div>
           ) : null}
-          <div style={statusPanelStyle}>
-            <p style={labelStyle}>Status</p>
-            <strong data-testid="room-status" style={statusValueStyle}>
-              {displayStatus}
-            </strong>
-          </div>
-          <div style={actionRailStyle}>
-            {isHost ? (
-              <div style={dangerGroupStyle}>
-                <button type="button" onClick={onForceEndRoom} disabled={snapshot.room.status === "waiting"} style={dangerButtonStyle}>
-                  강제 종료
+          <div style={topMetaStyle}>
+            <div style={statusPanelStyle}>
+              <p style={labelStyle}>Status</p>
+              <strong data-testid="room-status" style={statusValueStyle}>
+                {displayStatus}
+              </strong>
+            </div>
+            <div style={actionRailStyle}>
+              {isHost ? (
+                <div style={dangerGroupStyle}>
+                  <button type="button" onClick={onForceEndRoom} disabled={snapshot.room.status === "waiting"} style={dangerButtonStyle}>
+                    강제 종료
+                  </button>
+                </div>
+              ) : null}
+              <div style={buttonRowStyle}>
+                {isHost ? (
+                  <button type="button" onClick={onStartGame} disabled={!canStart} style={startButtonStyle}>
+                    시작
+                  </button>
+                ) : null}
+                <button type="button" onClick={onLeaveRoom} style={ghostButtonStyle}>
+                  나가기
                 </button>
               </div>
-            ) : null}
-            <div style={buttonRowStyle}>
-              {isHost ? (
-                <button type="button" onClick={onStartGame} disabled={!canStart} style={startButtonStyle}>
-                  시작
-                </button>
-              ) : null}
-              <button type="button" onClick={onLeaveRoom} style={ghostButtonStyle}>
-                나가기
-              </button>
             </div>
           </div>
         </header>
@@ -191,10 +195,10 @@ function isEditableTarget(target: EventTarget | null) {
 const shellStyle: CSSProperties = {
   position: "relative",
   display: "grid",
-  gridTemplateColumns: "minmax(0, 1fr) 252px",
-  gap: "16px",
+  gridTemplateColumns: "minmax(0, 1fr) clamp(216px, 18vw, 236px)",
+  gap: "clamp(12px, 1.4vw, 18px)",
   width: "100%",
-  maxWidth: "1360px",
+  maxWidth: "1328px",
   margin: "0 auto",
   alignItems: "start",
   overflowX: "hidden"
@@ -209,19 +213,40 @@ const mainColumnStyle: CSSProperties = {
 };
 
 const topBarStyle: CSSProperties = {
-  display: "grid",
-  gridTemplateColumns: "minmax(0, 1fr) minmax(248px, auto) auto auto",
-  gap: "12px",
+  display: "flex",
+  flexWrap: "wrap",
+  justifyContent: "space-between",
+  gap: "10px 14px",
   width: "100%",
   minWidth: 0,
   boxSizing: "border-box",
-  alignItems: "center",
-  padding: "12px 16px",
-  borderRadius: "20px",
+  alignItems: "flex-end",
+  padding: "12px 14px",
+  borderRadius: "18px",
   overflow: "hidden",
   background: "linear-gradient(180deg, rgba(8, 15, 30, 0.92), rgba(7, 16, 30, 0.88))",
   border: "1px solid rgba(148, 163, 184, 0.08)",
   boxShadow: "0 12px 32px rgba(2, 6, 23, 0.16)"
+};
+
+const roomHeaderStyle: CSSProperties = {
+  flex: "0 1 180px",
+  minWidth: "136px"
+};
+
+const hostControlsWrapStyle: CSSProperties = {
+  flex: "1 1 280px",
+  minWidth: 0,
+  maxWidth: "396px"
+};
+
+const topMetaStyle: CSSProperties = {
+  marginLeft: "auto",
+  display: "flex",
+  flexWrap: "wrap",
+  justifyContent: "flex-end",
+  alignItems: "center",
+  gap: "10px 12px"
 };
 
 const labelStyle: CSSProperties = {
@@ -234,32 +259,33 @@ const labelStyle: CSSProperties = {
 
 const roomNameStyle: CSSProperties = {
   margin: "4px 0 0",
-  fontSize: "1.46rem",
+  fontSize: "1.34rem",
   lineHeight: 1.05
 };
 
 const statusPanelStyle: CSSProperties = {
   padding: "0 2px",
-  minWidth: "72px"
+  minWidth: "68px"
 };
 
 const statusValueStyle: CSSProperties = {
   display: "block",
   marginTop: "4px",
-  fontSize: "0.92rem",
+  fontSize: "0.9rem",
   color: "#f8fafc"
 };
 
 const actionRailStyle: CSSProperties = {
   display: "flex",
   alignItems: "center",
-  gap: "12px"
+  flexWrap: "wrap",
+  gap: "10px"
 };
 
 const dangerGroupStyle: CSSProperties = {
   display: "flex",
   alignItems: "center",
-  paddingRight: "12px",
+  paddingRight: "10px",
   borderRight: "1px solid rgba(148, 163, 184, 0.12)"
 };
 
@@ -270,8 +296,8 @@ const buttonRowStyle: CSSProperties = {
 };
 
 const dangerButtonStyle: CSSProperties = {
-  minHeight: "40px",
-  padding: "9px 13px",
+  minHeight: "38px",
+  padding: "8px 12px",
   borderRadius: "14px",
   border: "1px solid rgba(248, 113, 113, 0.2)",
   background: "rgba(239, 68, 68, 0.12)",
@@ -280,8 +306,8 @@ const dangerButtonStyle: CSSProperties = {
 };
 
 const startButtonStyle: CSSProperties = {
-  minHeight: "40px",
-  padding: "9px 14px",
+  minHeight: "38px",
+  padding: "8px 14px",
   borderRadius: "16px",
   border: 0,
   background: "linear-gradient(135deg, #38bdf8, #0ea5e9)",
@@ -291,8 +317,8 @@ const startButtonStyle: CSSProperties = {
 };
 
 const ghostButtonStyle: CSSProperties = {
-  minHeight: "40px",
-  padding: "9px 14px",
+  minHeight: "38px",
+  padding: "8px 14px",
   borderRadius: "16px",
   border: "1px solid rgba(148, 163, 184, 0.22)",
   background: "transparent",
@@ -304,8 +330,8 @@ const canvasFrameStyle: CSSProperties = {
   position: "relative",
   width: "100%",
   boxSizing: "border-box",
-  padding: "14px",
-  borderRadius: "20px",
+  padding: "12px",
+  borderRadius: "18px",
   overflow: "hidden",
   background: "linear-gradient(180deg, rgba(8, 15, 30, 0.82), rgba(6, 14, 26, 0.88))",
   border: "1px solid rgba(56, 189, 248, 0.12)",
