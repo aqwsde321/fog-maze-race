@@ -163,6 +163,32 @@ describe("AdminMapsPage", () => {
     expect(deleteButton).toBeUndefined();
     expect(container.textContent).not.toContain("Training Lap");
   });
+
+  it("marks only the shortest route from the entry to the goal", async () => {
+    const baseMap: AdminMapRecord = {
+      mapId: "alpha-run",
+      name: "Alpha Run",
+      mazeRows: createBranchMazeRows(),
+      width: 25,
+      height: 25,
+      origin: "default",
+      editable: true,
+      updatedAt: null
+    };
+
+    fetchMock.mockResolvedValueOnce(jsonResponse({ maps: [baseMap] }));
+
+    await act(async () => {
+      root.render(<AdminMapsPage />);
+    });
+    await flush();
+
+    expect(container.querySelector('[data-testid="maze-cell-2-0"]')?.getAttribute("data-connected-route")).toBe("true");
+    expect(container.querySelector('[data-testid="maze-cell-2-4"]')?.getAttribute("data-connected-route")).toBe("true");
+    expect(container.querySelector('[data-testid="maze-cell-1-2"]')?.getAttribute("data-connected-route")).toBe("false");
+    expect(container.querySelector('[data-testid="maze-cell-4-2"]')?.getAttribute("data-connected-route")).toBe("false");
+    expect(container.querySelector('[data-testid="maze-cell-0-0"]')?.getAttribute("data-connected-route")).toBe("false");
+  });
 });
 
 function buildAdminMap(input: Pick<AdminMapRecord, "mapId" | "name" | "origin">): AdminMapRecord {
@@ -187,6 +213,19 @@ function jsonResponse(body: unknown, status = 200) {
       }
     })
   );
+}
+
+function createBranchMazeRows() {
+  const rows = Array.from({ length: 25 }, () => "#".repeat(25).split(""));
+  rows[2]![0] = ".";
+  rows[2]![1] = ".";
+  rows[2]![2] = ".";
+  rows[2]![3] = ".";
+  rows[2]![4] = "G";
+  rows[1]![2] = ".";
+  rows[3]![2] = ".";
+  rows[4]![2] = ".";
+  return rows.map((row) => row.join(""));
 }
 
 async function flush() {

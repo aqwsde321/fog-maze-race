@@ -59,6 +59,9 @@ export function AdminMapsPage() {
     return cells.split("").filter((tile) => tile === "#").length / cells.length;
   }, [draft.mazeRows]);
 
+  const shortestRoute = useMemo(() => findShortestRoute(draft.mazeRows), [draft.mazeRows]);
+  const connectedKeys = useMemo(() => new Set(shortestRoute.tiles.map((tile) => `${tile.x},${tile.y}`)), [shortestRoute.tiles]);
+
   const selectedMap = useMemo(
     () => maps.find((map) => map.mapId === selectedMapId) ?? null,
     [maps, selectedMapId]
@@ -263,7 +266,12 @@ export function AdminMapsPage() {
             <h1 style={editorTitleStyle}>{mode === "create" ? "새 맵" : draft.name || "맵 수정"}</h1>
             <p style={editorMetaStyle}>{PLAYABLE_MAZE_SIZE}x{PLAYABLE_MAZE_SIZE}</p>
           </div>
-          <span style={statChipStyle}>벽 {(wallRatio * 100).toFixed(0)}%</span>
+          <div style={headerStatsStyle}>
+            <span style={statChipStyle}>벽 {(wallRatio * 100).toFixed(0)}%</span>
+            <span style={statChipStyle}>
+              최단경로 {shortestRoute.tiles.length}칸{shortestRoute.reachesGoal ? " · 골 연결됨" : ""}
+            </span>
+          </div>
         </header>
 
         {statusMessage ? <p style={successBannerStyle}>{statusMessage}</p> : null}
@@ -329,13 +337,14 @@ export function AdminMapsPage() {
                   type="button"
                   aria-label={`maze-cell-${rowIndex}-${columnIndex}`}
                   data-testid={`maze-cell-${rowIndex}-${columnIndex}`}
+                  data-connected-route={connectedKeys.has(`${columnIndex},${rowIndex}`) ? "true" : "false"}
                   onPointerDown={(event) => {
                     event.preventDefault();
                     handleCellPointerDown(rowIndex, columnIndex);
                   }}
                   onPointerEnter={() => handleCellPointerEnter(rowIndex, columnIndex)}
                   onClick={() => paintCell(rowIndex, columnIndex)}
-                  style={mazeEditorCellStyle(tile)}
+                  style={mazeEditorCellStyle(tile, connectedKeys.has(`${columnIndex},${rowIndex}`))}
                   title={`${columnIndex},${rowIndex}`}
                 />
               ))
@@ -377,6 +386,84 @@ function applyPaint(mazeRows: string[], rowIndex: number, columnIndex: number, t
 
   nextRows[rowIndex]![columnIndex] = tool === "wall" ? "#" : ".";
   return nextRows.map((row) => row.join(""));
+}
+
+function findShortestRoute(mazeRows: string[]) {
+  const queue = findEntryPoints(mazeRows);
+  const visited = new Set<string>();
+  const parents = new Map<string, string | null>();
+
+  for (const entry of queue) {
+    const key = `${entry.x},${entry.y}`;
+    visited.add(key);
+    parents.set(key, null);
+  }
+
+  while (queue.length > 0) {
+    const current = queue.shift()!;
+    const currentKey = `${current.x},${current.y}`;
+
+    if (mazeRows[current.y]?.[current.x] === "G") {
+      return {
+        tiles: restorePath(currentKey, parents),
+        reachesGoal: true
+      };
+    }
+
+    for (const next of getNeighbors(current.x, current.y, mazeRows)) {
+      const nextKey = `${next.x},${next.y}`;
+      if (visited.has(nextKey)) {
+        continue;
+      }
+
+      visited.add(nextKey);
+      parents.set(nextKey, currentKey);
+      queue.push(next);
+    }
+  }
+
+  return {
+    tiles: [],
+    reachesGoal: false
+  };
+}
+
+function findEntryPoints(mazeRows: string[]) {
+  const entries: Array<{ x: number; y: number }> = [];
+
+  for (let y = 0; y < Math.min(5, mazeRows.length); y += 1) {
+    const tile = mazeRows[y]?.[0];
+    if (tile === "." || tile === "G") {
+      entries.push({ x: 0, y });
+    }
+  }
+
+  return entries;
+}
+
+function getNeighbors(x: number, y: number, mazeRows: string[]) {
+  return [
+    { x: x + 1, y },
+    { x: x - 1, y },
+    { x, y: y + 1 },
+    { x, y: y - 1 }
+  ].filter((position) => {
+    const tile = mazeRows[position.y]?.[position.x];
+    return tile === "." || tile === "G";
+  });
+}
+
+function restorePath(goalKey: string, parents: Map<string, string | null>) {
+  const path: Array<{ x: number; y: number }> = [];
+  let cursor: string | null = goalKey;
+
+  while (cursor) {
+    const [x, y] = cursor.split(",").map(Number);
+    path.push({ x, y });
+    cursor = parents.get(cursor) ?? null;
+  }
+
+  return path.reverse();
 }
 
 function createGeneratedMapId(name: string) {
@@ -444,7 +531,7 @@ function toolSwatchStyle(tile: "." | "#" | "G"): CSSProperties {
   };
 }
 
-function mazeEditorCellStyle(tile: string): CSSProperties {
+function mazeEditorCellStyle(tile: string, isConnectedRoute: boolean): CSSProperties {
   return {
     ...basePreviewTileStyle,
     width: "20px",
@@ -453,7 +540,8 @@ function mazeEditorCellStyle(tile: string): CSSProperties {
     cursor: "crosshair",
     userSelect: "none",
     touchAction: "none",
-    background: tile === "#" ? "#6d7d92" : tile === "G" ? "#facc15" : "#1e3a5f"
+    background: tile === "#" ? "#6d7d92" : tile === "G" ? "#facc15" : "#1e3a5f",
+    boxShadow: isConnectedRoute ? "inset 0 0 0 2px rgba(56, 189, 248, 0.92)" : "none"
   };
 }
 
@@ -571,6 +659,13 @@ const editorHeaderStyle: CSSProperties = {
   borderRadius: "22px",
   background: "linear-gradient(180deg, rgba(8, 15, 30, 0.92), rgba(7, 16, 30, 0.88))",
   border: "1px solid rgba(148, 163, 184, 0.08)"
+};
+
+const headerStatsStyle: CSSProperties = {
+  display: "flex",
+  alignItems: "center",
+  gap: "10px",
+  flexWrap: "wrap"
 };
 
 const editorTitleStyle: CSSProperties = {
