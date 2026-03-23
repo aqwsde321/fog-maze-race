@@ -12,6 +12,11 @@ import {
   drawPlayerMarkerShape
 } from "../player-marker.js";
 import { getPlayerRenderOrder } from "../player-render-order.js";
+import {
+  createTileMemoryState,
+  resolveTileVisibilityState,
+  updateTileMemory
+} from "../tile-memory.js";
 
 export type SceneController = {
   render: (snapshot: RoomSnapshot | null, selfPlayerId: string | null) => void;
@@ -37,6 +42,7 @@ export async function createSceneController(container: HTMLDivElement): Promise<
   app.stage.addChild(playerLayer);
   app.stage.addChild(fogLayer);
   container.replaceChildren(app.canvas);
+  let tileMemory = createTileMemoryState();
 
   return {
     render(snapshot, selfPlayerId) {
@@ -49,6 +55,7 @@ export async function createSceneController(container: HTMLDivElement): Promise<
       const map = match?.map ?? snapshot?.previewMap;
       const mode = match ? "live" : "preview";
       if (!snapshot || !map) {
+        tileMemory = createTileMemoryState();
         drawPlaceholder(tileLayer);
         return;
       }
@@ -88,16 +95,29 @@ export async function createSceneController(container: HTMLDivElement): Promise<
 
       const visibleTileSet = new Set(projection.visibleTileKeys);
       const visiblePlayerSet = new Set(projection.visiblePlayerIds);
+      tileMemory = updateTileMemory({
+        previous: tileMemory,
+        snapshot,
+        selfPlayerId,
+        visibleTileKeys: projection.visibleTileKeys
+      });
+
       for (let y = 0; y < map.height; y += 1) {
         for (let x = 0; x < map.width; x += 1) {
           const tile = map.tiles[y]?.[x] ?? " ";
           const position = { x, y };
-          const isVisible = projection.showFullMap || visibleTileSet.has(toTileKey(position));
+          const tileKey = toTileKey(position);
+          const visibility = resolveTileVisibilityState({
+            showFullMap: projection.showFullMap,
+            tileKey,
+            visibleTileKeys: visibleTileSet,
+            rememberedTileKeys: tileMemory.rememberedTileKeys
+          });
           const visual = getTileVisual({
             tile,
             map,
             position,
-            isVisible,
+            visibility,
             mode
           });
           if (!visual) {
@@ -153,6 +173,7 @@ export async function createSceneController(container: HTMLDivElement): Promise<
           offsetX: layout.offsetX,
           offsetY: layout.offsetY,
           visibleTileKeys: projection.visibleTileKeys,
+          rememberedTileKeys: [...tileMemory.rememberedTileKeys],
           showFullMap: projection.showFullMap
         });
       }

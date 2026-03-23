@@ -23,14 +23,14 @@ describe("board render helpers", () => {
       tile: "S",
       map: trainingLap,
       position: { x: 0, y: 0 },
-      isVisible: true,
+      visibility: "visible",
       mode: "preview"
     });
     const previewMazeTile = getTileVisual({
       tile: ".",
       map: trainingLap,
       position: { x: trainingLap.mazeZone.minX, y: trainingLap.mazeZone.minY },
-      isVisible: true,
+      visibility: "visible",
       mode: "preview"
     });
 
@@ -38,56 +38,70 @@ describe("board render helpers", () => {
       tile: "S",
       map: trainingLap,
       position: { x: 0, y: 0 },
-      isVisible: true,
+      visibility: "visible",
       mode: "live"
     });
     const connectorTile = getTileVisual({
       tile: "C",
       map: trainingLap,
       position: trainingLap.connectorTiles[0]!,
-      isVisible: true,
+      visibility: "visible",
       mode: "live"
     });
     const goalTile = getTileVisual({
       tile: "G",
       map: trainingLap,
       position: { x: trainingLap.goalZone.minX, y: trainingLap.goalZone.minY },
-      isVisible: true,
+      visibility: "visible",
       mode: "live"
     });
     const wallTile = getTileVisual({
       tile: "#",
       map: trainingLap,
       position: { x: trainingLap.mazeZone.minX + 1, y: trainingLap.mazeZone.minY + 2 },
-      isVisible: true,
+      visibility: "visible",
       mode: "live"
     });
     const pathTile = getTileVisual({
       tile: ".",
       map: trainingLap,
       position: { x: trainingLap.mazeZone.minX, y: trainingLap.mazeZone.minY },
-      isVisible: true,
+      visibility: "visible",
+      mode: "live"
+    });
+    const rememberedWallTile = getTileVisual({
+      tile: "#",
+      map: trainingLap,
+      position: { x: trainingLap.mazeZone.minX + 1, y: trainingLap.mazeZone.minY + 2 },
+      visibility: "remembered",
+      mode: "live"
+    });
+    const rememberedPathTile = getTileVisual({
+      tile: ".",
+      map: trainingLap,
+      position: { x: trainingLap.mazeZone.minX, y: trainingLap.mazeZone.minY },
+      visibility: "remembered",
       mode: "live"
     });
     const hiddenWallTile = getTileVisual({
       tile: "#",
       map: trainingLap,
       position: { x: trainingLap.mazeZone.minX + 1, y: trainingLap.mazeZone.minY + 2 },
-      isVisible: false,
+      visibility: "hidden",
       mode: "live"
     });
     const hiddenPathTile = getTileVisual({
       tile: ".",
       map: trainingLap,
       position: { x: trainingLap.mazeZone.minX, y: trainingLap.mazeZone.minY },
-      isVisible: false,
+      visibility: "hidden",
       mode: "live"
     });
     const voidTile = getTileVisual({
       tile: " ",
       map: getMapById("alpha-run")!,
       position: { x: 0, y: 6 },
-      isVisible: true,
+      visibility: "visible",
       mode: "live"
     });
 
@@ -98,6 +112,8 @@ describe("board render helpers", () => {
       !goalTile ||
       !wallTile ||
       !pathTile ||
+      !rememberedWallTile ||
+      !rememberedPathTile ||
       !hiddenWallTile ||
       !hiddenPathTile
     ) {
@@ -110,10 +126,14 @@ describe("board render helpers", () => {
     expect(connectorTile.fillColor).not.toBe(pathTile.fillColor);
     expect(goalTile.fillColor).not.toBe(pathTile.fillColor);
     expect(wallTile.fillColor).not.toBe(pathTile.fillColor);
+    expect(rememberedWallTile.fillColor).toBe(rememberedPathTile.fillColor);
+    expect(rememberedWallTile.fillColor).not.toBe(pathTile.fillColor);
+    expect(rememberedWallTile.fillColor).not.toBe(hiddenWallTile.fillColor);
     expect(hiddenWallTile.fillColor).toBe(hiddenPathTile.fillColor);
     expect(hiddenWallTile.alpha).toBe(hiddenPathTile.alpha);
     expect(wallTile.alpha).toBe(1);
     expect(pathTile.alpha).toBe(1);
+    expect(rememberedWallTile.alpha).toBeLessThan(1);
     expect(voidTile).toBeNull();
   });
 });

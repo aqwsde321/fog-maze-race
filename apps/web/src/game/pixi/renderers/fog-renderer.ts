@@ -11,6 +11,7 @@ export function renderFogOverlay(
     offsetX: number;
     offsetY: number;
     visibleTileKeys: string[];
+    rememberedTileKeys: string[];
     showFullMap: boolean;
   }
 ) {
@@ -21,6 +22,7 @@ export function renderFogOverlay(
   }
 
   const visibleTileSet = new Set(input.visibleTileKeys);
+  const rememberedTileSet = new Set(input.rememberedTileKeys);
 
   for (let y = 0; y < input.match.map.height; y += 1) {
     for (let x = 0; x < input.match.map.width; x += 1) {
@@ -30,6 +32,10 @@ export function renderFogOverlay(
       }
 
       if (visibleTileSet.has(toTileKey({ x, y }))) {
+        continue;
+      }
+
+      if (rememberedTileSet.has(toTileKey({ x, y }))) {
         continue;
       }
 

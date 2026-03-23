@@ -4,6 +4,7 @@ import {
   type ZoneBounds,
   type MapDefinition
 } from "@fog-maze-race/shared/maps/map-definitions";
+import type { TileVisibilityState } from "../../tile-memory.js";
 
 type BoardMap = Pick<
   MapDefinition,
@@ -68,7 +69,7 @@ export function getTileVisual(input: {
   tile: string;
   map: BoardMap;
   position: { x: number; y: number };
-  isVisible: boolean;
+  visibility: TileVisibilityState;
   mode: "live" | "preview";
 }) {
   if (input.tile === " ") {
@@ -79,28 +80,41 @@ export function getTileVisual(input: {
     return null;
   }
 
+  if (input.visibility === "remembered") {
+    if (
+      !isInsideZone(input.map.startZone, input.position) &&
+      !isConnectorTile(input.map, input.position) &&
+      !isInsideZone(input.map.goalZone, input.position)
+    ) {
+      return {
+        fillColor: 0x273142,
+        alpha: 0.92
+      };
+    }
+  }
+
   if (isInsideZone(input.map.startZone, input.position)) {
     return {
-      fillColor: input.isVisible ? 0x26cfe6 : 0x155e75,
-      alpha: input.isVisible ? 1 : 0.82
+      fillColor: input.visibility === "visible" ? 0x26cfe6 : 0x155e75,
+      alpha: input.visibility === "visible" ? 1 : 0.82
     };
   }
 
   if (isConnectorTile(input.map, input.position)) {
     return {
-      fillColor: input.isVisible ? 0x18b6a4 : 0x0f766e,
-      alpha: input.isVisible ? 1 : 0.86
+      fillColor: input.visibility === "visible" ? 0x18b6a4 : 0x0f766e,
+      alpha: input.visibility === "visible" ? 1 : 0.86
     };
   }
 
   if (isInsideZone(input.map.goalZone, input.position)) {
     return {
-      fillColor: input.isVisible ? 0xfacc15 : 0x854d0e,
-      alpha: input.isVisible ? 1 : 0.82
+      fillColor: input.visibility === "visible" ? 0xfacc15 : 0x854d0e,
+      alpha: input.visibility === "visible" ? 1 : 0.82
     };
   }
 
-  if (!input.isVisible) {
+  if (input.visibility === "hidden") {
     return {
       fillColor: 0x050b16,
       alpha: 1
