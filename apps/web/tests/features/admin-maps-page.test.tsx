@@ -144,6 +144,25 @@ describe("AdminMapsPage", () => {
     expect(container.textContent).toContain("맵을 삭제했습니다.");
     expect(container.textContent).toContain("Alpha Run");
   });
+
+  it("does not show delete for default maps", async () => {
+    const baseMap = buildAdminMap({
+      mapId: "alpha-run",
+      name: "Alpha Run",
+      origin: "default"
+    });
+
+    fetchMock.mockResolvedValueOnce(jsonResponse({ maps: [baseMap] }));
+
+    await act(async () => {
+      root.render(<AdminMapsPage />);
+    });
+    await flush();
+
+    const deleteButton = [...container.querySelectorAll("button")].find((button) => button.textContent?.includes("삭제"));
+    expect(deleteButton).toBeUndefined();
+    expect(container.textContent).not.toContain("Training Lap");
+  });
 });
 
 function buildAdminMap(input: Pick<AdminMapRecord, "mapId" | "name" | "origin">): AdminMapRecord {

@@ -5,6 +5,7 @@ test("admin maps page can create a new playable map", async ({ page }) => {
   await page.goto("/admin/maps");
 
   await expect(page.getByText("맵 관리")).toBeVisible();
+  await expect(page.getByText("Training Lap")).toHaveCount(0);
   await page.getByRole("button", { name: "새 맵" }).click();
 
   const inputs = page.locator("input");
@@ -22,4 +23,5 @@ test("admin maps page can create a new playable map", async ({ page }) => {
 
   await expect(page.getByText("맵을 삭제했습니다.")).toBeVisible();
   await expect(page.locator("aside").getByText(`Maze ${suffix}`)).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "삭제" })).toHaveCount(0);
 });

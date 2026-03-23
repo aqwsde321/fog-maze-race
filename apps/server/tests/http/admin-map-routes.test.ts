@@ -65,6 +65,7 @@ describe("admin map routes", () => {
     const listPayload = listResponse.json();
     expect(listResponse.statusCode).toBe(200);
     expect(listPayload.maps.some((map: { mapId: string }) => map.mapId === "gamma-lock")).toBe(true);
+    expect(listPayload.maps.some((map: { mapId: string }) => map.mapId === "training-lap")).toBe(false);
 
     const deleteCustomResponse = await app.inject({
       method: "DELETE",

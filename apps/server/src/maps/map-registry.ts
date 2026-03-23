@@ -74,6 +74,7 @@ export class MapRegistry {
 
   list() {
     return [...this.entries.values()]
+      .filter((entry) => this.isAdminVisible(entry))
       .map((entry) => this.toAdminRecord(entry))
       .sort((left, right) => left.name.localeCompare(right.name, "ko-KR"));
   }
@@ -208,6 +209,10 @@ export class MapRegistry {
       editable: entry.map.mapId !== "training-lap",
       updatedAt: entry.updatedAt
     };
+  }
+
+  private isAdminVisible(entry: RegistryEntry) {
+    return entry.map.mapId !== "training-lap" && entry.map.mazeZone.maxX - entry.map.mazeZone.minX + 1 === PLAYABLE_MAZE_SIZE;
   }
 }
 
