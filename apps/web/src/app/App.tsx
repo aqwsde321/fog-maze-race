@@ -14,6 +14,7 @@ import type {
 
 import { ConnectionBanner } from "../features/session/ConnectionBanner.js";
 import { NicknameGate } from "../features/session/NicknameGate.js";
+import { AdminMapsPage } from "../features/admin/AdminMapsPage.js";
 import { RoomListPanel } from "../features/rooms/RoomListPanel.js";
 import { GameScreen } from "../views/GameScreen.js";
 import { getSocketClient } from "../services/socket-client.js";
@@ -21,6 +22,8 @@ import { useRoomStore } from "../stores/roomStore.js";
 import { useSessionStore } from "../stores/sessionStore.js";
 
 export function App() {
+  const isAdminRoute =
+    typeof window !== "undefined" && window.location.pathname.startsWith("/admin/maps");
   const socketRef = useRef(getSocketClient());
   const inputSeqRef = useRef(0);
 
@@ -43,6 +46,10 @@ export function App() {
   const [lastError, setLastError] = useState<string | null>(null);
 
   useEffect(() => {
+    if (isAdminRoute) {
+      return;
+    }
+
     const previousHtmlOverflow = document.documentElement.style.overflow;
     const previousHtmlOverflowX = document.documentElement.style.overflowX;
     const previousHtmlOverscrollBehavior = document.documentElement.style.overscrollBehavior;
@@ -79,9 +86,13 @@ export function App() {
       document.body.style.width = previousBodyWidth;
       document.body.style.overscrollBehavior = previousBodyOverscrollBehavior;
     };
-  }, []);
+  }, [isAdminRoute]);
 
   useEffect(() => {
+    if (isAdminRoute) {
+      return;
+    }
+
     const socket = socketRef.current;
 
     const handleConnectTransport = () => {
@@ -166,16 +177,20 @@ export function App() {
       socket.off("connect", handleConnectTransport);
       socket.off("disconnect", handleDisconnectTransport);
     };
-  }, [applyMove, clearRoom, nickname, playerId, replaceSnapshot, selfPlayerId, setConnectionState, setNickname, setPlayerId]);
+  }, [applyMove, clearRoom, isAdminRoute, nickname, playerId, replaceSnapshot, selfPlayerId, setConnectionState, setNickname, setPlayerId]);
 
   useEffect(() => {
+    if (isAdminRoute) {
+      return;
+    }
+
     const socket = socketRef.current;
     if (!nickname.trim() || !playerId || socket.connected) {
       return;
     }
 
     socket.connect();
-  }, [nickname, playerId]);
+  }, [isAdminRoute, nickname, playerId]);
 
   function handleEnterLobby() {
     const nextNickname = nickname.trim().slice(0, 5);
@@ -263,37 +278,43 @@ export function App() {
       <div style={backgroundGlowStyle} />
       <div style={backgroundMeshStyle} />
       <div style={contentStyle}>
-        <ConnectionBanner connectionState={connectionState} />
-        {lastError ? <p style={errorStyle}>{lastError}</p> : null}
-        {!snapshot ? (
-          connectionState === "connected" ? (
-            <RoomListPanel
-              rooms={rooms}
-              roomName={roomName}
-              nickname={nickname}
-              onRoomNameChange={setRoomName}
-              onCreateRoom={handleCreateRoom}
-              onJoinRoom={handleJoinRoom}
-            />
-          ) : (
-            <NicknameGate
-              nickname={nickname}
-              connectionState={connectionState}
-              onNicknameChange={setNickname}
-              onEnterLobby={handleEnterLobby}
-            />
-          )
+        {isAdminRoute ? (
+          <AdminMapsPage />
         ) : (
-          <GameScreen
-            snapshot={snapshot}
-            selfPlayerId={selfPlayerId}
-            countdownValue={countdownValue}
-            onStartGame={handleStartGame}
-            onRenameRoom={handleRenameRoom}
-            onForceEndRoom={handleForceEndRoom}
-            onLeaveRoom={handleLeaveRoom}
-            onMove={handleMove}
-          />
+          <>
+            <ConnectionBanner connectionState={connectionState} />
+            {lastError ? <p style={errorStyle}>{lastError}</p> : null}
+            {!snapshot ? (
+              connectionState === "connected" ? (
+                <RoomListPanel
+                  rooms={rooms}
+                  roomName={roomName}
+                  nickname={nickname}
+                  onRoomNameChange={setRoomName}
+                  onCreateRoom={handleCreateRoom}
+                  onJoinRoom={handleJoinRoom}
+                />
+              ) : (
+                <NicknameGate
+                  nickname={nickname}
+                  connectionState={connectionState}
+                  onNicknameChange={setNickname}
+                  onEnterLobby={handleEnterLobby}
+                />
+              )
+            ) : (
+              <GameScreen
+                snapshot={snapshot}
+                selfPlayerId={selfPlayerId}
+                countdownValue={countdownValue}
+                onStartGame={handleStartGame}
+                onRenameRoom={handleRenameRoom}
+                onForceEndRoom={handleForceEndRoom}
+                onLeaveRoom={handleLeaveRoom}
+                onMove={handleMove}
+              />
+            )}
+          </>
         )}
       </div>
     </main>

@@ -10,6 +10,9 @@ export default defineConfig({
     host: "127.0.0.1",
     port: webPort,
     proxy: {
+      "/api": {
+        target: proxyTarget
+      },
       "/socket.io": {
         target: proxyTarget,
         ws: true
