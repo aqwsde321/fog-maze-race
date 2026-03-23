@@ -4,18 +4,47 @@ import type { AdminMapRecord, UpsertAdminMapPayload } from "@fog-maze-race/share
 import { PLAYABLE_MAZE_SIZE, createBlankMazeRows } from "@fog-maze-race/shared/maps/map-definitions";
 
 type SaveMode = "create" | "update";
+type PaintTool = "wall" | "path" | "goal";
 
 type DraftMap = {
   mapId: string;
   name: string;
-  mazeText: string;
+  mazeRows: string[];
 };
+
+const TOOLS: Array<{
+  id: PaintTool;
+  label: string;
+  tile: "." | "#" | "G";
+  description: string;
+}> = [
+  {
+    id: "path",
+    label: "통로",
+    tile: ".",
+    description: "이동 가능한 길을 엽니다."
+  },
+  {
+    id: "wall",
+    label: "벽",
+    tile: "#",
+    description: "막힌 벽을 배치합니다."
+  },
+  {
+    id: "goal",
+    label: "골",
+    tile: "G",
+    description: "골 타일은 항상 1개만 유지됩니다."
+  }
+];
 
 export function AdminMapsPage() {
   const [maps, setMaps] = useState<AdminMapRecord[]>([]);
   const [selectedMapId, setSelectedMapId] = useState<string | null>(null);
   const [mode, setMode] = useState<SaveMode>("update");
   const [draft, setDraft] = useState<DraftMap>(() => createDraft());
+  const [selectedTool, setSelectedTool] = useState<PaintTool>("path");
+  const [isPainting, setIsPainting] = useState(false);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -25,16 +54,36 @@ export function AdminMapsPage() {
     void loadMaps();
   }, []);
 
-  const previewRows = useMemo(() => normalizeMazeText(draft.mazeText), [draft.mazeText]);
+  useEffect(() => {
+    function handlePointerUp() {
+      setIsPainting(false);
+    }
+
+    window.addEventListener("pointerup", handlePointerUp);
+    return () => {
+      window.removeEventListener("pointerup", handlePointerUp);
+    };
+  }, []);
+
   const wallRatio = useMemo(() => {
-    const cells = previewRows.join("");
+    const cells = draft.mazeRows.join("");
     if (!cells.length) {
       return 0;
     }
-    return cells.split("").filter((tile) => tile === "#").length / cells.length;
-  }, [previewRows]);
 
-  async function loadMaps(nextSelectedMapId?: string | null) {
+    return cells.split("").filter((tile) => tile === "#").length / cells.length;
+  }, [draft.mazeRows]);
+
+  const pathCount = useMemo(
+    () =>
+      draft.mazeRows
+        .join("")
+        .split("")
+        .filter((tile) => tile === "." || tile === "G").length,
+    [draft.mazeRows]
+  );
+
+  async function loadMaps(nextSelectedMapId?: string | null, preserveStatusMessage = false) {
     setLoading(true);
     setErrorMessage(null);
 
@@ -54,7 +103,7 @@ export function AdminMapsPage() {
         null;
 
       if (fallbackMap) {
-        loadDraftFromMap(fallbackMap);
+        loadDraftFromMap(fallbackMap, preserveStatusMessage);
       } else {
         startCreate();
       }
@@ -65,20 +114,25 @@ export function AdminMapsPage() {
     }
   }
 
-  function loadDraftFromMap(map: AdminMapRecord) {
+  function loadDraftFromMap(map: AdminMapRecord, preserveStatusMessage = false) {
     setSelectedMapId(map.mapId);
     setMode(map.editable ? "update" : "create");
     setDraft({
       mapId: map.mapId,
       name: map.name,
-      mazeText: map.mazeRows.join("\n")
+      mazeRows: normalizeMazeRows(map.mazeRows)
     });
+    if (!preserveStatusMessage) {
+      setStatusMessage(null);
+    }
+    setErrorMessage(null);
   }
 
   function startCreate() {
     setSelectedMapId(null);
     setMode("create");
     setDraft(createDraft());
+    setSelectedTool("path");
     setStatusMessage(null);
     setErrorMessage(null);
   }
@@ -91,7 +145,7 @@ export function AdminMapsPage() {
     const payload: UpsertAdminMapPayload = {
       mapId: draft.mapId.trim(),
       name: draft.name.trim(),
-      mazeRows: previewRows
+      mazeRows: draft.mazeRows
     };
 
     try {
@@ -120,12 +174,39 @@ export function AdminMapsPage() {
 
       const result = (await response.json()) as { map: AdminMapRecord };
       setStatusMessage(mode === "create" ? "맵을 생성했습니다." : "맵을 저장했습니다.");
-      await loadMaps(result.map.mapId);
+      await loadMaps(result.map.mapId, true);
     } catch (error) {
       setErrorMessage(error instanceof Error ? error.message : "맵 저장에 실패했습니다.");
     } finally {
       setSaving(false);
     }
+  }
+
+  function paintCell(rowIndex: number, columnIndex: number) {
+    setDraft((current) => ({
+      ...current,
+      mazeRows: applyPaint(current.mazeRows, rowIndex, columnIndex, selectedTool)
+    }));
+  }
+
+  function handleCellPointerDown(rowIndex: number, columnIndex: number) {
+    paintCell(rowIndex, columnIndex);
+    setIsPainting(true);
+  }
+
+  function handleCellPointerEnter(rowIndex: number, columnIndex: number) {
+    if (!isPainting) {
+      return;
+    }
+
+    paintCell(rowIndex, columnIndex);
+  }
+
+  function handleResetToDefault() {
+    setDraft((current) => ({
+      ...current,
+      mazeRows: createBlankMazeRows()
+    }));
   }
 
   return (
@@ -140,7 +221,7 @@ export function AdminMapsPage() {
             새 맵
           </button>
         </div>
-        <p style={sidebarCopyStyle}>플레이 맵은 25x25 기준으로 만들고, 시작 구역과 연결되는 입구는 최소 1개 이상 열어 둡니다.</p>
+        <p style={sidebarCopyStyle}>기본 격자는 25x25로 고정됩니다. 벽, 통로, 골 도구를 선택한 뒤 클릭하거나 드래그해서 미로를 편집하세요.</p>
         <div style={mapListStyle}>
           {loading ? (
             <p style={hintStyle}>목록을 불러오는 중입니다.</p>
@@ -176,7 +257,10 @@ export function AdminMapsPage() {
           </div>
           <div style={editorStatsStyle}>
             <span style={statChipStyle}>벽 비율 {(wallRatio * 100).toFixed(0)}%</span>
-            <span style={statChipStyle}>{PLAYABLE_MAZE_SIZE}x{PLAYABLE_MAZE_SIZE}</span>
+            <span style={statChipStyle}>이동 칸 {pathCount}개</span>
+            <span style={statChipStyle}>
+              {PLAYABLE_MAZE_SIZE}x{PLAYABLE_MAZE_SIZE}
+            </span>
           </div>
         </header>
 
@@ -205,21 +289,99 @@ export function AdminMapsPage() {
               </label>
             </div>
 
-            <label style={fieldLabelStyle}>
-              미로 본문
-              <textarea
-                value={draft.mazeText}
-                onChange={(event) => setDraft((current) => ({ ...current, mazeText: event.target.value }))}
-                spellCheck={false}
-                style={textareaStyle}
-              />
-            </label>
+            <div style={toolSectionStyle}>
+              <div style={toolHeaderStyle}>
+                <div>
+                  <strong style={toolTitleStyle}>도구 선택</strong>
+                  <p style={toolCopyStyle}>클릭으로 한 칸, 드래그로 연속 칠하기가 가능합니다.</p>
+                </div>
+                <button type="button" onClick={handleResetToDefault} style={ghostButtonStyle}>
+                  기본 경로로 초기화
+                </button>
+              </div>
+              <div style={toolGridStyle}>
+                {TOOLS.map((tool) => (
+                  <button
+                    key={tool.id}
+                    type="button"
+                    aria-label={`${tool.label} 도구`}
+                    onClick={() => setSelectedTool(tool.id)}
+                    style={{
+                      ...toolButtonStyle,
+                      ...(selectedTool === tool.id ? activeToolButtonStyle : null)
+                    }}
+                  >
+                    <span style={toolSwatchStyle(tool.tile)} />
+                    <span>
+                      <strong style={toolButtonLabelStyle}>{tool.label}</strong>
+                      <span style={toolButtonMetaStyle}>{tool.description}</span>
+                    </span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div style={editorStageFrameStyle}>
+              <div style={editorStageStyle}>
+                <div>
+                  <p style={stageLabelStyle}>시작 구역</p>
+                  <div style={startPreviewStyle}>
+                    {Array.from({ length: 15 }, (_, index) => (
+                      <span key={index} style={startTileStyle} />
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <p style={stageLabelStyle}>연결 통로</p>
+                  <div style={connectorPreviewStyle}>
+                    {Array.from({ length: 5 }, (_, index) => (
+                      <span key={index} style={connectorTileStyle} />
+                    ))}
+                  </div>
+                </div>
+                <div style={mazeEditorShellStyle}>
+                  <div style={mazeEditorHeaderStyle}>
+                    <div>
+                      <strong style={toolTitleStyle}>미로 영역 편집</strong>
+                      <p style={toolCopyStyle}>왼쪽 시작 구역과 연결되는 첫 열은 최소 1칸 이상 열려 있어야 저장됩니다.</p>
+                    </div>
+                    <span style={selectedToolChipStyle}>{toolLabel(selectedTool)}</span>
+                  </div>
+                  <div
+                    role="grid"
+                    aria-label="미로 편집 그리드"
+                    style={{
+                      ...mazeEditorGridStyle,
+                      gridTemplateColumns: `repeat(${PLAYABLE_MAZE_SIZE}, 1fr)`
+                    }}
+                  >
+                    {draft.mazeRows.flatMap((row, rowIndex) =>
+                      row.split("").map((tile, columnIndex) => (
+                        <button
+                          key={`${rowIndex}-${columnIndex}`}
+                          type="button"
+                          aria-label={`maze-cell-${rowIndex}-${columnIndex}`}
+                          data-testid={`maze-cell-${rowIndex}-${columnIndex}`}
+                          onPointerDown={(event) => {
+                            event.preventDefault();
+                            handleCellPointerDown(rowIndex, columnIndex);
+                          }}
+                          onPointerEnter={() => handleCellPointerEnter(rowIndex, columnIndex)}
+                          onClick={() => paintCell(rowIndex, columnIndex)}
+                          style={mazeEditorCellStyle(tile)}
+                          title={`${columnIndex},${rowIndex}`}
+                        />
+                      ))
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
 
             <div style={legendStyle}>
-              <span style={legendChipStyle}>`.` 통로</span>
-              <span style={legendChipStyle}>`#` 벽</span>
-              <span style={legendChipStyle}>`G` 골</span>
-              <span style={legendChipStyle}>줄 수 25개, 각 줄 25글자</span>
+              <span style={legendChipStyle}>벽을 깎아 길을 만듭니다.</span>
+              <span style={legendChipStyle}>골은 자동으로 1개만 유지됩니다.</span>
+              <span style={legendChipStyle}>드래그로 빠르게 페인트할 수 있습니다.</span>
             </div>
 
             <div style={formActionsStyle}>
@@ -231,38 +393,23 @@ export function AdminMapsPage() {
 
           <section style={previewCardStyle}>
             <div style={previewHeaderStyle}>
-              <h3 style={previewTitleStyle}>실시간 미리보기</h3>
-              <p style={previewBodyStyle}>시작 구역과 연결 통로는 고정입니다. 오른쪽 25x25만 편집됩니다.</p>
+              <h3 style={previewTitleStyle}>제약과 검증</h3>
+              <p style={previewBodyStyle}>저장 시 서버가 입구 연결, 골 개수, 도달 가능 경로를 다시 검사합니다. 오른쪽 카드는 관리자가 놓치기 쉬운 규칙을 빠르게 확인하기 위한 요약입니다.</p>
             </div>
-            <div style={previewFrameStyle}>
-              <div style={previewStageStyle}>
-                <div style={startPreviewStyle}>
-                  {Array.from({ length: 15 }, (_, index) => (
-                    <span key={index} style={startTileStyle} />
-                  ))}
-                </div>
-                <div style={connectorPreviewStyle}>
-                  {Array.from({ length: 5 }, (_, index) => (
-                    <span key={index} style={connectorTileStyle} />
-                  ))}
-                </div>
-                <div
-                  style={{
-                    ...mazePreviewStyle,
-                    gridTemplateColumns: `repeat(${PLAYABLE_MAZE_SIZE}, 1fr)`
-                  }}
-                >
-                  {previewRows.flatMap((row, rowIndex) =>
-                    row.split("").map((tile, columnIndex) => (
-                      <span
-                        key={`${rowIndex}-${columnIndex}`}
-                        style={previewTileStyle(tile)}
-                        title={`${columnIndex},${rowIndex}`}
-                      />
-                    ))
-                  )}
-                </div>
-              </div>
+
+            <div style={inspectorStackStyle}>
+              <article style={inspectorCardStyle}>
+                <strong style={inspectorTitleStyle}>고정 영역</strong>
+                <p style={inspectorBodyStyle}>시작 구역 3x5와 연결 통로 1x5는 고정입니다. 편집 대상은 오른쪽 25x25 미로뿐입니다.</p>
+              </article>
+              <article style={inspectorCardStyle}>
+                <strong style={inspectorTitleStyle}>필수 조건</strong>
+                <p style={inspectorBodyStyle}>첫 열 상단 5칸 안에는 시작 구역과 이어지는 입구가 1칸 이상 있어야 하고, 골은 정확히 1개여야 합니다.</p>
+              </article>
+              <article style={inspectorCardStyle}>
+                <strong style={inspectorTitleStyle}>난이도 팁</strong>
+                <p style={inspectorBodyStyle}>초반 입구만 열어 두고 나머지는 벽 중심으로 시작한 뒤, 골까지 이어지는 우회 경로를 조금씩 파내면 더 복잡한 맵을 만들 수 있습니다.</p>
+              </article>
             </div>
           </section>
         </div>
@@ -275,16 +422,45 @@ function createDraft(): DraftMap {
   return {
     mapId: "",
     name: "",
-    mazeText: createBlankMazeRows().join("\n")
+    mazeRows: createBlankMazeRows()
   };
 }
 
-function normalizeMazeText(value: string) {
+function normalizeMazeRows(value: string[] | string) {
+  if (Array.isArray(value)) {
+    return value.map((row) => row.trim()).slice(0, PLAYABLE_MAZE_SIZE);
+  }
+
   return value
     .replace(/\r/g, "")
     .split("\n")
     .map((row) => row.trim())
-    .filter((row) => row.length > 0);
+    .filter((row) => row.length > 0)
+    .slice(0, PLAYABLE_MAZE_SIZE);
+}
+
+function applyPaint(mazeRows: string[], rowIndex: number, columnIndex: number, tool: PaintTool) {
+  const nextRows = mazeRows.map((row) => row.split(""));
+
+  if (tool === "goal") {
+    for (const row of nextRows) {
+      for (let index = 0; index < row.length; index += 1) {
+        if (row[index] === "G") {
+          row[index] = ".";
+        }
+      }
+    }
+
+    nextRows[rowIndex]![columnIndex] = "G";
+    return nextRows.map((row) => row.join(""));
+  }
+
+  nextRows[rowIndex]![columnIndex] = tool === "wall" ? "#" : ".";
+  return nextRows.map((row) => row.join(""));
+}
+
+function toolLabel(tool: PaintTool) {
+  return TOOLS.find((item) => item.id === tool)?.label ?? "도구";
 }
 
 function toErrorMessage(message?: string) {
@@ -331,24 +507,27 @@ function badgeStyle(origin: AdminMapRecord["origin"]): CSSProperties {
   };
 }
 
-function previewTileStyle(tile: string): CSSProperties {
-  if (tile === "#") {
-    return {
-      ...basePreviewTileStyle,
-      background: "#7a8aa3"
-    };
-  }
+function toolSwatchStyle(tile: "." | "#" | "G"): CSSProperties {
+  return {
+    ...toolSwatchBaseStyle,
+    ...(tile === "#"
+      ? { background: "#6d7d92" }
+      : tile === "G"
+        ? { background: "#facc15" }
+        : { background: "#1e3a5f" })
+  };
+}
 
-  if (tile === "G") {
-    return {
-      ...basePreviewTileStyle,
-      background: "#facc15"
-    };
-  }
-
+function mazeEditorCellStyle(tile: string): CSSProperties {
   return {
     ...basePreviewTileStyle,
-    background: "#223248"
+    width: "18px",
+    border: 0,
+    padding: 0,
+    cursor: "crosshair",
+    userSelect: "none",
+    touchAction: "none",
+    background: tile === "#" ? "#6d7d92" : tile === "G" ? "#facc15" : "#1e3a5f"
   };
 }
 
@@ -357,7 +536,7 @@ const layoutStyle: CSSProperties = {
   gridTemplateColumns: "280px minmax(0, 1fr)",
   gap: "18px",
   width: "100%",
-  maxWidth: "1340px",
+  maxWidth: "1380px",
   margin: "0 auto",
   alignItems: "start"
 };
@@ -520,7 +699,7 @@ const errorBannerStyle: CSSProperties = {
 
 const editorGridStyle: CSSProperties = {
   display: "grid",
-  gridTemplateColumns: "minmax(0, 1fr) 360px",
+  gridTemplateColumns: "minmax(0, 1fr) 320px",
   gap: "16px"
 };
 
@@ -553,25 +732,178 @@ const inputStyle: CSSProperties = {
   color: "#f8fafc"
 };
 
-const textareaStyle: CSSProperties = {
-  minHeight: "620px",
-  padding: "14px",
-  borderRadius: "16px",
-  border: "1px solid rgba(148, 163, 184, 0.24)",
+const toolSectionStyle: CSSProperties = {
+  display: "grid",
+  gap: "14px",
+  marginTop: "18px"
+};
+
+const toolHeaderStyle: CSSProperties = {
+  display: "flex",
+  justifyContent: "space-between",
+  alignItems: "flex-start",
+  gap: "12px"
+};
+
+const toolTitleStyle: CSSProperties = {
+  display: "block",
+  fontSize: "0.94rem",
+  color: "#f8fafc"
+};
+
+const toolCopyStyle: CSSProperties = {
+  margin: "5px 0 0",
+  color: "#94a3b8",
+  fontSize: "0.82rem",
+  lineHeight: 1.5
+};
+
+const ghostButtonStyle: CSSProperties = {
+  minHeight: "38px",
+  padding: "8px 12px",
+  borderRadius: "999px",
+  border: "1px solid rgba(148, 163, 184, 0.16)",
   background: "rgba(15, 23, 42, 0.72)",
-  color: "#f8fafc",
-  fontFamily: "\"IBM Plex Mono\", monospace",
-  fontSize: "0.88rem",
-  lineHeight: 1.45,
-  resize: "vertical",
-  marginTop: "10px"
+  color: "#cbd5e1",
+  cursor: "pointer",
+  whiteSpace: "nowrap"
+};
+
+const toolGridStyle: CSSProperties = {
+  display: "grid",
+  gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
+  gap: "10px"
+};
+
+const toolButtonStyle: CSSProperties = {
+  display: "flex",
+  alignItems: "center",
+  gap: "10px",
+  minHeight: "62px",
+  padding: "10px 12px",
+  borderRadius: "16px",
+  border: "1px solid rgba(148, 163, 184, 0.14)",
+  background: "rgba(15, 23, 42, 0.68)",
+  color: "#e2e8f0",
+  cursor: "pointer",
+  textAlign: "left"
+};
+
+const activeToolButtonStyle: CSSProperties = {
+  border: "1px solid rgba(56, 189, 248, 0.3)",
+  background: "rgba(9, 29, 48, 0.92)"
+};
+
+const toolSwatchBaseStyle: CSSProperties = {
+  width: "18px",
+  height: "18px",
+  borderRadius: "6px",
+  flexShrink: 0
+};
+
+const toolButtonLabelStyle: CSSProperties = {
+  display: "block",
+  fontSize: "0.88rem"
+};
+
+const toolButtonMetaStyle: CSSProperties = {
+  display: "block",
+  marginTop: "4px",
+  fontSize: "0.76rem",
+  color: "#94a3b8"
+};
+
+const editorStageFrameStyle: CSSProperties = {
+  marginTop: "18px",
+  padding: "18px",
+  borderRadius: "20px",
+  background: "rgba(15, 23, 42, 0.54)",
+  border: "1px solid rgba(148, 163, 184, 0.08)"
+};
+
+const editorStageStyle: CSSProperties = {
+  display: "grid",
+  gridTemplateColumns: "86px 34px minmax(0, 1fr)",
+  gap: "14px",
+  alignItems: "start"
+};
+
+const stageLabelStyle: CSSProperties = {
+  margin: "0 0 8px",
+  fontSize: "0.76rem",
+  letterSpacing: "0.08em",
+  textTransform: "uppercase",
+  color: "#7dd3fc"
+};
+
+const startPreviewStyle: CSSProperties = {
+  display: "grid",
+  gridTemplateColumns: "repeat(3, 1fr)",
+  gap: "2px",
+  padding: "6px",
+  borderRadius: "14px",
+  background: "rgba(34, 211, 238, 0.12)"
+};
+
+const connectorPreviewStyle: CSSProperties = {
+  display: "grid",
+  gap: "2px",
+  padding: "6px 0"
+};
+
+const startTileStyle: CSSProperties = {
+  width: "22px",
+  aspectRatio: "1 / 1",
+  background: "#26cfe6"
+};
+
+const connectorTileStyle: CSSProperties = {
+  width: "22px",
+  aspectRatio: "1 / 1",
+  background: "#18b6a4"
+};
+
+const mazeEditorShellStyle: CSSProperties = {
+  minWidth: 0,
+  display: "grid",
+  gap: "12px"
+};
+
+const mazeEditorHeaderStyle: CSSProperties = {
+  display: "flex",
+  justifyContent: "space-between",
+  alignItems: "flex-start",
+  gap: "10px"
+};
+
+const selectedToolChipStyle: CSSProperties = {
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  minHeight: "30px",
+  padding: "0 12px",
+  borderRadius: "999px",
+  background: "rgba(56, 189, 248, 0.12)",
+  color: "#7dd3fc",
+  fontSize: "0.78rem",
+  whiteSpace: "nowrap"
+};
+
+const mazeEditorGridStyle: CSSProperties = {
+  display: "grid",
+  gap: "2px",
+  padding: "8px",
+  borderRadius: "16px",
+  background: "rgba(5, 15, 28, 0.96)",
+  width: "fit-content",
+  userSelect: "none"
 };
 
 const legendStyle: CSSProperties = {
   display: "flex",
   gap: "8px",
   flexWrap: "wrap",
-  marginTop: "12px"
+  marginTop: "14px"
 };
 
 const legendChipStyle: CSSProperties = {
@@ -624,57 +956,32 @@ const previewBodyStyle: CSSProperties = {
   lineHeight: 1.55
 };
 
-const previewFrameStyle: CSSProperties = {
-  marginTop: "16px",
-  minHeight: "520px",
-  padding: "16px",
-  borderRadius: "18px",
-  background: "rgba(15, 23, 42, 0.58)"
-};
-
-const previewStageStyle: CSSProperties = {
+const inspectorStackStyle: CSSProperties = {
   display: "grid",
-  gridTemplateColumns: "54px 18px 1fr",
   gap: "10px",
-  alignItems: "start"
+  marginTop: "16px"
 };
 
-const startPreviewStyle: CSSProperties = {
-  display: "grid",
-  gridTemplateColumns: "repeat(3, 1fr)",
-  gap: "1px",
-  padding: "5px",
-  borderRadius: "12px",
-  background: "rgba(34, 211, 238, 0.12)"
+const inspectorCardStyle: CSSProperties = {
+  padding: "14px",
+  borderRadius: "16px",
+  background: "rgba(15, 23, 42, 0.66)",
+  border: "1px solid rgba(148, 163, 184, 0.08)"
 };
 
-const connectorPreviewStyle: CSSProperties = {
-  display: "grid",
-  gap: "1px",
-  padding: "5px 0"
+const inspectorTitleStyle: CSSProperties = {
+  display: "block",
+  fontSize: "0.88rem",
+  color: "#f8fafc"
 };
 
-const mazePreviewStyle: CSSProperties = {
-  display: "grid",
-  gap: "1px",
-  padding: "5px",
-  borderRadius: "12px",
-  background: "rgba(15, 23, 42, 0.9)"
-};
-
-const startTileStyle: CSSProperties = {
-  width: "14px",
-  aspectRatio: "1 / 1",
-  background: "#26cfe6"
-};
-
-const connectorTileStyle: CSSProperties = {
-  width: "14px",
-  aspectRatio: "1 / 1",
-  background: "#18b6a4"
+const inspectorBodyStyle: CSSProperties = {
+  margin: "6px 0 0",
+  color: "#94a3b8",
+  fontSize: "0.8rem",
+  lineHeight: 1.55
 };
 
 const basePreviewTileStyle: CSSProperties = {
-  width: "100%",
   aspectRatio: "1 / 1"
 };
