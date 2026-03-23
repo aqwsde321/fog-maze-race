@@ -63,12 +63,11 @@ describe("AdminMapsPage", () => {
     });
 
     const inputs = container.querySelectorAll("input");
-    expect(inputs).toHaveLength(2);
+    expect(inputs).toHaveLength(1);
     expect(container.querySelector("textarea")).toBeNull();
 
     await act(async () => {
-      setElementValue(inputs[0] as HTMLInputElement, "gamma-lock");
-      setElementValue(inputs[1] as HTMLInputElement, "Gamma Lock");
+      setElementValue(inputs[0] as HTMLInputElement, "Gamma Lock");
     });
 
     const paintedCell = container.querySelector('[data-testid="maze-cell-1-1"]');
@@ -99,7 +98,8 @@ describe("AdminMapsPage", () => {
       name: string;
       mazeRows: string[];
     };
-    expect(body.mapId).toBe("gamma-lock");
+    expect(body.mapId).toMatch(/^gamma-lock-[a-z0-9]+$/);
+    expect(body.name).toBe("Gamma Lock");
     expect(body.mazeRows).toHaveLength(25);
     expect(body.mazeRows[1]?.[1]).toBe(".");
   });
