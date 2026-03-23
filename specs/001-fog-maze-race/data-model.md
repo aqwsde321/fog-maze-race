@@ -46,6 +46,7 @@ authoritative 상태는 서버에 존재하며, 클라이언트에는 전체 방
 | `roomId` | string | `Room.roomId` 참조 |
 | `nickname` | string | 방 입장 시점 세션 값 복사 |
 | `color` | string | 입장 시 할당 |
+| `shape` | enum | 입장 시 서버가 고정 배정하는 마커 모양 |
 | `joinOrder` | integer | 방장 위임 순서 결정 |
 | `state` | enum | `waiting`, `playing`, `finished`, `disconnected`, `left` |
 | `position` | `GridPosition` | authoritative 타일 위치 |
@@ -130,6 +131,8 @@ authoritative 상태는 서버에 존재하며, 클라이언트에는 전체 방
 - 플레이어끼리 서로를 막지 않는다. 같은 타일을 동시에 점유할 수 있다.
 - 골인 순위는 서버가 처리한 authoritative 순서대로 부여한다.
 - 시야 밖 미로 타일은 벽과 통로가 구분되지 않도록 완전히 가린다.
+- 현재 시야에서 벗어났지만 한 번이라도 본 미로 타일은 기억 타일로 남기고, 현재 시야보다
+  더 어둡고 벽/통로 구분이 어렵게 표시한다.
 - 예기치 않은 연결 끊김은 `RoomMember.state = disconnected`로 두고 30초 복구 타이머를 시작한다.
 - 수동 나가기는 즉시 `RoomMember.state = left`로 전환하고 매치 복구를 비활성화한다.
 
@@ -200,7 +203,7 @@ countdown -> playing -> ended
 - 상단 상태 표시는 `room.status === "countdown"` 이어도 `playing` 으로 단순 표기할 수 있고,
   실제 카운트다운 값은 중앙 오버레이가 담당한다.
 - `waiting` 과 `countdown` 동안 플레이어 위치는 시작 구역 안에서만 바뀔 수 있다.
-- 플레이어 마커는 색상 원형이며, 현재 플레이어만 흰색 테두리로 구분한다.
+- 플레이어 마커는 서버가 배정한 색상과 모양을 그대로 사용하며, 현재 플레이어만 흰색 테두리로 구분한다.
 
 ### `ClientRenderState`
 
@@ -208,7 +211,8 @@ countdown -> playing -> ended
 
 | 필드 | 소스 |
 |-------|--------|
-| `visibleTiles` | `waiting`에서는 시작 영역 프리뷰, `playing`에서는 맵 + 내 위치 + 시야 규칙 |
+| `visibleTiles` | `waiting`에서는 시작 영역 프리뷰, `playing`에서는 현재 시야와 기억 타일을 반영한 타일 집합 |
+| `rememberedTiles` | 플레이 중 한 번이라도 본 미로 타일의 키 집합 |
 | `visiblePlayers` | 시야 규칙으로 필터링한 멤버 위치 |
 | `showFullMap` | `self.state === finished` |
 | `sidebarPlayers` | 방 스냅샷 기반 투영 |

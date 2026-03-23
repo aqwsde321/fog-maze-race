@@ -11,6 +11,7 @@ type RoomSnapshot = {
     status: "waiting" | "countdown" | "playing" | "ended";
     hostPlayerId: string;
     maxPlayers: number;
+    visibilitySize: 3 | 5 | 7;
   };
   members: RoomMemberView[];
   previewMap: MapView | null;
@@ -25,6 +26,7 @@ type RoomMemberView = {
   playerId: string;
   nickname: string;
   color: string;
+  shape: "circle" | "square" | "diamond" | "triangle" | "triangle-down";
   state: "waiting" | "playing" | "finished" | "disconnected" | "left";
   position: { x: number; y: number } | null;
   finishRank: number | null;
@@ -96,10 +98,11 @@ type ResultRow = {
 - `waiting` 상태에서는 `previewMap`의 시작 구역과 시작 슬롯만 렌더링하고, 연결 통로와 미로는 숨긴다.
 - 플레이 중에는 시작 구역, 연결 통로, 골 타일을 계속 구분할 수 있다.
 - 현재 플레이어의 7x7 시야 밖 미로 타일은 완전히 가려져서 벽과 통로를 구분할 수 없다.
+- 현재 시야에서 벗어났지만 이미 본 미로 타일은 더 어두운 기억 타일로 남기고, 벽과 통로를 쉽게 구분하기 어렵게 렌더링한다.
 - 미로 안 플레이어는 현재 플레이어 시야 안에 있을 때만 보인다.
 - 현재 플레이어가 완주하면 클라이언트는 전체 맵과 모든 플레이어를 공개한다.
 - 상단 상태 표시 텍스트는 `countdown` 동안에도 `playing` 으로 단순 표기할 수 있고, 숫자 카운트다운은 중앙 오버레이로 별도 렌더링한다.
-- 플레이어 마커는 색상 원형이며, 현재 플레이어만 흰색 테두리를 사용한다.
+- 플레이어 마커는 서버가 배정한 색상과 모양을 그대로 사용하며, 현재 플레이어만 흰색 테두리를 사용한다.
 
 ## 스냅샷 교체 정책
 
