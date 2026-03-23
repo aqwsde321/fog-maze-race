@@ -11,7 +11,6 @@ export function renderFogOverlay(
     offsetX: number;
     offsetY: number;
     visibleTileKeys: string[];
-    tileVisibilityByKey: Record<string, number>;
     showFullMap: boolean;
   }
 ) {
@@ -30,22 +29,7 @@ export function renderFogOverlay(
         continue;
       }
 
-      const tileKey = toTileKey({ x, y });
-      if (visibleTileSet.has(tileKey)) {
-        const clarity = input.tileVisibilityByKey[tileKey] ?? 1;
-        const edgeFogAlpha = Math.max(0, (1 - clarity) * 0.78);
-        if (edgeFogAlpha <= 0.02) {
-          continue;
-        }
-
-        graphics
-          .rect(
-            input.offsetX + x * input.tileSize,
-            input.offsetY + y * input.tileSize,
-            input.tileSize,
-            input.tileSize
-          )
-          .fill({ color: 0x020617, alpha: edgeFogAlpha });
+      if (visibleTileSet.has(toTileKey({ x, y }))) {
         continue;
       }
 
