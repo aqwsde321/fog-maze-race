@@ -27,7 +27,10 @@ test("US2 reconnects a disconnected player into the active room", async ({ brows
     await moveRight(guest.page, 2);
     await guest.page.close();
 
-    await expect(host.page.getByText("disconnected")).toBeVisible({
+    await expect(host.page.locator("aside article")).toHaveCount(2, {
+      timeout: 4_000
+    });
+    await expect(host.page.locator("aside").getByText("게2")).toBeVisible({
       timeout: 4_000
     });
 
@@ -73,10 +76,16 @@ test("US2 blocks recovery after the grace window expires", async ({ browser }) =
     });
 
     await guest.page.close();
-    await expect(host.page.getByText("disconnected")).toBeVisible({
+    await expect(host.page.locator("aside article")).toHaveCount(2, {
+      timeout: 4_000
+    });
+    await expect(host.page.locator("aside").getByText("게2")).toBeVisible({
       timeout: 4_000
     });
     await host.page.waitForTimeout(700);
+    await expect(host.page.locator("aside article")).toHaveCount(1, {
+      timeout: 4_000
+    });
 
     const latePage = await guest.context.newPage();
     guest.page = latePage;

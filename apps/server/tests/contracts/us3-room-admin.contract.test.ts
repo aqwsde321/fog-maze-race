@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import type {
   ConnectedPayload,
+  ErrorPayload,
   GameEndedPayload,
   RoomJoinedPayload,
   RoomLeftPayload,
@@ -19,6 +20,7 @@ type EventMap = {
   ROOM_LEFT: RoomLeftPayload;
   ROOM_STATE_UPDATE: RoomStateUpdatePayload;
   GAME_ENDED: GameEndedPayload;
+  ERROR: ErrorPayload;
 };
 
 describe("US3 room administration contract", () => {
@@ -75,6 +77,14 @@ describe("US3 room administration contract", () => {
     guest.emit("JOIN_ROOM", { roomId: hostJoined.roomId });
     await once(guest, "ROOM_JOINED");
 
+    guest.emit("RENAME_ROOM", { roomId: hostJoined.roomId, name: "Gamma" });
+    const renameDenied = await once(guest, "ERROR");
+    expect(renameDenied.code).toBe("HOST_ONLY");
+
+    guest.emit("START_GAME", { roomId: hostJoined.roomId });
+    const startDenied = await once(guest, "ERROR");
+    expect(startDenied.code).toBe("HOST_ONLY");
+
     host.emit("RENAME_ROOM", { roomId: hostJoined.roomId, name: "Beta" });
     const renamedList = await waitForRoomList(
       watcher,
@@ -102,6 +112,10 @@ describe("US3 room administration contract", () => {
 
     guest.emit("START_GAME", { roomId: hostJoined.roomId });
     await waitForSnapshot(guest, (snapshot) => snapshot.room.status === "playing", 1_000);
+
+    watcher.emit("FORCE_END_ROOM", { roomId: hostJoined.roomId });
+    const forceEndDenied = await once(watcher, "ERROR");
+    expect(forceEndDenied.code).toBe("HOST_ONLY");
 
     const endedPromise = once(guest, "GAME_ENDED");
 

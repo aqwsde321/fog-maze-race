@@ -10,6 +10,8 @@ vi.mock("../../src/game/pixi/scene-controller.js", () => ({
 }));
 
 import { GameCanvas } from "../../src/game/GameCanvas.js";
+import { PLAYER_MARKER_DIAMETER_RATIO } from "../../src/game/player-marker.js";
+import { createBoardLayout } from "../../src/game/pixi/renderers/board-render.js";
 
 (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -48,6 +50,26 @@ describe("GameCanvas preview layout", () => {
     expect(startTiles).toHaveLength(15);
     expect(Number.parseFloat(startPanel!.style.left)).toBeLessThan(Number.parseFloat(mazePanel!.style.left));
     expect(Number.parseFloat(startPanel!.style.width)).toBeLessThan(Number.parseFloat(mazePanel!.style.width));
+  });
+
+  it("uses the shared marker size ratio for the waiting preview marker", async () => {
+    const snapshot = buildWaitingSnapshot();
+    const map = getMapById("alpha-run")!;
+
+    await act(async () => {
+      root.render(<GameCanvas snapshot={snapshot} selfPlayerId="player-1" />);
+    });
+
+    const selfDot = container.querySelector<HTMLElement>('[style*="box-shadow: 0 0 0 4px"]');
+    const layout = createBoardLayout(map, {
+      viewportWidth: 960,
+      viewportHeight: 540
+    });
+    const expectedDotSize = Math.max(15, Math.floor(layout.tileSize * PLAYER_MARKER_DIAMETER_RATIO));
+
+    expect(selfDot).not.toBeNull();
+    expect(selfDot?.style.width).toBe(`${expectedDotSize}px`);
+    expect(selfDot?.style.height).toBe(`${expectedDotSize}px`);
   });
 });
 

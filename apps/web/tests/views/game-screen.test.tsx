@@ -79,6 +79,36 @@ describe("GameScreen keyboard control", () => {
     expect(onMove).toHaveBeenCalledWith("right");
   });
 
+  it("handles arrow keys while countdown is visible so the player can reposition in the start zone", async () => {
+    const onMove = vi.fn();
+
+    await act(async () => {
+      root.render(
+        <GameScreen
+          snapshot={buildSnapshot("countdown")}
+          selfPlayerId="player-1"
+          countdownValue={3}
+          onStartGame={vi.fn()}
+          onRenameRoom={vi.fn()}
+          onForceEndRoom={vi.fn()}
+          onLeaveRoom={vi.fn()}
+          onMove={onMove}
+        />
+      );
+    });
+
+    const event = new KeyboardEvent("keydown", {
+      key: "ArrowRight",
+      bubbles: true,
+      cancelable: true
+    });
+
+    getGameShell().dispatchEvent(event);
+
+    expect(event.defaultPrevented).toBe(true);
+    expect(onMove).toHaveBeenCalledWith("right");
+  });
+
   it("renders a centered countdown overlay during countdown", async () => {
     await act(async () => {
       root.render(
