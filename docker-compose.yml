@@ -1,0 +1,14 @@
+services:
+  app:
+    image: fog-maze-race:local
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "${APP_PORT:-3300}:3000"
+    environment:
+      APP_VERSION: docker-compose
+      PORT: 3000
+    volumes:
+      - ./data:/app/data
+    restart: unless-stopped

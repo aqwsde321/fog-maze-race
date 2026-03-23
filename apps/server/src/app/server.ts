@@ -15,6 +15,7 @@ export type BuildServerOptions = {
   forcedMapId?: string | null;
   recoveryGraceMs?: number;
   mapStorePath?: string | null;
+  webDistPath?: string | null;
 };
 
 export async function buildServer(options: BuildServerOptions = {}) {
@@ -47,9 +48,12 @@ export async function buildServer(options: BuildServerOptions = {}) {
 
   await registerAdminMapRoutes(app, gateway.mapRegistry);
 
-  const webDistRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../../../web/dist");
-  const webDistReady = await pathExists(webDistRoot);
-  if (webDistReady) {
+  const defaultWebDistRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../../../web/dist");
+  const configuredWebDistPath =
+    "webDistPath" in options ? options.webDistPath : process.env.WEB_DIST_PATH ?? defaultWebDistRoot;
+  const webDistRoot = configuredWebDistPath ? resolve(configuredWebDistPath) : null;
+  const webDistReady = webDistRoot ? await pathExists(webDistRoot) : false;
+  if (webDistRoot && webDistReady) {
     await app.register(fastifyStatic, {
       root: webDistRoot,
       prefix: "/"
