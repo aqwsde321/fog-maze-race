@@ -15,21 +15,21 @@ import { MapRegistry } from "../maps/map-registry.js";
 import { RevisionSync } from "../ws/revision-sync.js";
 
 const PLAYER_COLORS = [
-  "#ff5f7a",
-  "#ff8c42",
-  "#ff3b8d",
-  "#e11d48",
-  "#c084fc",
-  "#8b5cf6",
-  "#6366f1",
-  "#3b82f6",
-  "#22c55e",
-  "#84cc16",
-  "#fb7185",
-  "#f97316",
-  "#ef4444",
-  "#ec4899",
-  "#d946ef"
+  "#ff6b6b",
+  "#ff8c1a",
+  "#ff4f9a",
+  "#c81d77",
+  "#9b5de5",
+  "#6a4cdb",
+  "#3a0ca3",
+  "#4361ee",
+  "#1d4ed8",
+  "#2ca02c",
+  "#66a61e",
+  "#b91c1c",
+  "#c2410c",
+  "#db2777",
+  "#7b2cbf"
 ] as const;
 
 const VISIBILITY_SIZES = [3, 5, 7] as const;

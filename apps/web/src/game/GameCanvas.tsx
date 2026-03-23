@@ -146,7 +146,7 @@ function StartZonePreview({
             ...previewPanelStyle,
             ...mazePanel,
             background: "linear-gradient(180deg, rgba(6, 12, 24, 0.98), rgba(2, 6, 23, 0.98))",
-            borderColor: "transparent",
+            borderColor: "rgba(54, 86, 127, 0.5)",
             boxShadow: "none"
           }}
         >
@@ -161,7 +161,7 @@ function StartZonePreview({
             ...previewPanelStyle,
             ...startPanel,
             background: "rgba(8, 27, 44, 0.88)",
-            borderColor: "rgba(34, 211, 238, 0.1)",
+            borderColor: "rgba(46, 127, 149, 0.52)",
             boxShadow: "none"
           }}
         />
@@ -225,7 +225,7 @@ const previewStageStyle: CSSProperties = {
 
 const previewPanelStyle: CSSProperties = {
   position: "absolute",
-  borderRadius: "14px",
+  borderRadius: 0,
   border: "1px solid transparent"
 };
 

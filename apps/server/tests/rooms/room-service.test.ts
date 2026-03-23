@@ -31,7 +31,7 @@ describe("RoomService", () => {
 
     const colors = service.getSnapshot(created.roomId).members.map((member) => member.color);
 
-    expect(colors).toEqual(["#ff5f7a", "#ff8c42"]);
+    expect(colors).toEqual(["#ff6b6b", "#ff8c1a"]);
     expect(colors).not.toContain("#22d3ee");
     expect(colors).not.toContain("#14b8a6");
     expect(colors).not.toContain("#facc15");
