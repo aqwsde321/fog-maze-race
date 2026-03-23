@@ -96,6 +96,7 @@ function buildWaitingSnapshot(): RoomSnapshot {
         playerId: "player-1",
         nickname: "아르민",
         color: "#fb7185",
+        shape: "circle",
         state: "waiting",
         position: map.startSlots[0] ?? { x: 0, y: 1 },
         finishRank: null,

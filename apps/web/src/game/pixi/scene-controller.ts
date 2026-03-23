@@ -9,7 +9,6 @@ import { renderFogOverlay } from "./renderers/fog-renderer.js";
 import {
   PLAYER_MARKER_DIAMETER_RATIO,
   PLAYER_MARKER_SELF_RING_RATIO,
-  buildPlayerMarkerShapeMap,
   drawPlayerMarkerShape
 } from "../player-marker.js";
 import { getPlayerRenderOrder } from "../player-render-order.js";
@@ -89,8 +88,6 @@ export async function createSceneController(container: HTMLDivElement): Promise<
 
       const visibleTileSet = new Set(projection.visibleTileKeys);
       const visiblePlayerSet = new Set(projection.visiblePlayerIds);
-      const shapeMap = buildPlayerMarkerShapeMap(renderMembers);
-
       for (let y = 0; y < map.height; y += 1) {
         for (let x = 0; x < map.width; x += 1) {
           const tile = map.tiles[y]?.[x] ?? " ";
@@ -126,7 +123,7 @@ export async function createSceneController(container: HTMLDivElement): Promise<
         const centerX = layout.offsetX + member.position.x * layout.tileSize + layout.tileSize / 2;
         const centerY = layout.offsetY + member.position.y * layout.tileSize + layout.tileSize / 2;
         const markerRadius = (layout.tileSize * PLAYER_MARKER_DIAMETER_RATIO) / 2;
-        const markerShape = shapeMap.get(member.playerId) ?? "circle";
+        const markerShape = member.shape;
         drawPlayerMarkerShape(playerLayer, markerShape, centerX, centerY, markerRadius, {
           color: toPixiColor(member.color),
           mode: "fill"

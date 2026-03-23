@@ -1,4 +1,5 @@
 import type { GridPosition } from "../domain/grid-position.js";
+import type { PlayerMarkerShape } from "../domain/player-marker-shape.js";
 import type { ResultEntry } from "../domain/result-entry.js";
 import type { MatchStatus, RoomMemberState, RoomStatus } from "../domain/status.js";
 import type { ZoneBounds } from "../maps/map-definitions.js";
@@ -7,6 +8,7 @@ export type RoomMemberView = {
   playerId: string;
   nickname: string;
   color: string;
+  shape: PlayerMarkerShape;
   state: RoomMemberState;
   position: GridPosition | null;
   finishRank: number | null;

@@ -1,30 +1,9 @@
 import type { CSSProperties } from "react";
 import type { Graphics } from "pixi.js";
+import type { PlayerMarkerShape } from "@fog-maze-race/shared/domain/player-marker-shape";
 
 export const PLAYER_MARKER_DIAMETER_RATIO = 0.64;
 export const PLAYER_MARKER_SELF_RING_RATIO = 0.39;
-
-export const PLAYER_MARKER_SHAPES = [
-  "circle",
-  "square",
-  "diamond",
-  "triangle",
-  "triangle-down"
-] as const;
-
-export type PlayerMarkerShape = (typeof PLAYER_MARKER_SHAPES)[number];
-
-export function buildPlayerMarkerShapeMap(
-  members: Array<{ playerId: string }>
-) {
-  const shapes = new Map<string, PlayerMarkerShape>();
-
-  members.forEach((member, index) => {
-    shapes.set(member.playerId, PLAYER_MARKER_SHAPES[index % PLAYER_MARKER_SHAPES.length]!);
-  });
-
-  return shapes;
-}
 
 export function getPlayerMarkerStyle(
   shape: PlayerMarkerShape,

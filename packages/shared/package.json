@@ -26,6 +26,10 @@
       "types": "./dist/domain/grid-position.d.ts",
       "default": "./dist/domain/grid-position.js"
     },
+    "./domain/player-marker-shape": {
+      "types": "./dist/domain/player-marker-shape.d.ts",
+      "default": "./dist/domain/player-marker-shape.js"
+    },
     "./domain/result-entry": {
       "types": "./dist/domain/result-entry.d.ts",
       "default": "./dist/domain/result-entry.js"

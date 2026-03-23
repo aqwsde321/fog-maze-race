@@ -59,6 +59,7 @@ function buildEndedSnapshot(): RoomSnapshot {
         playerId: "player-1",
         nickname: "호1",
         color: "#38bdf8",
+        shape: "circle",
         state: "finished",
         position: { x: 8, y: 1 },
         finishRank: 1,

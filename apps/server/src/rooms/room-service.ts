@@ -5,6 +5,10 @@ import type {
   RoomListItem
 } from "@fog-maze-race/shared/contracts/realtime";
 import type { MapView, RoomSnapshot } from "@fog-maze-race/shared/contracts/snapshots";
+import {
+  PLAYER_MARKER_SHAPES,
+  type PlayerMarkerShape
+} from "@fog-maze-race/shared/domain/player-marker-shape";
 import type { MatchStatus, RoomMemberState } from "@fog-maze-race/shared/domain/status";
 import type { MapDefinition } from "@fog-maze-race/shared/maps/map-definitions";
 
@@ -70,6 +74,7 @@ export class RoomService {
       playerId: input.session.playerId,
       nickname: input.session.nickname,
       color: PLAYER_COLORS[0],
+      shape: nextShape(0),
       state: "waiting",
       position: previewMap?.startSlots[0] ?? null
     });
@@ -94,6 +99,7 @@ export class RoomService {
       playerId: input.session.playerId,
       nickname: input.session.nickname,
       color: nextColor,
+      shape: nextShape(runtime.room.listMembers().length),
       state: "waiting",
       position: previewMap?.startSlots[runtime.room.listMembers().length] ?? previewMap?.startSlots.at(-1) ?? null
     });
@@ -246,6 +252,7 @@ export class RoomService {
         playerId: member.playerId,
         nickname: member.nickname,
         color: member.color,
+        shape: member.shape,
         state: member.state,
         position: member.position,
         finishRank: member.finishRank,
@@ -299,6 +306,10 @@ function toIso(timestamp: number | null) {
 
 function normalizeRoomName(name: string) {
   return name.trim().slice(0, 24) || "새 방";
+}
+
+function nextShape(index: number): PlayerMarkerShape {
+  return PLAYER_MARKER_SHAPES[index % PLAYER_MARKER_SHAPES.length]!;
 }
 
 function serializeMap(map: MapDefinition, visibilityRadius = map.visibilityRadius): MapView {

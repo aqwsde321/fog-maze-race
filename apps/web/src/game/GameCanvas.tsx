@@ -7,7 +7,6 @@ import { createSceneController, type SceneController } from "./pixi/scene-contro
 import { createBoardLayout } from "./pixi/renderers/board-render.js";
 import {
   PLAYER_MARKER_DIAMETER_RATIO,
-  buildPlayerMarkerShapeMap,
   getPlayerMarkerStyle
 } from "./player-marker.js";
 import { getPlayerRenderOrder } from "./player-render-order.js";
@@ -141,7 +140,6 @@ function StartZonePreview({
   const dotSize = Math.max(15, Math.floor(layout.tileSize * PLAYER_MARKER_DIAMETER_RATIO));
   const startPanel = toPanelBox(layout, map.startZone, panelPadding);
   const mazePanel = toPanelBox(layout, map.mazeZone, panelPadding);
-  const shapeMap = buildPlayerMarkerShapeMap(snapshot.members);
 
   return (
     <div data-testid="game-canvas" style={canvasShellStyle}>
@@ -191,7 +189,7 @@ function StartZonePreview({
           const position = member.position!;
           const x = layout.offsetX + position.x * layout.tileSize + layout.tileSize / 2 - dotSize / 2;
           const y = layout.offsetY + position.y * layout.tileSize + layout.tileSize / 2 - dotSize / 2;
-          const shape = shapeMap.get(member.playerId) ?? "circle";
+          const shape = member.shape;
           const ringSize = dotSize + 8;
 
           return (

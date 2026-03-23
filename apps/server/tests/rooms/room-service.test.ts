@@ -8,7 +8,7 @@ import { MatchAggregate } from "../../src/core/match.js";
 import { MapRegistry } from "../../src/maps/map-registry.js";
 
 describe("RoomService", () => {
-  it("assigns player colors from the non-tile palette", () => {
+  it("assigns player colors and marker shapes from the server palette", () => {
     const service = new RoomService(new RevisionSync(), new MapRegistry());
     const hostSession = new PlayerSession({
       playerId: "host",
@@ -29,9 +29,12 @@ describe("RoomService", () => {
       session: guestSession
     });
 
-    const colors = service.getSnapshot(created.roomId).members.map((member) => member.color);
+    const members = service.getSnapshot(created.roomId).members;
+    const colors = members.map((member) => member.color);
+    const shapes = members.map((member) => member.shape);
 
     expect(colors).toEqual(["#ff355e", "#ff8a00"]);
+    expect(shapes).toEqual(["circle", "square"]);
     expect(colors).not.toContain("#22d3ee");
     expect(colors).not.toContain("#14b8a6");
     expect(colors).not.toContain("#facc15");
@@ -60,6 +63,39 @@ describe("RoomService", () => {
 
     const colors = service.getSnapshot(room.roomId).members.map((member) => member.color);
     expect(new Set(colors).size).toBe(15);
+  });
+
+  it("cycles marker shapes deterministically by join order", () => {
+    const service = new RoomService(new RevisionSync(), new MapRegistry());
+    const room = service.createRoom({
+      session: new PlayerSession({
+        playerId: "p0",
+        nickname: "P0"
+      }),
+      name: "Alpha"
+    });
+
+    for (let index = 1; index < 7; index += 1) {
+      service.joinRoom({
+        roomId: room.roomId,
+        session: new PlayerSession({
+          playerId: `p${index}`,
+          nickname: `P${index}`
+        })
+      });
+    }
+
+    const shapes = service.getSnapshot(room.roomId).members.map((member) => member.shape);
+
+    expect(shapes).toEqual([
+      "circle",
+      "square",
+      "diamond",
+      "triangle",
+      "triangle-down",
+      "circle",
+      "square"
+    ]);
   });
 
   it("includes the result display duration in ended match snapshots", () => {

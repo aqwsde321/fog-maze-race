@@ -207,6 +207,7 @@ function buildSnapshot(
         playerId: selfPlayerId,
         nickname: "호1",
         color: "#38bdf8",
+        shape: "circle",
         state: status === "playing" ? "playing" : "waiting",
         position: { x: 0, y: 1 },
         finishRank: null,

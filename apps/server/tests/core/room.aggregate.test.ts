@@ -14,6 +14,7 @@ describe("RoomAggregate", () => {
       playerId: "host",
       nickname: "Host",
       color: "#f97316",
+      shape: "circle",
       state: "waiting",
       position: null
     });
@@ -21,6 +22,7 @@ describe("RoomAggregate", () => {
       playerId: "guest-1",
       nickname: "Guest1",
       color: "#38bdf8",
+      shape: "square",
       state: "waiting",
       position: null
     });
@@ -28,6 +30,7 @@ describe("RoomAggregate", () => {
       playerId: "guest-2",
       nickname: "Guest2",
       color: "#22c55e",
+      shape: "diamond",
       state: "waiting",
       position: null
     });
@@ -49,6 +52,7 @@ describe("RoomAggregate", () => {
       playerId: "host",
       nickname: "Host",
       color: "#f97316",
+      shape: "circle",
       state: "waiting",
       position: null
     });
@@ -59,6 +63,7 @@ describe("RoomAggregate", () => {
         playerId: "late-player",
         nickname: "Late",
         color: "#38bdf8",
+        shape: "square",
         state: "waiting",
         position: null
       })

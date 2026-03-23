@@ -1,7 +1,7 @@
 import type { CSSProperties } from "react";
 
 import type { RoomSnapshot } from "@fog-maze-race/shared/contracts/snapshots";
-import { buildPlayerMarkerShapeMap, getPlayerMarkerStyle } from "../../game/player-marker.js";
+import { getPlayerMarkerStyle } from "../../game/player-marker.js";
 
 type PlayerSidebarProps = {
   snapshot: RoomSnapshot;
@@ -9,8 +9,6 @@ type PlayerSidebarProps = {
 };
 
 export function PlayerSidebar({ snapshot, selfPlayerId }: PlayerSidebarProps) {
-  const shapeMap = buildPlayerMarkerShapeMap(snapshot.members);
-
   return (
     <aside style={sidebarStyle}>
       <div style={headerStyle}>
@@ -27,16 +25,16 @@ export function PlayerSidebar({ snapshot, selfPlayerId }: PlayerSidebarProps) {
                     data-marker-self-ring="true"
                     style={{
                       ...markerPieceStyle(18),
-                      ...getPlayerMarkerStyle(shapeMap.get(member.playerId) ?? "circle", 18),
+                      ...getPlayerMarkerStyle(member.shape, 18),
                       color: "#f8fafc"
                     }}
                   />
                 ) : null}
                 <span
-                  data-marker-shape={shapeMap.get(member.playerId) ?? "circle"}
+                  data-marker-shape={member.shape}
                   style={{
                     ...markerPieceStyle(12),
-                    ...getPlayerMarkerStyle(shapeMap.get(member.playerId) ?? "circle", 12),
+                    ...getPlayerMarkerStyle(member.shape, 12),
                     color: member.color
                   }}
                 />
