@@ -5,8 +5,13 @@ import { isInsideZone } from "@fog-maze-race/shared/maps/map-definitions";
 
 import { createSceneController, type SceneController } from "./pixi/scene-controller.js";
 import { createBoardLayout } from "./pixi/renderers/board-render.js";
-import { PLAYER_MARKER_DIAMETER_RATIO } from "./player-marker.js";
+import {
+  PLAYER_MARKER_DIAMETER_RATIO,
+  buildPlayerMarkerShapeMap,
+  getPlayerMarkerStyle
+} from "./player-marker.js";
 import { getPlayerRenderOrder } from "./player-render-order.js";
+import { Fragment } from "react";
 
 type GameCanvasProps = {
   snapshot: RoomSnapshot | null;
@@ -136,6 +141,7 @@ function StartZonePreview({
   const dotSize = Math.max(15, Math.floor(layout.tileSize * PLAYER_MARKER_DIAMETER_RATIO));
   const startPanel = toPanelBox(layout, map.startZone, panelPadding);
   const mazePanel = toPanelBox(layout, map.mazeZone, panelPadding);
+  const shapeMap = buildPlayerMarkerShapeMap(snapshot.members);
 
   return (
     <div data-testid="game-canvas" style={canvasShellStyle}>
@@ -185,21 +191,38 @@ function StartZonePreview({
           const position = member.position!;
           const x = layout.offsetX + position.x * layout.tileSize + layout.tileSize / 2 - dotSize / 2;
           const y = layout.offsetY + position.y * layout.tileSize + layout.tileSize / 2 - dotSize / 2;
+          const shape = shapeMap.get(member.playerId) ?? "circle";
+          const ringSize = dotSize + 8;
 
           return (
-            <div
-              key={member.playerId}
-              style={{
-                ...playerDotStyle(dotSize),
-                left: `${x}px`,
-                top: `${y}px`,
-                background: member.color,
-                boxShadow:
-                  member.playerId === selfPlayerId
-                    ? "0 0 0 4px rgba(248,250,252,0.92)"
-                    : "none"
-              }}
-            />
+            <Fragment key={member.playerId}>
+              <div
+                style={{
+                  ...playerMarkerWrapStyle(ringSize),
+                  left: `${x - (ringSize - dotSize) / 2}px`,
+                  top: `${y - (ringSize - dotSize) / 2}px`
+                }}
+              >
+                {member.playerId === selfPlayerId ? (
+                  <span
+                    data-marker-self-ring="true"
+                    style={{
+                      ...playerMarkerPieceStyle(ringSize),
+                      ...getPlayerMarkerStyle(shape, ringSize),
+                      color: "#f8fafc"
+                    }}
+                  />
+                ) : null}
+                <span
+                  data-marker-shape={shape}
+                  style={{
+                    ...playerMarkerPieceStyle(dotSize),
+                    ...getPlayerMarkerStyle(shape, dotSize),
+                    color: member.color
+                  }}
+                />
+              </div>
+            </Fragment>
           );
         })}
       </div>
@@ -264,13 +287,22 @@ function previewTileStyle(tileSize: number): CSSProperties {
   };
 }
 
-function playerDotStyle(dotSize: number): CSSProperties {
+function playerMarkerWrapStyle(size: number): CSSProperties {
   return {
     position: "absolute",
-    width: `${dotSize}px`,
-    height: `${dotSize}px`,
-    borderRadius: "999px",
-    overflow: "hidden"
+    width: `${size}px`,
+    height: `${size}px`
+  };
+}
+
+function playerMarkerPieceStyle(size: number): CSSProperties {
+  return {
+    position: "absolute",
+    left: "50%",
+    top: "50%",
+    transform: "translate(-50%, -50%)",
+    width: `${size}px`,
+    height: `${size}px`
   };
 }
 

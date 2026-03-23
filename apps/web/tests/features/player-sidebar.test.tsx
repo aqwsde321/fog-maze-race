@@ -33,11 +33,13 @@ describe("PlayerSidebar", () => {
     const cards = [...container.querySelectorAll("aside article")];
     expect(cards).toHaveLength(2);
 
-    const selfDot = cards[0]?.querySelector("div > span");
-    const guestDot = cards[1]?.querySelector("div > span");
+    const selfRing = cards[0]?.querySelector('[data-marker-self-ring="true"]');
+    const selfDot = cards[0]?.querySelector('[data-marker-shape]');
+    const guestDot = cards[1]?.querySelector('[data-marker-shape]');
 
-    expect(selfDot?.getAttribute("style")).toContain("box-shadow: 0 0 0 2px");
-    expect(guestDot?.getAttribute("style")).toContain("box-shadow: none");
+    expect(selfRing).not.toBeNull();
+    expect(selfDot?.getAttribute("data-marker-shape")).toBe("circle");
+    expect(guestDot?.getAttribute("data-marker-shape")).toBe("square");
     expect(container.textContent).toContain("만두 (나)");
     expect(container.textContent).toContain("참가자");
   });

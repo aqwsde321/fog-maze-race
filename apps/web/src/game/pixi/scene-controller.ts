@@ -6,7 +6,12 @@ import type { MapDefinition } from "@fog-maze-race/shared/maps/map-definitions";
 
 import { createBoardLayout, getTileVisual } from "./renderers/board-render.js";
 import { renderFogOverlay } from "./renderers/fog-renderer.js";
-import { PLAYER_MARKER_DIAMETER_RATIO, PLAYER_MARKER_SELF_RING_RATIO } from "../player-marker.js";
+import {
+  PLAYER_MARKER_DIAMETER_RATIO,
+  PLAYER_MARKER_SELF_RING_RATIO,
+  buildPlayerMarkerShapeMap,
+  drawPlayerMarkerShape
+} from "../player-marker.js";
 import { getPlayerRenderOrder } from "../player-render-order.js";
 
 export type SceneController = {
@@ -84,6 +89,7 @@ export async function createSceneController(container: HTMLDivElement): Promise<
 
       const visibleTileSet = new Set(projection.visibleTileKeys);
       const visiblePlayerSet = new Set(projection.visiblePlayerIds);
+      const shapeMap = buildPlayerMarkerShapeMap(renderMembers);
 
       for (let y = 0; y < map.height; y += 1) {
         for (let x = 0; x < map.width; x += 1) {
@@ -120,14 +126,26 @@ export async function createSceneController(container: HTMLDivElement): Promise<
         const centerX = layout.offsetX + member.position.x * layout.tileSize + layout.tileSize / 2;
         const centerY = layout.offsetY + member.position.y * layout.tileSize + layout.tileSize / 2;
         const markerRadius = (layout.tileSize * PLAYER_MARKER_DIAMETER_RATIO) / 2;
-        playerLayer
-          .circle(centerX, centerY, markerRadius)
-          .fill({ color: toPixiColor(member.color) });
+        const markerShape = shapeMap.get(member.playerId) ?? "circle";
+        drawPlayerMarkerShape(playerLayer, markerShape, centerX, centerY, markerRadius, {
+          color: toPixiColor(member.color),
+          mode: "fill"
+        });
 
         if (member.playerId === selfPlayerId) {
-          playerLayer
-            .circle(centerX, centerY, layout.tileSize * PLAYER_MARKER_SELF_RING_RATIO)
-            .stroke({ color: 0xf8fafc, width: 2.4, alpha: 0.95 });
+          drawPlayerMarkerShape(
+            playerLayer,
+            markerShape,
+            centerX,
+            centerY,
+            layout.tileSize * PLAYER_MARKER_SELF_RING_RATIO,
+            {
+              color: 0xf8fafc,
+              mode: "stroke",
+              width: 2.4,
+              alpha: 0.95
+            }
+          );
         }
       }
 

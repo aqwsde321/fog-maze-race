@@ -1,6 +1,7 @@
 import type { CSSProperties } from "react";
 
 import type { RoomSnapshot } from "@fog-maze-race/shared/contracts/snapshots";
+import { buildPlayerMarkerShapeMap, getPlayerMarkerStyle } from "../../game/player-marker.js";
 
 type PlayerSidebarProps = {
   snapshot: RoomSnapshot;
@@ -8,6 +9,8 @@ type PlayerSidebarProps = {
 };
 
 export function PlayerSidebar({ snapshot, selfPlayerId }: PlayerSidebarProps) {
+  const shapeMap = buildPlayerMarkerShapeMap(snapshot.members);
+
   return (
     <aside style={sidebarStyle}>
       <div style={headerStyle}>
@@ -18,16 +21,26 @@ export function PlayerSidebar({ snapshot, selfPlayerId }: PlayerSidebarProps) {
         {snapshot.members.map((member) => (
           <article key={member.playerId} style={memberCardStyle}>
             <div style={identityStyle}>
-              <span
-                style={{
-                  ...colorDotStyle,
-                  background: member.color,
-                  boxShadow:
-                    member.playerId === selfPlayerId
-                      ? "0 0 0 2px rgba(8,17,31,0.96), 0 0 0 4px rgba(248,250,252,0.92)"
-                      : "none"
-                }}
-              />
+              <span style={markerWrapStyle}>
+                {member.playerId === selfPlayerId ? (
+                  <span
+                    data-marker-self-ring="true"
+                    style={{
+                      ...markerPieceStyle(18),
+                      ...getPlayerMarkerStyle(shapeMap.get(member.playerId) ?? "circle", 18),
+                      color: "#f8fafc"
+                    }}
+                  />
+                ) : null}
+                <span
+                  data-marker-shape={shapeMap.get(member.playerId) ?? "circle"}
+                  style={{
+                    ...markerPieceStyle(12),
+                    ...getPlayerMarkerStyle(shapeMap.get(member.playerId) ?? "circle", 12),
+                    color: member.color
+                  }}
+                />
+              </span>
               <div>
                 <strong style={nameStyle}>
                   {member.nickname}
@@ -108,12 +121,23 @@ const identityStyle: CSSProperties = {
   minWidth: 0
 };
 
-const colorDotStyle: CSSProperties = {
-  width: "11px",
-  height: "11px",
-  borderRadius: "999px",
+const markerWrapStyle: CSSProperties = {
+  position: "relative",
+  width: "18px",
+  height: "18px",
   flexShrink: 0
 };
+
+function markerPieceStyle(size: number): CSSProperties {
+  return {
+    position: "absolute",
+    left: "50%",
+    top: "50%",
+    transform: "translate(-50%, -50%)",
+    width: `${size}px`,
+    height: `${size}px`
+  };
+}
 
 const nameStyle: CSSProperties = {
   display: "block",

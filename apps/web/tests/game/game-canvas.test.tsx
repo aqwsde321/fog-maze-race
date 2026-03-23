@@ -60,7 +60,8 @@ describe("GameCanvas preview layout", () => {
       root.render(<GameCanvas snapshot={snapshot} selfPlayerId="player-1" />);
     });
 
-    const selfDot = container.querySelector<HTMLElement>('[style*="box-shadow: 0 0 0 4px"]');
+    const selfRing = container.querySelector<HTMLElement>('[data-marker-self-ring="true"]');
+    const selfDot = container.querySelector<HTMLElement>('[data-marker-shape="circle"]');
     const layout = createBoardLayout(map, {
       viewportWidth: 960,
       viewportHeight: 540
@@ -68,6 +69,7 @@ describe("GameCanvas preview layout", () => {
     const expectedDotSize = Math.max(15, Math.floor(layout.tileSize * PLAYER_MARKER_DIAMETER_RATIO));
 
     expect(selfDot).not.toBeNull();
+    expect(selfRing).not.toBeNull();
     expect(selfDot?.style.width).toBe(`${expectedDotSize}px`);
     expect(selfDot?.style.height).toBe(`${expectedDotSize}px`);
   });
