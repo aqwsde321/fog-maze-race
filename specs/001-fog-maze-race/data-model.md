@@ -66,6 +66,7 @@ authoritative 상태는 서버에 존재하며, 클라이언트에는 전체 방
 | `countdownValue` | integer \| null | 카운트다운 중 `3`, `2`, `1`, `0` |
 | `startedAt` | timestamp \| null | 실제 플레이 시작 시 설정 |
 | `endedAt` | timestamp \| null | 라운드 종료 시 설정 |
+| `resultsDurationMs` | integer \| null | 결과 화면 자동 닫힘 타이머 |
 | `activePlayerIds` | UUID[] | 종료 계산에 포함되는 플레이어 |
 | `finishOrder` | UUID[] | 완주 순서 |
 | `results` | `ResultEntry[]` | 결과 화면용 스냅샷 |
@@ -193,6 +194,13 @@ countdown -> playing -> ended
 | `previewMap` | `MapView \| null` |
 | `match` | `MatchView \| null` |
 | `revision` | integer |
+
+### UI 투영 메모
+
+- 상단 상태 표시는 `room.status === "countdown"` 이어도 `playing` 으로 단순 표기할 수 있고,
+  실제 카운트다운 값은 중앙 오버레이가 담당한다.
+- `waiting` 과 `countdown` 동안 플레이어 위치는 시작 구역 안에서만 바뀔 수 있다.
+- 플레이어 마커는 색상 원형이며, 현재 플레이어만 흰색 테두리로 구분한다.
 
 ### `ClientRenderState`
 
