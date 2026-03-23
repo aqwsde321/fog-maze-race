@@ -87,8 +87,8 @@ export function getTileVisual(input: {
       !isInsideZone(input.map.goalZone, input.position)
     ) {
       return {
-        fillColor: 0x161e2b,
-        alpha: 0.9
+        fillColor: 0x0e1520,
+        alpha: 0.88
       };
     }
   }
