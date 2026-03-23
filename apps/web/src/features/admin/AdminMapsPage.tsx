@@ -33,6 +33,7 @@ export function AdminMapsPage() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     void loadMaps();
@@ -57,6 +58,13 @@ export function AdminMapsPage() {
 
     return cells.split("").filter((tile) => tile === "#").length / cells.length;
   }, [draft.mazeRows]);
+
+  const selectedMap = useMemo(
+    () => maps.find((map) => map.mapId === selectedMapId) ?? null,
+    [maps, selectedMapId]
+  );
+
+  const canDelete = mode === "update" && selectedMap !== null && selectedMap.origin !== "default" && selectedMap.editable;
 
   async function loadMaps(nextSelectedMapId?: string | null, preserveStatusMessage = false) {
     setLoading(true);
@@ -158,6 +166,34 @@ export function AdminMapsPage() {
     }
   }
 
+  async function handleDelete() {
+    if (!selectedMapId || !canDelete) {
+      return;
+    }
+
+    setDeleting(true);
+    setStatusMessage(null);
+    setErrorMessage(null);
+
+    try {
+      const response = await fetch(`/api/admin/maps/${selectedMapId}`, {
+        method: "DELETE"
+      });
+
+      if (!response.ok) {
+        const body = (await response.json().catch(() => null)) as { message?: string } | null;
+        throw new Error(toErrorMessage(body?.message));
+      }
+
+      setStatusMessage("맵을 삭제했습니다.");
+      await loadMaps(selectedMapId, true);
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : "맵 삭제에 실패했습니다.");
+    } finally {
+      setDeleting(false);
+    }
+  }
+
   function paintCell(rowIndex: number, columnIndex: number) {
     setDraft((current) => ({
       ...current,
@@ -246,6 +282,11 @@ export function AdminMapsPage() {
             </label>
 
             <div style={actionsStyle}>
+              {canDelete ? (
+                <button type="button" onClick={handleDelete} disabled={deleting} style={dangerButtonStyle}>
+                  {deleting ? "삭제 중..." : "삭제"}
+                </button>
+              ) : null}
               <button type="button" onClick={handleReset} style={ghostButtonStyle}>
                 초기화
               </button>
@@ -367,6 +408,8 @@ function toErrorMessage(message?: string) {
       return "같은 ID의 맵이 이미 있습니다.";
     case "MAP_NOT_EDITABLE":
       return "이 맵은 수정할 수 없습니다.";
+    case "MAP_NOT_FOUND":
+      return "맵을 찾을 수 없습니다.";
     default:
       return "맵 저장에 실패했습니다.";
   }
@@ -622,6 +665,17 @@ const saveButtonStyle: CSSProperties = {
   border: 0,
   background: "linear-gradient(135deg, #f59e0b, #f97316)",
   color: "#111827",
+  fontWeight: 700,
+  cursor: "pointer"
+};
+
+const dangerButtonStyle: CSSProperties = {
+  minHeight: "40px",
+  padding: "9px 16px",
+  borderRadius: "999px",
+  border: "1px solid rgba(248, 113, 113, 0.24)",
+  background: "rgba(127, 29, 29, 0.42)",
+  color: "#fecaca",
   fontWeight: 700,
   cursor: "pointer"
 };

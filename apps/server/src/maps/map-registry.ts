@@ -28,6 +28,7 @@ type RegistryEntry = {
 
 export class MapRegistry {
   private readonly entries = new Map<string, RegistryEntry>();
+  private readonly defaultSources = new Map(DEFAULT_MAP_SOURCES.map((source) => [source.mapId, source]));
   private readonly defaultIds = new Set(DEFAULT_MAP_SOURCES.map((source) => source.mapId));
   private readonly storePath: string | null;
 
@@ -121,6 +122,31 @@ export class MapRegistry {
       },
       this.defaultIds.has(mapId) ? "override" : "custom"
     );
+  }
+
+  async delete(mapId: string) {
+    const entry = this.entries.get(mapId);
+    if (!entry || mapId === "training-lap" || entry.origin === "default") {
+      throw new Error("MAP_NOT_EDITABLE");
+    }
+
+    if (this.defaultIds.has(mapId)) {
+      const defaultSource = this.defaultSources.get(mapId);
+      if (!defaultSource) {
+        throw new Error("MAP_NOT_FOUND");
+      }
+
+      this.entries.set(mapId, {
+        map: buildMapDefinition(defaultSource),
+        source: defaultSource,
+        origin: "default",
+        updatedAt: null
+      });
+    } else {
+      this.entries.delete(mapId);
+    }
+
+    await this.persist();
   }
 
   private async upsert(input: UpsertAdminMapPayload, origin: AdminMapOrigin) {

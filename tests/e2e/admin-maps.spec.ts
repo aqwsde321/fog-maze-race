@@ -17,4 +17,9 @@ test("admin maps page can create a new playable map", async ({ page }) => {
 
   await expect(page.getByText("맵을 생성했습니다.")).toBeVisible();
   await expect(page.getByRole("heading", { name: `Maze ${suffix}` })).toBeVisible();
+
+  await page.getByRole("button", { name: "삭제" }).click();
+
+  await expect(page.getByText("맵을 삭제했습니다.")).toBeVisible();
+  await expect(page.locator("aside").getByText(`Maze ${suffix}`)).toHaveCount(0);
 });

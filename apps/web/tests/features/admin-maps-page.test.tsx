@@ -103,6 +103,47 @@ describe("AdminMapsPage", () => {
     expect(body.mazeRows).toHaveLength(25);
     expect(body.mazeRows[1]?.[1]).toBe(".");
   });
+
+  it("deletes a custom map from the editor", async () => {
+    const customMap = buildAdminMap({
+      mapId: "gamma-lock",
+      name: "Gamma Lock",
+      origin: "custom"
+    });
+    const fallbackMap = buildAdminMap({
+      mapId: "alpha-run",
+      name: "Alpha Run",
+      origin: "default"
+    });
+
+    fetchMock
+      .mockResolvedValueOnce(jsonResponse({ maps: [customMap] }))
+      .mockResolvedValueOnce(new Response(null, { status: 204 }))
+      .mockResolvedValueOnce(jsonResponse({ maps: [fallbackMap] }));
+
+    await act(async () => {
+      root.render(<AdminMapsPage />);
+    });
+    await flush();
+
+    const deleteButton = [...container.querySelectorAll("button")].find((button) => button.textContent?.includes("삭제"));
+    expect(deleteButton).toBeTruthy();
+
+    await act(async () => {
+      deleteButton!.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    });
+    await flush();
+
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      2,
+      "/api/admin/maps/gamma-lock",
+      expect.objectContaining({
+        method: "DELETE"
+      })
+    );
+    expect(container.textContent).toContain("맵을 삭제했습니다.");
+    expect(container.textContent).toContain("Alpha Run");
+  });
 });
 
 function buildAdminMap(input: Pick<AdminMapRecord, "mapId" | "name" | "origin">): AdminMapRecord {

@@ -39,4 +39,14 @@ export async function registerAdminMapRoutes(app: FastifyInstance, mapRegistry: 
       }
     }
   );
+
+  app.delete<{ Params: { mapId: string } }>("/api/admin/maps/:mapId", async (request, reply) => {
+    try {
+      await mapRegistry.delete(request.params.mapId);
+      return reply.code(204).send();
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "MAP_DELETE_FAILED";
+      return reply.code(message === "MAP_NOT_EDITABLE" || message === "MAP_NOT_FOUND" ? 404 : 400).send({ message } as never);
+    }
+  });
 }

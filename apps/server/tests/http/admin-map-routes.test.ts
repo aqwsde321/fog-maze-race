@@ -26,7 +26,7 @@ describe("admin map routes", () => {
     await rm(tempDir, { recursive: true, force: true });
   });
 
-  it("creates, updates, and reloads editable maps", async () => {
+  it("creates, updates, deletes, and reloads editable maps", async () => {
     const baseRows = getMazeRows(getMapById("alpha-run")!);
 
     const createResponse = await app.inject({
@@ -66,6 +66,36 @@ describe("admin map routes", () => {
     expect(listResponse.statusCode).toBe(200);
     expect(listPayload.maps.some((map: { mapId: string }) => map.mapId === "gamma-lock")).toBe(true);
 
+    const deleteCustomResponse = await app.inject({
+      method: "DELETE",
+      url: "/api/admin/maps/gamma-lock"
+    });
+
+    expect(deleteCustomResponse.statusCode).toBe(204);
+
+    const deleteOverrideResponse = await app.inject({
+      method: "DELETE",
+      url: "/api/admin/maps/alpha-run"
+    });
+
+    expect(deleteOverrideResponse.statusCode).toBe(204);
+
+    const deletedCustomResponse = await app.inject({
+      method: "GET",
+      url: "/api/admin/maps/gamma-lock"
+    });
+
+    expect(deletedCustomResponse.statusCode).toBe(404);
+
+    const restoredDefaultResponse = await app.inject({
+      method: "GET",
+      url: "/api/admin/maps/alpha-run"
+    });
+
+    expect(restoredDefaultResponse.statusCode).toBe(200);
+    expect(restoredDefaultResponse.json().map.origin).toBe("default");
+    expect(restoredDefaultResponse.json().map.name).toBe("Alpha Run");
+
     await app.close();
 
     const reloaded = await buildServer({ mapStorePath });
@@ -78,15 +108,14 @@ describe("admin map routes", () => {
     });
 
     expect(reloadResponse.statusCode).toBe(200);
-    expect(reloadResponse.json().map.origin).toBe("override");
-    expect(reloadResponse.json().map.name).toBe("Alpha Override");
+    expect(reloadResponse.json().map.origin).toBe("default");
+    expect(reloadResponse.json().map.name).toBe("Alpha Run");
 
     const customReloadResponse = await app.inject({
       method: "GET",
       url: "/api/admin/maps/gamma-lock"
     });
 
-    expect(customReloadResponse.statusCode).toBe(200);
-    expect(customReloadResponse.json().map.origin).toBe("custom");
+    expect(customReloadResponse.statusCode).toBe(404);
   });
 });
