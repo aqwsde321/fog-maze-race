@@ -30,7 +30,7 @@ describe("AdminMapsPage", () => {
     vi.unstubAllGlobals();
   });
 
-  it("loads editable maps and submits a new map payload", async () => {
+  it("loads editable maps and submits a new map payload with clicked cells", async () => {
     const baseMap = buildAdminMap({
       mapId: "alpha-run",
       name: "Alpha Run",
@@ -63,14 +63,19 @@ describe("AdminMapsPage", () => {
     });
 
     const inputs = container.querySelectorAll("input");
-    const textarea = container.querySelector("textarea");
     expect(inputs).toHaveLength(2);
-    expect(textarea).toBeTruthy();
+    expect(container.querySelector("textarea")).toBeNull();
 
     await act(async () => {
       setElementValue(inputs[0] as HTMLInputElement, "gamma-lock");
       setElementValue(inputs[1] as HTMLInputElement, "Gamma Lock");
-      setElementValue(textarea as HTMLTextAreaElement, createBlankMazeRows().join("\n"));
+    });
+
+    const paintedCell = container.querySelector('[data-testid="maze-cell-1-1"]');
+    expect(paintedCell).toBeTruthy();
+
+    await act(async () => {
+      paintedCell!.dispatchEvent(new MouseEvent("click", { bubbles: true }));
     });
 
     const saveButton = [...container.querySelectorAll("button")].find((button) => button.textContent?.includes("맵 생성"));
@@ -96,6 +101,7 @@ describe("AdminMapsPage", () => {
     };
     expect(body.mapId).toBe("gamma-lock");
     expect(body.mazeRows).toHaveLength(25);
+    expect(body.mazeRows[1]?.[1]).toBe(".");
   });
 });
 
@@ -129,7 +135,7 @@ async function flush() {
   });
 }
 
-function setElementValue(element: HTMLInputElement | HTMLTextAreaElement, value: string) {
+function setElementValue(element: HTMLInputElement, value: string) {
   const prototype = Object.getPrototypeOf(element);
   const descriptor = Object.getOwnPropertyDescriptor(prototype, "value");
   descriptor?.set?.call(element, value);
