@@ -47,9 +47,9 @@ export function NicknameGate({
 }
 
 const panelStyle: CSSProperties = {
-  width: "min(560px, 100%)",
-  padding: "40px",
-  borderRadius: "28px",
+  width: "min(620px, 100%)",
+  padding: "clamp(28px, 4vw, 40px)",
+  borderRadius: "24px",
   background: "linear-gradient(160deg, rgba(15, 23, 42, 0.94), rgba(8, 15, 30, 0.92))",
   border: "1px solid rgba(148, 163, 184, 0.22)",
   boxShadow: "0 24px 80px rgba(15, 23, 42, 0.42)"
@@ -72,13 +72,14 @@ const titleStyle: CSSProperties = {
 const bodyStyle: CSSProperties = {
   margin: 0,
   color: "#cbd5e1",
-  lineHeight: 1.7
+  lineHeight: 1.68,
+  maxWidth: "34ch"
 };
 
 const formRowStyle: CSSProperties = {
   display: "grid",
   gap: "10px",
-  marginTop: "28px"
+  marginTop: "24px"
 };
 
 const labelStyle: CSSProperties = {
@@ -88,8 +89,8 @@ const labelStyle: CSSProperties = {
 
 const inputStyle: CSSProperties = {
   width: "100%",
-  padding: "14px 16px",
-  borderRadius: "14px",
+  padding: "13px 15px",
+  borderRadius: "13px",
   border: "1px solid rgba(148, 163, 184, 0.35)",
   background: "rgba(15, 23, 42, 0.72)",
   color: "#f8fafc",
@@ -97,9 +98,9 @@ const inputStyle: CSSProperties = {
 };
 
 const primaryButtonStyle: CSSProperties = {
-  marginTop: "20px",
+  marginTop: "18px",
   width: "100%",
-  padding: "14px 18px",
+  padding: "13px 18px",
   border: 0,
   borderRadius: "999px",
   background: "linear-gradient(135deg, #f59e0b, #f97316)",

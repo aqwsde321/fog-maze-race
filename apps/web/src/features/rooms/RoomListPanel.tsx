@@ -78,18 +78,18 @@ export function RoomListPanel({
 
 const layoutStyle: CSSProperties = {
   display: "grid",
-  gridTemplateColumns: "minmax(0, 1.05fr) minmax(320px, 0.95fr)",
-  gap: "24px",
-  width: "min(1120px, 100%)",
+  gridTemplateColumns: "minmax(0, 1fr) minmax(300px, 0.84fr)",
+  gap: "18px",
+  width: "min(1040px, 100%)",
   alignItems: "start"
 };
 
 const heroCardStyle: CSSProperties = {
-  padding: "32px",
-  borderRadius: "28px",
+  padding: "28px",
+  borderRadius: "24px",
   background: "linear-gradient(180deg, rgba(15, 23, 42, 0.92), rgba(8, 15, 30, 0.92))",
   border: "1px solid rgba(148, 163, 184, 0.18)",
-  minHeight: "340px"
+  minHeight: "290px"
 };
 
 const miniLabelStyle: CSSProperties = {
@@ -106,7 +106,7 @@ const headingStyle: CSSProperties = {
 };
 
 const copyStyle: CSSProperties = {
-  margin: "0 0 24px",
+  margin: "0 0 20px",
   color: "#cbd5e1",
   lineHeight: 1.65
 };
@@ -120,12 +120,12 @@ const fieldLabelStyle: CSSProperties = {
 const createRowStyle: CSSProperties = {
   display: "grid",
   gridTemplateColumns: "1fr auto",
-  gap: "12px"
+  gap: "10px"
 };
 
 const fieldStyle: CSSProperties = {
-  padding: "14px 16px",
-  borderRadius: "14px",
+  padding: "13px 15px",
+  borderRadius: "13px",
   border: "1px solid rgba(148, 163, 184, 0.35)",
   background: "rgba(15, 23, 42, 0.68)",
   color: "#f8fafc",
@@ -133,7 +133,7 @@ const fieldStyle: CSSProperties = {
 };
 
 const createButtonStyle: CSSProperties = {
-  padding: "14px 18px",
+  padding: "13px 16px",
   borderRadius: "999px",
   border: 0,
   background: "#f8fafc",
@@ -143,8 +143,8 @@ const createButtonStyle: CSSProperties = {
 };
 
 const listCardStyle: CSSProperties = {
-  padding: "28px",
-  borderRadius: "28px",
+  padding: "24px",
+  borderRadius: "24px",
   background: "rgba(8, 15, 30, 0.9)",
   border: "1px solid rgba(148, 163, 184, 0.18)"
 };
@@ -168,8 +168,8 @@ const roomCountStyle: CSSProperties = {
 
 const listBodyStyle: CSSProperties = {
   display: "grid",
-  gap: "12px",
-  marginTop: "18px"
+  gap: "10px",
+  marginTop: "16px"
 };
 
 const roomCardStyle: CSSProperties = {
@@ -177,8 +177,8 @@ const roomCardStyle: CSSProperties = {
   justifyContent: "space-between",
   alignItems: "center",
   gap: "12px",
-  padding: "16px",
-  borderRadius: "18px",
+  padding: "14px 15px",
+  borderRadius: "16px",
   background: "rgba(15, 23, 42, 0.72)",
   border: "1px solid rgba(148, 163, 184, 0.16)"
 };
@@ -189,13 +189,13 @@ const roomNameStyle: CSSProperties = {
 };
 
 const roomMetaStyle: CSSProperties = {
-  margin: "8px 0 0",
+  margin: "6px 0 0",
   color: "#94a3b8",
-  fontSize: "0.9rem"
+  fontSize: "0.84rem"
 };
 
 const joinButtonStyle: CSSProperties = {
-  padding: "12px 14px",
+  padding: "10px 13px",
   borderRadius: "999px",
   border: "1px solid rgba(250, 204, 21, 0.28)",
   background: "rgba(250, 204, 21, 0.12)",
