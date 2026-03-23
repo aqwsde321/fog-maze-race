@@ -2,7 +2,13 @@ import { describe, expect, it } from "vitest";
 
 import type { GridPosition } from "../../src/domain/grid-position.js";
 import type { ZoneBounds } from "../../src/maps/map-definitions.js";
-import { MAP_DEFINITIONS, isWalkableTile } from "../../src/maps/map-definitions.js";
+import {
+  MAP_DEFINITIONS,
+  buildMapDefinition,
+  createBlankMazeRows,
+  getMazeRows,
+  isWalkableTile
+} from "../../src/maps/map-definitions.js";
 
 describe("MAP_DEFINITIONS", () => {
   it("uses a fixed 3x5 start zone, a 5-tile connector, and a single goal tile", () => {
@@ -48,7 +54,9 @@ describe("MAP_DEFINITIONS", () => {
       if (map.mapId !== "training-lap") {
         expect(zoneWidth(map.mazeZone)).toBe(25);
         expect(zoneHeight(map.mazeZone)).toBe(25);
-        expect(outerEdgeWalkableRatio(map)).toBeGreaterThan(0.7);
+        expect(wallRatio(map)).toBeGreaterThan(0.45);
+        expect(connectorEntryCount(map)).toBeGreaterThanOrEqual(1);
+        expect(connectorEntryCount(map)).toBeLessThanOrEqual(2);
       }
     }
   });
@@ -60,6 +68,19 @@ describe("MAP_DEFINITIONS", () => {
         expect(canReachGoal(map, start, goal)).toBe(true);
       }
     }
+  });
+
+  it("rejects maze sources when the goal cannot be reached from the entry", () => {
+    const blockedRows = createBlankMazeRows();
+    blockedRows[2] = `${".".repeat(8)}${"#".repeat(17)}`;
+
+    expect(() =>
+      buildMapDefinition({
+        mapId: "blocked-test",
+        name: "Blocked Test",
+        mazeRows: blockedRows
+      })
+    ).toThrowError("MAP_UNREACHABLE");
   });
 });
 
@@ -100,21 +121,20 @@ function adjacentToZone(position: GridPosition, zone: ZoneBounds) {
   return false;
 }
 
-function outerEdgeWalkableRatio(map: (typeof MAP_DEFINITIONS)[number]) {
-  const perimeter: GridPosition[] = [];
+function wallRatio(map: (typeof MAP_DEFINITIONS)[number]) {
+  const rows = getMazeRows(map);
+  const wallCount = rows.join("").split("").filter((tile) => tile === "#").length;
+  return wallCount / (rows.length * rows[0]!.length);
+}
 
-  for (let x = map.mazeZone.minX; x <= map.mazeZone.maxX; x += 1) {
-    perimeter.push({ x, y: map.mazeZone.minY });
-    perimeter.push({ x, y: map.mazeZone.maxY });
+function connectorEntryCount(map: (typeof MAP_DEFINITIONS)[number]) {
+  let count = 0;
+  for (let y = map.startZone.minY; y <= map.startZone.maxY; y += 1) {
+    if (isWalkableTile(map, { x: map.mazeZone.minX, y })) {
+      count += 1;
+    }
   }
-
-  for (let y = map.mazeZone.minY + 1; y < map.mazeZone.maxY; y += 1) {
-    perimeter.push({ x: map.mazeZone.minX, y });
-    perimeter.push({ x: map.mazeZone.maxX, y });
-  }
-
-  const walkableCount = perimeter.filter((position) => isWalkableTile(map, position)).length;
-  return walkableCount / perimeter.length;
+  return count;
 }
 
 function canReachGoal(

@@ -1,7 +1,7 @@
 import type { Server } from "socket.io";
-import { getMapById, getRandomMap } from "@fog-maze-race/shared/maps/map-definitions";
 
 import { PlayerSession } from "../core/player-session.js";
+import { MapRegistry } from "../maps/map-registry.js";
 import { MatchService, type MatchServiceOptions } from "../matches/match-service.js";
 import { RecoveryService } from "../rooms/recovery-service.js";
 import { RoomService } from "../rooms/room-service.js";
@@ -12,14 +12,15 @@ import { registerAdminHandlers } from "./handlers/admin-handlers.js";
 import { registerMatchHandlers } from "./handlers/match-handlers.js";
 import { registerSessionHandlers } from "./handlers/session-handlers.js";
 
-export function buildRaceGateway(io: Server, options: MatchServiceOptions) {
+export async function buildRaceGateway(io: Server, options: MatchServiceOptions & { mapStorePath?: string | null }) {
   const revisionSync = new RevisionSync();
   const disconnectGrace = new DisconnectGraceRegistry();
   const sessions = new Map<string, PlayerSession>();
-  const roomService = new RoomService(revisionSync, {
+  const mapRegistry = new MapRegistry({ storePath: options.mapStorePath });
+  await mapRegistry.load();
+  const roomService = new RoomService(revisionSync, mapRegistry, {
     resultsDurationMs: options.resultsDurationMs,
-    pickPreviewMap: () =>
-      options.forcedMapId ? (getMapById(options.forcedMapId) ?? getRandomMap()) : getRandomMap()
+    forcedPreviewMapId: options.forcedMapId && mapRegistry.get(options.forcedMapId) ? options.forcedMapId : null
   });
   const matchService = new MatchService(roomService, options);
   const recoveryService = new RecoveryService(roomService, matchService, disconnectGrace, sessions, {
@@ -72,6 +73,7 @@ export function buildRaceGateway(io: Server, options: MatchServiceOptions) {
     revisionSync,
     disconnectGrace,
     sessions,
+    mapRegistry,
     roomService,
     matchService,
     recoveryService,

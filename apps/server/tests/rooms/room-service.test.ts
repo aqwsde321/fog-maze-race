@@ -1,13 +1,15 @@
 import { describe, expect, it } from "vitest";
+import { getMapById } from "@fog-maze-race/shared/maps/map-definitions";
 
 import { RevisionSync } from "../../src/ws/revision-sync.js";
 import { RoomService } from "../../src/rooms/room-service.js";
 import { PlayerSession } from "../../src/core/player-session.js";
 import { MatchAggregate } from "../../src/core/match.js";
+import { MapRegistry } from "../../src/maps/map-registry.js";
 
 describe("RoomService", () => {
   it("assigns player colors from the non-tile palette", () => {
-    const service = new RoomService(new RevisionSync());
+    const service = new RoomService(new RevisionSync(), new MapRegistry());
     const hostSession = new PlayerSession({
       playerId: "host",
       nickname: "호스트"
@@ -37,7 +39,7 @@ describe("RoomService", () => {
   });
 
   it("keeps the first 15 assigned player colors unique", () => {
-    const service = new RoomService(new RevisionSync());
+    const service = new RoomService(new RevisionSync(), new MapRegistry());
     const room = service.createRoom({
       session: new PlayerSession({
         playerId: "p0",
@@ -61,7 +63,7 @@ describe("RoomService", () => {
   });
 
   it("includes the result display duration in ended match snapshots", () => {
-    const service = new RoomService(new RevisionSync(), { resultsDurationMs: 4_500 });
+    const service = new RoomService(new RevisionSync(), new MapRegistry(), { resultsDurationMs: 4_500 });
     const hostSession = new PlayerSession({
       playerId: "host",
       nickname: "호스트"
@@ -75,7 +77,7 @@ describe("RoomService", () => {
     const match = new MatchAggregate({
       matchId: "match-1",
       roomId: created.roomId,
-      mapId: "training-lap"
+      map: getMapById("training-lap")!
     });
     match.end();
     service.setMatch(created.roomId, match);

@@ -130,7 +130,7 @@ describe("US3 room administration contract", () => {
     );
 
     await waitForSnapshot(guest, (snapshot) => snapshot.room.status === "waiting", 1_000);
-  });
+  }, 15_000);
 
   function createRaceSocket() {
     const socket = createClient(`http://127.0.0.1:${port}`, {

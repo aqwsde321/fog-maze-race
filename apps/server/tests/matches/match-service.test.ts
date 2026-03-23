@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it } from "vitest";
 
 import { PlayerSession } from "../../src/core/player-session.js";
+import { MapRegistry } from "../../src/maps/map-registry.js";
 import { MatchService, type MatchEventSink } from "../../src/matches/match-service.js";
 import { RoomService } from "../../src/rooms/room-service.js";
 import { RevisionSync } from "../../src/ws/revision-sync.js";
@@ -15,8 +16,9 @@ describe("MatchService start-zone movement", () => {
   });
 
   it("allows movement inside the start zone before playing and blocks entering the connector", () => {
-    const roomService = new RoomService(new RevisionSync(), {
-      pickPreviewMap: () => getMapById("training-lap")!
+    const mapRegistry = new MapRegistry();
+    const roomService = new RoomService(new RevisionSync(), mapRegistry, {
+      forcedPreviewMapId: getMapById("training-lap")!.mapId
     });
     const matchService = new MatchService(roomService, {
       countdownStepMs: 1_000,

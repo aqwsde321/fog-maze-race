@@ -18,6 +18,10 @@
       "types": "./dist/contracts/snapshots.d.ts",
       "default": "./dist/contracts/snapshots.js"
     },
+    "./contracts/admin-maps": {
+      "types": "./dist/contracts/admin-maps.d.ts",
+      "default": "./dist/contracts/admin-maps.js"
+    },
     "./domain/grid-position": {
       "types": "./dist/domain/grid-position.d.ts",
       "default": "./dist/domain/grid-position.js"

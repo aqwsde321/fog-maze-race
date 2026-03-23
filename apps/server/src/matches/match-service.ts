@@ -56,11 +56,15 @@ export class MatchService {
 
   startGame(roomId: string, requestedBy: string, sink: MatchEventSink) {
     const runtime = this.roomService.requireRuntime(roomId);
-    const mapId = runtime.previewMapId;
+    const previewMap = this.roomService.getPreviewMap(roomId);
+    if (!previewMap) {
+      throw new Error("MAP_NOT_FOUND");
+    }
+
     const match = new MatchAggregate({
       matchId: randomUUID(),
       roomId,
-      mapId
+      map: previewMap
     });
 
     runtime.room.startCountdown(requestedBy);

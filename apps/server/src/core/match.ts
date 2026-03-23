@@ -7,7 +7,6 @@ import {
 import type { ResultEntry } from "@fog-maze-race/shared/domain/result-entry";
 import type { MatchStatus } from "@fog-maze-race/shared/domain/status";
 import {
-  getMapById,
   isInsideZone,
   isWalkableTile,
   type MapDefinition
@@ -24,15 +23,10 @@ export class MatchAggregate {
   startedAt: number | null;
   endedAt: number | null;
 
-  constructor(input: { matchId: string; roomId: string; mapId: string }) {
-    const map = getMapById(input.mapId);
-    if (!map) {
-      throw new Error(`Unknown map: ${input.mapId}`);
-    }
-
+  constructor(input: { matchId: string; roomId: string; map: MapDefinition }) {
     this.matchId = input.matchId;
     this.roomId = input.roomId;
-    this.map = map;
+    this.map = input.map;
     this.status = "countdown";
     this.countdownValue = 3;
     this.finishOrder = [];

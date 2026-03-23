@@ -6,6 +6,7 @@ import { pathToFileURL } from "node:url";
 import { fileURLToPath } from "node:url";
 import { Server as SocketIOServer } from "socket.io";
 
+import { registerAdminMapRoutes } from "../http/admin-map-routes.js";
 import { buildRaceGateway } from "../ws/race-gateway.js";
 
 export type BuildServerOptions = {
@@ -13,6 +14,7 @@ export type BuildServerOptions = {
   resultsDurationMs?: number;
   forcedMapId?: string | null;
   recoveryGraceMs?: number;
+  mapStorePath?: string | null;
 };
 
 export async function buildServer(options: BuildServerOptions = {}) {
@@ -25,11 +27,15 @@ export async function buildServer(options: BuildServerOptions = {}) {
     }
   });
 
-  const gateway = buildRaceGateway(io, {
+  const gateway = await buildRaceGateway(io, {
     countdownStepMs: options.countdownStepMs ?? Number(process.env.COUNTDOWN_STEP_MS ?? 1_000),
     resultsDurationMs: options.resultsDurationMs ?? Number(process.env.RESULTS_DURATION_MS ?? 6_000),
     forcedMapId: options.forcedMapId ?? process.env.FORCED_MAP_ID ?? null,
-    recoveryGraceMs
+    recoveryGraceMs,
+    mapStorePath:
+      options.mapStorePath ??
+      process.env.MAP_STORE_PATH ??
+      resolve(dirname(fileURLToPath(import.meta.url)), "../../../../data/maps.json")
   });
 
   app.get("/health", async () => ({
@@ -39,12 +45,22 @@ export async function buildServer(options: BuildServerOptions = {}) {
     uptimeSeconds: Math.floor(process.uptime())
   }));
 
+  await registerAdminMapRoutes(app, gateway.mapRegistry);
+
   const webDistRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../../../web/dist");
   const webDistReady = await pathExists(webDistRoot);
   if (webDistReady) {
     await app.register(fastifyStatic, {
       root: webDistRoot,
       prefix: "/"
+    });
+
+    app.setNotFoundHandler(async (request, reply) => {
+      if (request.url.startsWith("/api/") || request.url === "/health") {
+        return reply.code(404).send({ message: "Route not found" });
+      }
+
+      return reply.sendFile("index.html");
     });
   }
 

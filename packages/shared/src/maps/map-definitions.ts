@@ -21,6 +21,14 @@ export type MapDefinition = {
   visibilityRadius: number;
 };
 
+export type EditableMapSource = {
+  mapId: string;
+  name: string;
+  mazeRows: string[];
+};
+
+export const PLAYABLE_MAZE_SIZE = 25;
+
 const START_ZONE: ZoneBounds = {
   minX: 0,
   minY: 0,
@@ -39,54 +47,85 @@ const TRAINING_LAP_MAZE_ROWS = [
 ];
 
 const ALPHA_RUN_CORE_ROWS = [
-  "...................",
-  ".###..#....##...#..",
-  ".#....#.##....#.#..",
-  ".#.#..#..###..#.#..",
-  "...#.....#....#....",
-  ".#####.#.#.####.##.",
-  ".#.....#.#....#....",
-  ".#.#####.####.#.##.",
-  ".#.....#....#.#....",
-  ".###.#.####.#.####.",
-  ".#...#....#.#....#.",
-  ".#.#.###..#..##.#..",
-  ".#.#...#..##....#..",
-  ".#..##.#....###.#..",
-  ".##....####....##..",
-  ".#...#......#...G..",
-  ".#.###.####.#.###..",
-  ".#.....#....#......",
-  "..................."
+  "#########################",
+  "#.#...#...............#.#",
+  "....###.#.########.##.#.#",
+  "#.#.....#...#.......#...#",
+  "#.#####.###.#####.#.###.#",
+  "#.#.......#...#...#...#.#",
+  "#.#.#####.###.#.#.#.#.#.#",
+  "#...#...#.#...#.#.#.#...#",
+  "#.#.#.###.#.###.###.#.###",
+  "#.....#.....#...#...#...#",
+  "#####.#.#.#.#.###.###.#.#",
+  "#.....#.#...#.......#.#.#",
+  "#.###.#.#.###.#.###.#.#.#",
+  "#...#.......#.#.......#.#",
+  "###.#.#####.#.#.#.#####.#",
+  "#...#...#.....#.#.#.#...#",
+  "#.#.#.#.#.#####.#.#.#.###",
+  "#.#...#.#.#.....#...#...#",
+  "#.#####.#.#.#.###.#.#.#.#",
+  "#.....#...#.#.........#.#",
+  "#.#########.#.###.#.###.#",
+  "#.#.......#.#...#.#.#...#",
+  "#.#.#.#####.###.###.###.#",
+  "#...#.........#........G#",
+  "#########################"
 ];
 
 const BETA_DASH_CORE_ROWS = [
-  "...................",
-  "..##...#..###...##.",
-  ".#..#..#....#.#....",
-  ".#..##.####.#.#.##.",
-  ".#......#...#.#....",
-  ".####.#.#.###.####.",
-  ".....#.#...#......#",
-  ".###.#.###.####.#..",
-  ".#...#.....#....#..",
-  ".#.#####.#.#.##.#..",
-  ".#.....#.#.#....#..",
-  ".###.#.#.#.####.#..",
-  "...#.#...#....#....",
-  ".#.#.#######.#.###.",
-  ".#.#.....#...#.....",
-  ".#.#####.#.#####.#.",
-  ".#.....#...#..G..#.",
-  ".#####.###.#.###.#.",
-  "..................."
+  "#########################",
+  "#...#...........#.......#",
+  "....#.#.#.###.#.###.#.#.#",
+  "#.#.#...#...........#...#",
+  "#.#.###.###.####.####.###",
+  "#.#.#...#...........#.#.#",
+  "#.#.#.#########.#.#.#.#.#",
+  "#...#.#.........#.#...#.#",
+  "#.###.#.###...###.#.###.#",
+  "#.#.#...#...#.#...#.....#",
+  "#...#.###.###.###.#.###.#",
+  "#.#.#.....#.....#...#...#",
+  "#.#.#.#.#######.#####.###",
+  "#.#...#...#...#.......#.#",
+  "#.###.###.#.#.#.#######.#",
+  "#.......#.....#.......#.#",
+  "#.#####.#.###.####.##.#.#",
+  "#.....#.#...#.#.....#...#",
+  "#.###.#.###.#.#.#.#####.#",
+  "#.#...#...#.#.#.#.#.....#",
+  "#.#######.###.#.###.#####",
+  "#.#.....#...#.#.........#",
+  "#.#.#.#####.#.#.#.#####.#",
+  "#.............#.#......G#",
+  "#########################"
 ];
 
-function createMap(
-  mapId: string,
-  name: string,
-  mazeRows: string[]
-): MapDefinition {
+export const DEFAULT_MAP_SOURCES: EditableMapSource[] = [
+  {
+    mapId: "training-lap",
+    name: "Training Lap",
+    mazeRows: TRAINING_LAP_MAZE_ROWS
+  },
+  {
+    mapId: "alpha-run",
+    name: "Alpha Run",
+    mazeRows: ALPHA_RUN_CORE_ROWS
+  },
+  {
+    mapId: "beta-dash",
+    name: "Beta Dash",
+    mazeRows: BETA_DASH_CORE_ROWS
+  }
+];
+
+export const MAP_DEFINITIONS: MapDefinition[] = DEFAULT_MAP_SOURCES.map(buildMapDefinition);
+
+export function buildMapDefinition(source: EditableMapSource): MapDefinition {
+  validateMapSource(source);
+
+  const mazeRows = source.mazeRows.map((row) => row.trimEnd());
   const mazeWidth = mazeRows[0]?.length ?? 0;
   const mazeHeight = mazeRows.length;
   const mazeZone = {
@@ -99,8 +138,8 @@ function createMap(
   const goalPosition = findGoal(rows);
 
   return {
-    mapId,
-    name,
+    mapId: source.mapId.trim(),
+    name: source.name.trim(),
     width: rows[0]?.length ?? 0,
     height: rows.length,
     tiles: rows,
@@ -118,23 +157,27 @@ function createMap(
   };
 }
 
-export const MAP_DEFINITIONS: MapDefinition[] = [
-  createMap(
-    "training-lap",
-    "Training Lap",
-    TRAINING_LAP_MAZE_ROWS
-  ),
-  createMap(
-    "alpha-run",
-    "Alpha Run",
-    expandMazeRows(ALPHA_RUN_CORE_ROWS, 3)
-  ),
-  createMap(
-    "beta-dash",
-    "Beta Dash",
-    expandMazeRows(BETA_DASH_CORE_ROWS, 3)
-  )
-];
+export function createBlankMazeRows(size = PLAYABLE_MAZE_SIZE) {
+  const rows = Array.from({ length: size }, () => "#".repeat(size).split(""));
+  const goalRow = Math.max(size - 2, 1);
+  const goalColumn = Math.max(size - 2, 1);
+  const entryRow = Math.min(2, size - 1);
+
+  for (let x = 0; x <= goalColumn; x += 1) {
+    rows[entryRow]![x] = ".";
+  }
+  for (let y = entryRow; y <= goalRow; y += 1) {
+    rows[y]![goalColumn] = ".";
+  }
+
+  rows[goalRow]![goalColumn] = "G";
+
+  return rows.map((row) => row.join(""));
+}
+
+export function getMazeRows(map: Pick<MapDefinition, "tiles" | "mazeZone">) {
+  return map.tiles.map((row) => row.slice(map.mazeZone.minX, map.mazeZone.maxX + 1));
+}
 
 function composeRows(mazeRows: string[]) {
   return mazeRows.map((mazeRow, y) => `${y <= START_ZONE.maxY ? "SSSC" : "    "}${mazeRow}`);
@@ -159,15 +202,58 @@ function createConnectorTiles() {
   }));
 }
 
-function expandMazeRows(coreRows: string[], padding: number) {
-  const width = (coreRows[0]?.length ?? 0) + padding * 2;
-  const spacerRow = ".".repeat(width);
+function validateMapSource(source: EditableMapSource) {
+  const mapId = source.mapId.trim();
+  const name = source.name.trim();
+  if (!mapId) {
+    throw new Error("MAP_ID_REQUIRED");
+  }
 
-  return [
-    ...Array.from({ length: padding }, () => spacerRow),
-    ...coreRows.map((row) => `${".".repeat(padding)}${row}${".".repeat(padding)}`),
-    ...Array.from({ length: padding }, () => spacerRow)
-  ];
+  if (!name) {
+    throw new Error("MAP_NAME_REQUIRED");
+  }
+
+  if (source.mazeRows.length === 0) {
+    throw new Error("MAP_ROWS_REQUIRED");
+  }
+
+  const expectedWidth = source.mazeRows[0]?.length ?? 0;
+  if (expectedWidth < 5) {
+    throw new Error("MAP_TOO_SMALL");
+  }
+
+  let goalCount = 0;
+  for (const row of source.mazeRows) {
+    if (row.length !== expectedWidth) {
+      throw new Error("MAP_ROWS_INCONSISTENT");
+    }
+
+    for (const tile of row) {
+      if (tile !== "." && tile !== "#" && tile !== "G") {
+        throw new Error("MAP_TILE_INVALID");
+      }
+
+      if (tile === "G") {
+        goalCount += 1;
+      }
+    }
+  }
+
+  if (goalCount !== 1) {
+    throw new Error("MAP_GOAL_INVALID");
+  }
+
+  const connectorReachableRows = source.mazeRows
+    .slice(0, Math.min(START_ZONE.maxY + 1, source.mazeRows.length))
+    .filter((row) => row[0] === "." || row[0] === "G");
+
+  if (connectorReachableRows.length === 0) {
+    throw new Error("MAP_ENTRY_BLOCKED");
+  }
+
+  if (!hasGoalPath(source.mazeRows)) {
+    throw new Error("MAP_UNREACHABLE");
+  }
 }
 
 function findGoal(rows: string[]) {
@@ -214,4 +300,64 @@ export function isRenderableTile(map: MapDefinition, position: GridPosition): bo
 
 export function isConnectorTile(map: Pick<MapDefinition, "connectorTiles">, position: GridPosition): boolean {
   return map.connectorTiles.some((tile) => tile.x === position.x && tile.y === position.y);
+}
+
+function hasGoalPath(mazeRows: string[]) {
+  const startEntries = mazeRows
+    .slice(0, Math.min(START_ZONE.maxY + 1, mazeRows.length))
+    .flatMap((row, rowIndex) => (row[0] === "." || row[0] === "G" ? [{ x: 0, y: rowIndex }] : []));
+  const goal = findMazeGoal(mazeRows);
+
+  const queue = [...startEntries];
+  const visited = new Set(queue.map((position) => `${position.x},${position.y}`));
+
+  while (queue.length > 0) {
+    const current = queue.shift()!;
+    if (current.x === goal.x && current.y === goal.y) {
+      return true;
+    }
+
+    for (const next of [
+      { x: current.x + 1, y: current.y },
+      { x: current.x - 1, y: current.y },
+      { x: current.x, y: current.y + 1 },
+      { x: current.x, y: current.y - 1 }
+    ]) {
+      if (
+        next.x < 0 ||
+        next.y < 0 ||
+        next.y >= mazeRows.length ||
+        next.x >= mazeRows[0]!.length
+      ) {
+        continue;
+      }
+
+      const tile = mazeRows[next.y]![next.x];
+      if (tile === "#") {
+        continue;
+      }
+
+      const key = `${next.x},${next.y}`;
+      if (visited.has(key)) {
+        continue;
+      }
+
+      visited.add(key);
+      queue.push(next);
+    }
+  }
+
+  return false;
+}
+
+function findMazeGoal(mazeRows: string[]) {
+  for (let y = 0; y < mazeRows.length; y += 1) {
+    for (let x = 0; x < mazeRows[y]!.length; x += 1) {
+      if (mazeRows[y]![x] === "G") {
+        return { x, y };
+      }
+    }
+  }
+
+  throw new Error("MAP_GOAL_INVALID");
 }

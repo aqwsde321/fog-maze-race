@@ -6,11 +6,12 @@ import type {
 } from "@fog-maze-race/shared/contracts/realtime";
 import type { MapView, RoomSnapshot } from "@fog-maze-race/shared/contracts/snapshots";
 import type { MatchStatus, RoomMemberState } from "@fog-maze-race/shared/domain/status";
-import { getMapById, getRandomMap, type MapDefinition } from "@fog-maze-race/shared/maps/map-definitions";
+import type { MapDefinition } from "@fog-maze-race/shared/maps/map-definitions";
 
 import { MatchAggregate } from "../core/match.js";
 import { PlayerSession } from "../core/player-session.js";
 import { RoomAggregate } from "../core/room.js";
+import { MapRegistry } from "../maps/map-registry.js";
 import { RevisionSync } from "../ws/revision-sync.js";
 
 const PLAYER_COLORS = [
@@ -39,22 +40,23 @@ export type RoomRuntime = {
 
 export class RoomService {
   private readonly rooms = new Map<string, RoomRuntime>();
-  private readonly pickPreviewMap: () => MapDefinition;
   private readonly resultsDurationMs: number;
+  private readonly forcedPreviewMapId: string | null;
 
   constructor(
     private readonly revisionSync: RevisionSync,
-    options?: { pickPreviewMap?: () => MapDefinition; resultsDurationMs?: number }
+    private readonly mapRegistry: MapRegistry,
+    options?: { resultsDurationMs?: number; forcedPreviewMapId?: string | null }
   ) {
-    this.pickPreviewMap = options?.pickPreviewMap ?? (() => getRandomMap());
     this.resultsDurationMs = options?.resultsDurationMs ?? 6_000;
+    this.forcedPreviewMapId = options?.forcedPreviewMapId ?? null;
   }
 
   createRoom(input: { session: PlayerSession; name: string }): RoomJoinedPayload {
     const roomId = randomUUID();
     const name = normalizeRoomName(input.name);
-    const previewMapId = this.pickPreviewMap().mapId;
-    const previewMap = getMapById(previewMapId);
+    const previewMapId = this.forcedPreviewMapId ?? this.mapRegistry.getRandomPlayable()?.mapId ?? "training-lap";
+    const previewMap = this.mapRegistry.get(previewMapId);
     const room = new RoomAggregate({
       roomId,
       name,
@@ -83,7 +85,7 @@ export class RoomService {
   joinRoom(input: { roomId: string; session: PlayerSession }): RoomJoinedPayload {
     const runtime = this.requireRuntime(input.roomId);
     const nextColor = PLAYER_COLORS[runtime.room.listMembers().length % PLAYER_COLORS.length]!;
-    const previewMap = getMapById(runtime.previewMapId);
+    const previewMap = this.mapRegistry.get(runtime.previewMapId);
 
     runtime.room.join({
       playerId: input.session.playerId,
@@ -114,12 +116,17 @@ export class RoomService {
 
   getPreviewMap(roomId: string) {
     const runtime = this.requireRuntime(roomId);
-    return getMapById(runtime.previewMapId) ?? null;
+    return this.mapRegistry.get(runtime.previewMapId);
   }
 
   setPreviewMap(roomId: string, mapId?: string) {
     const runtime = this.requireRuntime(roomId);
-    runtime.previewMapId = mapId ?? this.pickPreviewMap().mapId;
+    const nextMap = mapId ? this.mapRegistry.get(mapId) : this.mapRegistry.getRandomPlayable();
+    if (!nextMap) {
+      throw new Error("MAP_NOT_FOUND");
+    }
+
+    runtime.previewMapId = nextMap.mapId;
     this.bumpStreamRevision(roomId);
   }
 
@@ -197,7 +204,7 @@ export class RoomService {
   getSnapshot(roomId: string): RoomSnapshot {
     const runtime = this.requireRuntime(roomId);
     const revision = Math.max(runtime.room.revision, this.revisionSync.peek(roomId));
-    const previewMap = getMapById(runtime.previewMapId);
+    const previewMap = this.mapRegistry.get(runtime.previewMapId);
 
     return {
       revision,
