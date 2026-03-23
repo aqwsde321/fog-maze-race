@@ -8,7 +8,8 @@ import type {
   RoomJoinedPayload,
   RoomLeftPayload,
   RoomListUpdatePayload,
-  RoomStateUpdatePayload
+  RoomStateUpdatePayload,
+  SetVisibilitySizePayload
 } from "@fog-maze-race/shared/contracts/realtime";
 import type { RoomSnapshot } from "@fog-maze-race/shared/contracts/snapshots";
 import { buildServer } from "../../src/app/server.js";
@@ -21,6 +22,7 @@ type EventMap = {
   ROOM_STATE_UPDATE: RoomStateUpdatePayload;
   GAME_ENDED: GameEndedPayload;
   ERROR: ErrorPayload;
+  SET_VISIBILITY_SIZE: SetVisibilitySizePayload;
 };
 
 describe("US3 room administration contract", () => {
@@ -85,6 +87,18 @@ describe("US3 room administration contract", () => {
     const startDenied = await once(guest, "ERROR");
     expect(startDenied.code).toBe("HOST_ONLY");
 
+    guest.emit("SET_VISIBILITY_SIZE", { roomId: hostJoined.roomId, visibilitySize: 3 });
+    const visionDenied = await once(guest, "ERROR");
+    expect(visionDenied.code).toBe("HOST_ONLY");
+
+    host.emit("SET_VISIBILITY_SIZE", { roomId: hostJoined.roomId, visibilitySize: 5 });
+    const visibilityUpdated = await waitForSnapshot(
+      host,
+      (snapshot) => snapshot.room.visibilitySize === 5 && snapshot.previewMap?.visibilityRadius === 2,
+      1_000
+    );
+    expect(visibilityUpdated.room.visibilitySize).toBe(5);
+
     host.emit("RENAME_ROOM", { roomId: hostJoined.roomId, name: "Beta" });
     const renamedList = await waitForRoomList(
       watcher,
@@ -111,7 +125,11 @@ describe("US3 room administration contract", () => {
     expect(watcherJoined.snapshot.members).toHaveLength(2);
 
     guest.emit("START_GAME", { roomId: hostJoined.roomId });
-    await waitForSnapshot(guest, (snapshot) => snapshot.room.status === "playing", 1_000);
+    await waitForSnapshot(
+      guest,
+      (snapshot) => snapshot.room.status === "playing" && snapshot.match?.map.visibilityRadius === 2,
+      1_000
+    );
 
     watcher.emit("FORCE_END_ROOM", { roomId: hostJoined.roomId });
     const forceEndDenied = await once(watcher, "ERROR");

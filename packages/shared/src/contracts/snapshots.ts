@@ -47,6 +47,7 @@ export type RoomSnapshot = {
     status: RoomStatus;
     hostPlayerId: string;
     maxPlayers: number;
+    visibilitySize: 3 | 5 | 7;
   };
   members: RoomMemberView[];
   previewMap: MapView | null;

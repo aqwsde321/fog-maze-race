@@ -60,11 +60,15 @@ export class MatchService {
     if (!previewMap) {
       throw new Error("MAP_NOT_FOUND");
     }
+    const configuredMap = {
+      ...previewMap,
+      visibilityRadius: this.roomService.getVisibilityRadius(roomId)
+    };
 
     const match = new MatchAggregate({
       matchId: randomUUID(),
       roomId,
-      map: previewMap
+      map: configuredMap
     });
 
     runtime.room.startCountdown(requestedBy);

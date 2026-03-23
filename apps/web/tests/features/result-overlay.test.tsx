@@ -51,7 +51,8 @@ function buildEndedSnapshot(): RoomSnapshot {
       name: "Alpha",
       status: "ended",
       hostPlayerId: "player-1",
-      maxPlayers: 15
+      maxPlayers: 15,
+      visibilitySize: 7
     },
     members: [
       {

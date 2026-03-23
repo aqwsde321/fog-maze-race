@@ -90,6 +90,7 @@ describe("GameScreen keyboard control", () => {
           countdownValue={3}
           onStartGame={vi.fn()}
           onRenameRoom={vi.fn()}
+          onSetVisibilitySize={vi.fn()}
           onForceEndRoom={vi.fn()}
           onLeaveRoom={vi.fn()}
           onMove={onMove}
@@ -118,6 +119,7 @@ describe("GameScreen keyboard control", () => {
           countdownValue={3}
           onStartGame={vi.fn()}
           onRenameRoom={vi.fn()}
+          onSetVisibilitySize={vi.fn()}
           onForceEndRoom={vi.fn()}
           onLeaveRoom={vi.fn()}
           onMove={vi.fn()}
@@ -141,6 +143,7 @@ describe("GameScreen keyboard control", () => {
           countdownValue={null}
           onStartGame={vi.fn()}
           onRenameRoom={vi.fn()}
+          onSetVisibilitySize={vi.fn()}
           onForceEndRoom={vi.fn()}
           onLeaveRoom={vi.fn()}
           onMove={vi.fn()}
@@ -160,6 +163,7 @@ describe("GameScreen keyboard control", () => {
           countdownValue={null}
           onStartGame={vi.fn()}
           onRenameRoom={vi.fn()}
+          onSetVisibilitySize={vi.fn()}
           onForceEndRoom={vi.fn()}
           onLeaveRoom={vi.fn()}
           onMove={onMove}
@@ -195,7 +199,8 @@ function buildSnapshot(
       name: "Alpha",
       status,
       hostPlayerId,
-      maxPlayers: 15
+      maxPlayers: 15,
+      visibilitySize: 7
     },
     members: [
       {

@@ -240,6 +240,17 @@ export function App() {
     });
   }
 
+  function handleSetVisibilitySize(visibilitySize: 3 | 5 | 7) {
+    if (!snapshot) {
+      return;
+    }
+
+    socketRef.current.emit("SET_VISIBILITY_SIZE", {
+      roomId: snapshot.room.roomId,
+      visibilitySize
+    });
+  }
+
   function handleForceEndRoom() {
     if (!snapshot) {
       return;
@@ -309,6 +320,7 @@ export function App() {
                 countdownValue={countdownValue}
                 onStartGame={handleStartGame}
                 onRenameRoom={handleRenameRoom}
+                onSetVisibilitySize={handleSetVisibilitySize}
                 onForceEndRoom={handleForceEndRoom}
                 onLeaveRoom={handleLeaveRoom}
                 onMove={handleMove}

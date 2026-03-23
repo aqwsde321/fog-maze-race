@@ -32,10 +32,13 @@ const PLAYER_COLORS = [
   "#d946ef"
 ] as const;
 
+const VISIBILITY_SIZES = [3, 5, 7] as const;
+
 export type RoomRuntime = {
   room: RoomAggregate;
   match: MatchAggregate | null;
   previewMapId: string;
+  visibilitySize: 3 | 5 | 7;
 };
 
 export class RoomService {
@@ -71,7 +74,7 @@ export class RoomService {
       position: previewMap?.startSlots[0] ?? null
     });
 
-    this.rooms.set(roomId, { room, match: null, previewMapId });
+    this.rooms.set(roomId, { room, match: null, previewMapId, visibilitySize: 7 });
     input.session.currentRoomId = roomId;
     this.syncRoomRevision(roomId);
 
@@ -128,6 +131,29 @@ export class RoomService {
 
     runtime.previewMapId = nextMap.mapId;
     this.bumpStreamRevision(roomId);
+  }
+
+  setVisibilitySize(roomId: string, requestedBy: string, visibilitySize: 3 | 5 | 7) {
+    const runtime = this.requireRuntime(roomId);
+    if (runtime.room.hostPlayerId !== requestedBy) {
+      throw new Error("HOST_ONLY");
+    }
+
+    if (!VISIBILITY_SIZES.includes(visibilitySize)) {
+      throw new Error("UNKNOWN");
+    }
+
+    if (runtime.room.status !== "waiting") {
+      throw new Error("ROOM_NOT_JOINABLE");
+    }
+
+    runtime.visibilitySize = visibilitySize;
+    this.syncRoomRevision(roomId);
+    return this.getSnapshot(roomId);
+  }
+
+  getVisibilityRadius(roomId: string) {
+    return toVisibilityRadius(this.requireRuntime(roomId).visibilitySize);
   }
 
   renameRoom(roomId: string, requestedBy: string, name: string) {
@@ -213,7 +239,8 @@ export class RoomService {
         name: runtime.room.name,
         status: runtime.room.status,
         hostPlayerId: runtime.room.hostPlayerId,
-        maxPlayers: runtime.room.maxPlayers
+        maxPlayers: runtime.room.maxPlayers,
+        visibilitySize: runtime.visibilitySize
       },
       members: runtime.room.listMembers().map((member) => ({
         playerId: member.playerId,
@@ -224,7 +251,7 @@ export class RoomService {
         finishRank: member.finishRank,
         isHost: member.playerId === runtime.room.hostPlayerId
       })),
-      previewMap: previewMap ? serializeMap(previewMap) : null,
+      previewMap: previewMap ? serializeMap(previewMap, this.getVisibilityRadius(roomId)) : null,
       match: runtime.match
         ? {
             matchId: runtime.match.matchId,
@@ -236,7 +263,7 @@ export class RoomService {
             resultsDurationMs: runtime.match.endedAt ? this.resultsDurationMs : null,
             finishOrder: [...runtime.match.finishOrder],
             results: [...runtime.match.results],
-            map: serializeMap(runtime.match.map)
+            map: serializeMap(runtime.match.map, this.getVisibilityRadius(roomId))
           }
         : null
     };
@@ -274,7 +301,7 @@ function normalizeRoomName(name: string) {
   return name.trim().slice(0, 24) || "새 방";
 }
 
-function serializeMap(map: MapDefinition): MapView {
+function serializeMap(map: MapDefinition, visibilityRadius = map.visibilityRadius): MapView {
   return {
     mapId: map.mapId,
     width: map.width,
@@ -285,8 +312,12 @@ function serializeMap(map: MapDefinition): MapView {
     goalZone: map.goalZone,
     startSlots: [...map.startSlots],
     connectorTiles: [...map.connectorTiles],
-    visibilityRadius: map.visibilityRadius
+    visibilityRadius
   };
+}
+
+function toVisibilityRadius(visibilitySize: 3 | 5 | 7) {
+  return Math.floor(visibilitySize / 2);
 }
 
 export function isPlayableMemberState(state: RoomMemberState) {

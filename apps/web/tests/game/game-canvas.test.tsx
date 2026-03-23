@@ -86,7 +86,8 @@ function buildWaitingSnapshot(): RoomSnapshot {
       name: "Alpha",
       status: "waiting",
       hostPlayerId: "player-1",
-      maxPlayers: 15
+      maxPlayers: 15,
+      visibilitySize: 7
     },
     members: [
       {

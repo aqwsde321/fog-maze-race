@@ -86,4 +86,30 @@ describe("RoomService", () => {
 
     expect(snapshot.match?.resultsDurationMs).toBe(4_500);
   });
+
+  it("lets only the host change the room visibility size while waiting", () => {
+    const service = new RoomService(new RevisionSync(), new MapRegistry());
+    const created = service.createRoom({
+      session: new PlayerSession({
+        playerId: "host",
+        nickname: "호스트"
+      }),
+      name: "Alpha"
+    });
+
+    service.joinRoom({
+      roomId: created.roomId,
+      session: new PlayerSession({
+        playerId: "guest",
+        nickname: "게스트"
+      })
+    });
+
+    expect(() => service.setVisibilitySize(created.roomId, "guest", 3)).toThrowError("HOST_ONLY");
+
+    const updated = service.setVisibilitySize(created.roomId, "host", 5);
+
+    expect(updated.room.visibilitySize).toBe(5);
+    expect(updated.previewMap?.visibilityRadius).toBe(2);
+  });
 });

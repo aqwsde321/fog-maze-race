@@ -14,6 +14,7 @@ type GameScreenProps = {
   countdownValue: number | null;
   onStartGame: () => void;
   onRenameRoom: (name: string) => void;
+  onSetVisibilitySize: (visibilitySize: 3 | 5 | 7) => void;
   onForceEndRoom: () => void;
   onLeaveRoom: () => void;
   onMove: (direction: Direction) => void;
@@ -25,6 +26,7 @@ export function GameScreen({
   countdownValue,
   onStartGame,
   onRenameRoom,
+  onSetVisibilitySize,
   onForceEndRoom,
   onLeaveRoom,
   onMove
@@ -104,7 +106,10 @@ export function GameScreen({
             <div style={hostControlsWrapStyle}>
               <HostControls
                 roomName={snapshot.room.name}
+                visibilitySize={snapshot.room.visibilitySize}
+                canEditVisibility={snapshot.room.status === "waiting"}
                 onRenameRoom={onRenameRoom}
+                onSetVisibilitySize={onSetVisibilitySize}
               />
             </div>
           ) : null}

@@ -26,6 +26,11 @@ export type RenameRoomPayload = {
   name: string;
 };
 
+export type SetVisibilitySizePayload = {
+  roomId: string;
+  visibilitySize: 3 | 5 | 7;
+};
+
 export type StartGamePayload = {
   roomId: string;
 };

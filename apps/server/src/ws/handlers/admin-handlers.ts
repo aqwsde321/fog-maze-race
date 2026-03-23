@@ -2,7 +2,8 @@ import type { Server, Socket } from "socket.io";
 import type {
   ForceEndRoomPayload,
   LeaveRoomPayload,
-  RenameRoomPayload
+  RenameRoomPayload,
+  SetVisibilitySizePayload
 } from "@fog-maze-race/shared/contracts/realtime";
 
 import { PlayerSession } from "../../core/player-session.js";
@@ -56,6 +57,20 @@ export function registerAdminHandlers({
         snapshot
       });
       emitRoomListAsync(io, roomService);
+    } catch (error) {
+      emitError(socket, error);
+    }
+  });
+
+  socket.on("SET_VISIBILITY_SIZE", (payload: SetVisibilitySizePayload) => {
+    try {
+      const session = requireSession(socket, sessions);
+      const snapshot = roomService.setVisibilitySize(payload.roomId, session.playerId, payload.visibilitySize);
+
+      io.to(payload.roomId).emit("ROOM_STATE_UPDATE", {
+        roomId: payload.roomId,
+        snapshot
+      });
     } catch (error) {
       emitError(socket, error);
     }
