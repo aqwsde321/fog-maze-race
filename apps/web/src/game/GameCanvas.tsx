@@ -337,16 +337,21 @@ export function createPreviewLayout(
     gap = Math.max(4, Math.floor(tileSize * 0.08));
   }
 
+  const totalWidth = startZoneWidth * tileSize + gap + mazeWidth * tileSize;
+  const totalHeight = Math.max(startZoneHeight, mazeHeight) * tileSize;
+  const startX = Math.max(framePadding, Math.floor((viewportWidth - totalWidth) / 2));
+  const startY = Math.max(framePadding, Math.floor((viewportHeight - totalHeight) / 2));
+
   return {
     tileSize,
     startZoneWidth,
     startZoneHeight,
     mazeWidth,
     mazeHeight,
-    startX: framePadding,
-    startY: framePadding,
-    mazeX: framePadding + startZoneWidth * tileSize + gap,
-    mazeY: framePadding
+    startX,
+    startY,
+    mazeX: startX + startZoneWidth * tileSize + gap,
+    mazeY: startY
   };
 }
 

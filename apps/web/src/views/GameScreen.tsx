@@ -333,7 +333,6 @@ const canvasFrameStyle: CSSProperties = {
   borderRadius: "12px",
   overflow: "hidden",
   background: "linear-gradient(180deg, rgba(8, 15, 30, 0.82), rgba(6, 14, 26, 0.88))",
-  border: "1px solid rgba(56, 189, 248, 0.12)",
   boxShadow: "inset 0 1px 0 rgba(255, 255, 255, 0.02)",
   outline: "none"
 };
