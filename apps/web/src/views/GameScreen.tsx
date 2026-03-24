@@ -144,7 +144,7 @@ export function GameScreen({
               />
             </div>
           ) : null}
-          <div style={actionRailStyle}>
+          <div style={isHost ? hostActionRailStyle : guestActionRailStyle}>
             {isHost ? (
               <button type="button" onClick={onStartGame} disabled={!canStart} style={startButtonStyle}>
                 시작
@@ -153,7 +153,6 @@ export function GameScreen({
             <button type="button" onClick={onLeaveRoom} style={ghostButtonStyle}>
               나가기
             </button>
-            {isHost ? <span aria-hidden="true" style={actionDividerStyle} /> : null}
             {isHost ? (
               <button type="button" onClick={onForceEndRoom} disabled={snapshot.room.status === "waiting"} style={dangerButtonStyle}>
                 강제 종료
@@ -199,10 +198,10 @@ function isEditableTarget(target: EventTarget | null) {
 const shellStyle: CSSProperties = {
   position: "relative",
   display: "grid",
-  gridTemplateColumns: "minmax(0, 1fr) clamp(184px, 14vw, 212px)",
-  gap: "clamp(8px, 1vw, 14px)",
+  gridTemplateColumns: "minmax(0, 1fr) clamp(170px, 12vw, 194px)",
+  gap: "clamp(6px, 0.8vw, 10px)",
   width: "100%",
-  maxWidth: "1460px",
+  maxWidth: "1500px",
   margin: "0 auto",
   alignItems: "start",
   overflowX: "hidden"
@@ -216,7 +215,7 @@ const mainColumnStyle: CSSProperties = {
 
 const railStyle: CSSProperties = {
   display: "grid",
-  gap: "8px",
+  gap: "6px",
   width: "100%",
   minWidth: 0,
   alignSelf: "start"
@@ -224,12 +223,12 @@ const railStyle: CSSProperties = {
 
 const topBarStyle: CSSProperties = {
   display: "grid",
-  gap: "8px",
+  gap: "6px",
   width: "100%",
   minWidth: 0,
   boxSizing: "border-box",
-  padding: "10px",
-  borderRadius: "16px",
+  padding: "8px",
+  borderRadius: "14px",
   overflow: "hidden",
   background: "linear-gradient(180deg, rgba(8, 15, 30, 0.92), rgba(7, 16, 30, 0.88))",
   border: "1px solid rgba(148, 163, 184, 0.08)",
@@ -240,7 +239,7 @@ const roomHeaderRowStyle: CSSProperties = {
   display: "flex",
   alignItems: "flex-start",
   justifyContent: "space-between",
-  gap: "10px"
+  gap: "8px"
 };
 
 const roomHeaderStyle: CSSProperties = {
@@ -255,42 +254,40 @@ const hostControlsWrapStyle: CSSProperties = {
 const labelStyle: CSSProperties = {
   margin: 0,
   color: "#94a3b8",
-  fontSize: "0.76rem",
+  fontSize: "0.72rem",
   letterSpacing: "0.14em",
   textTransform: "uppercase"
 };
 
 const roomNameStyle: CSSProperties = {
-  margin: "3px 0 0",
-  fontSize: "1.04rem",
+  margin: "2px 0 0",
+  fontSize: "0.98rem",
   lineHeight: 1.05
 };
 
 const statusPanelStyle: CSSProperties = {
   flexShrink: 0,
-  minWidth: "60px",
+  minWidth: "54px",
   textAlign: "right"
 };
 
 const statusValueStyle: CSSProperties = {
   display: "block",
-  marginTop: "3px",
-  fontSize: "0.8rem",
+  marginTop: "2px",
+  fontSize: "0.76rem",
   color: "#f8fafc"
 };
 
-const actionRailStyle: CSSProperties = {
-  display: "flex",
-  alignItems: "center",
-  flexWrap: "wrap",
-  justifyContent: "flex-end",
+const hostActionRailStyle: CSSProperties = {
+  display: "grid",
+  gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
   gap: "6px"
 };
 
-const actionDividerStyle: CSSProperties = {
-  width: "1px",
-  height: "18px",
-  background: "rgba(148, 163, 184, 0.14)"
+const guestActionRailStyle: CSSProperties = {
+  display: "grid",
+  gridTemplateColumns: "1fr",
+  gap: "6px"
 };
 
 const dangerButtonStyle: CSSProperties = {
@@ -301,7 +298,8 @@ const dangerButtonStyle: CSSProperties = {
   background: "rgba(239, 68, 68, 0.12)",
   color: "#fecaca",
   cursor: "pointer",
-  fontSize: "0.8rem"
+  fontSize: "0.76rem",
+  gridColumn: "1 / -1"
 };
 
 const startButtonStyle: CSSProperties = {
@@ -313,7 +311,7 @@ const startButtonStyle: CSSProperties = {
   color: "#082032",
   fontWeight: 700,
   cursor: "pointer",
-  fontSize: "0.8rem"
+  fontSize: "0.76rem"
 };
 
 const ghostButtonStyle: CSSProperties = {
@@ -324,15 +322,15 @@ const ghostButtonStyle: CSSProperties = {
   background: "transparent",
   color: "#94a3b8",
   cursor: "pointer",
-  fontSize: "0.8rem"
+  fontSize: "0.76rem"
 };
 
 const canvasFrameStyle: CSSProperties = {
   position: "relative",
   width: "100%",
   boxSizing: "border-box",
-  padding: "8px",
-  borderRadius: "14px",
+  padding: "4px",
+  borderRadius: "12px",
   overflow: "hidden",
   background: "linear-gradient(180deg, rgba(8, 15, 30, 0.82), rgba(6, 14, 26, 0.88))",
   border: "1px solid rgba(56, 189, 248, 0.12)",

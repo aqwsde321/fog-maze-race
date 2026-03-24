@@ -74,11 +74,11 @@ export function GameCanvas({ snapshot, selfPlayerId }: GameCanvasProps) {
       data-testid="game-canvas"
       style={{
         width: "100%",
-        minHeight: "500px",
-        height: "clamp(500px, 74vh, 900px)",
+        minHeight: "560px",
+        height: "clamp(560px, 84vh, 980px)",
         display: "grid",
         placeItems: "center",
-        borderRadius: "20px",
+        borderRadius: "14px",
         overflow: "hidden",
         background: "transparent"
       }}
@@ -229,10 +229,10 @@ function StartZonePreview({
 
 const canvasShellStyle: CSSProperties = {
   width: "100%",
-  minHeight: "500px",
-  height: "clamp(500px, 74vh, 900px)",
+  minHeight: "560px",
+  height: "clamp(560px, 84vh, 980px)",
   position: "relative",
-  borderRadius: "16px",
+  borderRadius: "14px",
   overflow: "hidden",
   background: "transparent"
 };
