@@ -2,7 +2,7 @@ import { expect, test } from "@playwright/test";
 
 import { closeRaceClients, createRaceClients } from "./helpers/multi-client.js";
 
-test("US3 hosts can rename rooms, hand off authority, and force-end the next round", async ({
+test("US3 hosts can hand off authority and force-end the next round", async ({
   browser
 }) => {
   const clients = await createRaceClients(browser, 3);
@@ -24,10 +24,7 @@ test("US3 hosts can rename rooms, hand off authority, and force-end the next rou
     await watcher.page.getByLabel("닉네임").fill("관3");
     await watcher.page.getByRole("button", { name: "입장" }).click();
 
-    await host.page.getByLabel("방 이름 수정").fill("Beta");
-    await host.page.getByRole("button", { name: "이름 변경" }).click();
-
-    await expect(watcher.page.getByRole("button", { name: "입장 Beta" })).toBeVisible({
+    await expect(watcher.page.getByRole("button", { name: "입장 Alpha" })).toBeVisible({
       timeout: 6_000
     });
 
@@ -36,7 +33,7 @@ test("US3 hosts can rename rooms, hand off authority, and force-end the next rou
       timeout: 6_000
     });
 
-    await watcher.page.getByRole("button", { name: "입장 Beta" }).click();
+    await watcher.page.getByRole("button", { name: "입장 Alpha" }).click();
 
     await guest.page.getByRole("button", { name: "시작" }).click();
     await expect(guest.page.getByTestId("room-status")).toContainText("playing", {

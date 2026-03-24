@@ -11,7 +11,7 @@ vi.mock("../../src/game/pixi/scene-controller.js", () => ({
 
 import { GameCanvas } from "../../src/game/GameCanvas.js";
 import { PLAYER_MARKER_DIAMETER_RATIO } from "../../src/game/player-marker.js";
-import { createBoardLayout } from "../../src/game/pixi/renderers/board-render.js";
+import { createPreviewLayout } from "../../src/game/GameCanvas.js";
 
 (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -62,7 +62,7 @@ describe("GameCanvas preview layout", () => {
 
     const selfRing = container.querySelector<HTMLElement>('[data-marker-self-ring="true"]');
     const selfDot = container.querySelector<HTMLElement>('[data-marker-shape="circle"]');
-    const layout = createBoardLayout(map, {
+    const layout = createPreviewLayout(map, {
       viewportWidth: 960,
       viewportHeight: 540
     });

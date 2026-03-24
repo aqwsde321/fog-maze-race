@@ -97,51 +97,6 @@ export function GameScreen({
   return (
     <section style={shellStyle}>
       <div style={mainColumnStyle}>
-        <header style={topBarStyle}>
-          <div style={roomHeaderStyle}>
-            <p style={labelStyle}>Room</p>
-            <h2 style={roomNameStyle}>{snapshot.room.name}</h2>
-          </div>
-          {isHost ? (
-            <div style={hostControlsWrapStyle}>
-              <HostControls
-                roomName={snapshot.room.name}
-                visibilitySize={snapshot.room.visibilitySize}
-                canEditVisibility={snapshot.room.status === "waiting"}
-                onRenameRoom={onRenameRoom}
-                onSetVisibilitySize={onSetVisibilitySize}
-              />
-            </div>
-          ) : null}
-          <div style={topMetaStyle}>
-            <div style={statusPanelStyle}>
-              <p style={labelStyle}>Status</p>
-              <strong data-testid="room-status" style={statusValueStyle}>
-                {displayStatus}
-              </strong>
-            </div>
-            <div style={actionRailStyle}>
-              {isHost ? (
-                <div style={dangerGroupStyle}>
-                  <button type="button" onClick={onForceEndRoom} disabled={snapshot.room.status === "waiting"} style={dangerButtonStyle}>
-                    강제 종료
-                  </button>
-                </div>
-              ) : null}
-              <div style={buttonRowStyle}>
-                {isHost ? (
-                  <button type="button" onClick={onStartGame} disabled={!canStart} style={startButtonStyle}>
-                    시작
-                  </button>
-                ) : null}
-                <button type="button" onClick={onLeaveRoom} style={ghostButtonStyle}>
-                  나가기
-                </button>
-              </div>
-            </div>
-          </div>
-        </header>
-
         <div
           ref={canvasFrameRef}
           data-testid="game-shell"
@@ -164,7 +119,50 @@ export function GameScreen({
         </div>
       </div>
 
-      <PlayerSidebar snapshot={snapshot} selfPlayerId={selfPlayerId} />
+      <div style={railStyle}>
+        <header style={topBarStyle}>
+          <div style={roomHeaderRowStyle}>
+            <div style={roomHeaderStyle}>
+              <p style={labelStyle}>Room</p>
+              <h2 style={roomNameStyle}>{snapshot.room.name}</h2>
+            </div>
+            <div style={statusPanelStyle}>
+              <p style={labelStyle}>Status</p>
+              <strong data-testid="room-status" style={statusValueStyle}>
+                {displayStatus}
+              </strong>
+            </div>
+          </div>
+          {isHost ? (
+            <div style={hostControlsWrapStyle}>
+              <HostControls
+                roomName={snapshot.room.name}
+                visibilitySize={snapshot.room.visibilitySize}
+                canEditVisibility={snapshot.room.status === "waiting"}
+                onRenameRoom={onRenameRoom}
+                onSetVisibilitySize={onSetVisibilitySize}
+              />
+            </div>
+          ) : null}
+          <div style={isHost ? hostActionRailStyle : guestActionRailStyle}>
+            {isHost ? (
+              <button type="button" onClick={onStartGame} disabled={!canStart} style={startButtonStyle}>
+                시작
+              </button>
+            ) : null}
+            <button type="button" onClick={onLeaveRoom} style={ghostButtonStyle}>
+              나가기
+            </button>
+            {isHost ? (
+              <button type="button" onClick={onForceEndRoom} disabled={snapshot.room.status === "waiting"} style={dangerButtonStyle}>
+                강제 종료
+              </button>
+            ) : null}
+          </div>
+        </header>
+
+        <PlayerSidebar snapshot={snapshot} selfPlayerId={selfPlayerId} />
+      </div>
     </section>
   );
 }
@@ -200,10 +198,10 @@ function isEditableTarget(target: EventTarget | null) {
 const shellStyle: CSSProperties = {
   position: "relative",
   display: "grid",
-  gridTemplateColumns: "minmax(0, 1fr) clamp(216px, 18vw, 236px)",
-  gap: "clamp(12px, 1.4vw, 18px)",
+  gridTemplateColumns: "minmax(0, 1fr) clamp(156px, 10.5vw, 178px)",
+  gap: "clamp(6px, 0.8vw, 10px)",
   width: "100%",
-  maxWidth: "1328px",
+  maxWidth: "1500px",
   margin: "0 auto",
   alignItems: "start",
   overflowX: "hidden"
@@ -212,134 +210,129 @@ const shellStyle: CSSProperties = {
 const mainColumnStyle: CSSProperties = {
   width: "100%",
   minWidth: 0,
-  display: "grid",
-  gap: "12px",
   overflowX: "hidden"
 };
 
+const railStyle: CSSProperties = {
+  display: "grid",
+  gap: "6px",
+  width: "100%",
+  minWidth: 0,
+  alignSelf: "start"
+};
+
 const topBarStyle: CSSProperties = {
-  display: "flex",
-  flexWrap: "wrap",
-  justifyContent: "space-between",
-  gap: "10px 14px",
+  display: "grid",
+  gap: "6px",
   width: "100%",
   minWidth: 0,
   boxSizing: "border-box",
-  alignItems: "flex-end",
-  padding: "12px 14px",
-  borderRadius: "18px",
+  padding: "7px",
+  borderRadius: "12px",
   overflow: "hidden",
   background: "linear-gradient(180deg, rgba(8, 15, 30, 0.92), rgba(7, 16, 30, 0.88))",
   border: "1px solid rgba(148, 163, 184, 0.08)",
   boxShadow: "0 12px 32px rgba(2, 6, 23, 0.16)"
 };
 
+const roomHeaderRowStyle: CSSProperties = {
+  display: "flex",
+  alignItems: "flex-start",
+  justifyContent: "space-between",
+  gap: "8px"
+};
+
 const roomHeaderStyle: CSSProperties = {
-  flex: "0 1 180px",
-  minWidth: "136px"
+  minWidth: 0,
+  flex: "1 1 auto"
 };
 
 const hostControlsWrapStyle: CSSProperties = {
-  flex: "1 1 280px",
-  minWidth: 0,
-  maxWidth: "396px"
-};
-
-const topMetaStyle: CSSProperties = {
-  marginLeft: "auto",
-  display: "flex",
-  flexWrap: "wrap",
-  justifyContent: "flex-end",
-  alignItems: "center",
-  gap: "10px 12px"
+  minWidth: 0
 };
 
 const labelStyle: CSSProperties = {
   margin: 0,
   color: "#94a3b8",
-  fontSize: "0.76rem",
+  fontSize: "0.72rem",
   letterSpacing: "0.14em",
   textTransform: "uppercase"
 };
 
 const roomNameStyle: CSSProperties = {
-  margin: "4px 0 0",
-  fontSize: "1.34rem",
+  margin: "2px 0 0",
+  fontSize: "0.92rem",
   lineHeight: 1.05
 };
 
 const statusPanelStyle: CSSProperties = {
-  padding: "0 2px",
-  minWidth: "68px"
+  flexShrink: 0,
+  minWidth: "54px",
+  textAlign: "right"
 };
 
 const statusValueStyle: CSSProperties = {
   display: "block",
-  marginTop: "4px",
-  fontSize: "0.9rem",
+  marginTop: "2px",
+  fontSize: "0.76rem",
   color: "#f8fafc"
 };
 
-const actionRailStyle: CSSProperties = {
-  display: "flex",
-  alignItems: "center",
-  flexWrap: "wrap",
-  gap: "10px"
+const hostActionRailStyle: CSSProperties = {
+  display: "grid",
+  gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
+  gap: "4px"
 };
 
-const dangerGroupStyle: CSSProperties = {
-  display: "flex",
-  alignItems: "center",
-  paddingRight: "10px",
-  borderRight: "1px solid rgba(148, 163, 184, 0.12)"
-};
-
-const buttonRowStyle: CSSProperties = {
-  display: "flex",
-  gap: "8px",
-  alignItems: "center"
+const guestActionRailStyle: CSSProperties = {
+  display: "grid",
+  gridTemplateColumns: "1fr",
+  gap: "4px"
 };
 
 const dangerButtonStyle: CSSProperties = {
-  minHeight: "38px",
-  padding: "8px 12px",
-  borderRadius: "14px",
+  minHeight: "32px",
+  padding: "6px 8px",
+  borderRadius: "10px",
   border: "1px solid rgba(248, 113, 113, 0.2)",
   background: "rgba(239, 68, 68, 0.12)",
   color: "#fecaca",
-  cursor: "pointer"
+  cursor: "pointer",
+  fontSize: "0.72rem",
+  gridColumn: "1 / -1"
 };
 
 const startButtonStyle: CSSProperties = {
-  minHeight: "38px",
-  padding: "8px 14px",
-  borderRadius: "16px",
+  minHeight: "32px",
+  padding: "6px 8px",
+  borderRadius: "10px",
   border: 0,
   background: "linear-gradient(135deg, #38bdf8, #0ea5e9)",
   color: "#082032",
   fontWeight: 700,
-  cursor: "pointer"
+  cursor: "pointer",
+  fontSize: "0.72rem"
 };
 
 const ghostButtonStyle: CSSProperties = {
-  minHeight: "38px",
-  padding: "8px 14px",
-  borderRadius: "16px",
+  minHeight: "32px",
+  padding: "6px 8px",
+  borderRadius: "10px",
   border: "1px solid rgba(148, 163, 184, 0.22)",
   background: "transparent",
   color: "#94a3b8",
-  cursor: "pointer"
+  cursor: "pointer",
+  fontSize: "0.72rem"
 };
 
 const canvasFrameStyle: CSSProperties = {
   position: "relative",
   width: "100%",
   boxSizing: "border-box",
-  padding: "12px",
-  borderRadius: "18px",
+  padding: "4px",
+  borderRadius: "12px",
   overflow: "hidden",
   background: "linear-gradient(180deg, rgba(8, 15, 30, 0.82), rgba(6, 14, 26, 0.88))",
-  border: "1px solid rgba(56, 189, 248, 0.12)",
   boxShadow: "inset 0 1px 0 rgba(255, 255, 255, 0.02)",
   outline: "none"
 };

@@ -339,7 +339,7 @@ const pageStyle: CSSProperties = {
   maxWidth: "100vw",
   minHeight: "100vh",
   boxSizing: "border-box",
-  padding: "32px 18px 44px",
+  padding: "18px 10px 24px",
   overflow: "hidden",
   overscrollBehavior: "none",
   background: "linear-gradient(180deg, #030712, #081120 38%, #06111d 100%)",
@@ -370,14 +370,14 @@ const backgroundMeshStyle: CSSProperties = {
 const contentStyle: CSSProperties = {
   position: "relative",
   width: "100%",
-  maxWidth: "1360px",
+  maxWidth: "1500px",
   margin: "0 auto",
   display: "grid",
   justifyItems: "stretch"
 };
 
 const errorStyle: CSSProperties = {
-  width: "min(1360px, 100%)",
+  width: "min(1500px, 100%)",
   margin: "0 0 18px",
   padding: "14px 16px",
   borderRadius: "16px",
