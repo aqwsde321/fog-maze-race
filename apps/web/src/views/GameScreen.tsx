@@ -198,7 +198,7 @@ function isEditableTarget(target: EventTarget | null) {
 const shellStyle: CSSProperties = {
   position: "relative",
   display: "grid",
-  gridTemplateColumns: "minmax(0, 1fr) clamp(170px, 12vw, 194px)",
+  gridTemplateColumns: "minmax(0, 1fr) clamp(156px, 10.5vw, 178px)",
   gap: "clamp(6px, 0.8vw, 10px)",
   width: "100%",
   maxWidth: "1500px",
@@ -227,8 +227,8 @@ const topBarStyle: CSSProperties = {
   width: "100%",
   minWidth: 0,
   boxSizing: "border-box",
-  padding: "8px",
-  borderRadius: "14px",
+  padding: "7px",
+  borderRadius: "12px",
   overflow: "hidden",
   background: "linear-gradient(180deg, rgba(8, 15, 30, 0.92), rgba(7, 16, 30, 0.88))",
   border: "1px solid rgba(148, 163, 184, 0.08)",
@@ -261,7 +261,7 @@ const labelStyle: CSSProperties = {
 
 const roomNameStyle: CSSProperties = {
   margin: "2px 0 0",
-  fontSize: "0.98rem",
+  fontSize: "0.92rem",
   lineHeight: 1.05
 };
 
@@ -281,48 +281,48 @@ const statusValueStyle: CSSProperties = {
 const hostActionRailStyle: CSSProperties = {
   display: "grid",
   gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
-  gap: "6px"
+  gap: "4px"
 };
 
 const guestActionRailStyle: CSSProperties = {
   display: "grid",
   gridTemplateColumns: "1fr",
-  gap: "6px"
+  gap: "4px"
 };
 
 const dangerButtonStyle: CSSProperties = {
-  minHeight: "34px",
-  padding: "7px 9px",
+  minHeight: "32px",
+  padding: "6px 8px",
   borderRadius: "10px",
   border: "1px solid rgba(248, 113, 113, 0.2)",
   background: "rgba(239, 68, 68, 0.12)",
   color: "#fecaca",
   cursor: "pointer",
-  fontSize: "0.76rem",
+  fontSize: "0.72rem",
   gridColumn: "1 / -1"
 };
 
 const startButtonStyle: CSSProperties = {
-  minHeight: "34px",
-  padding: "7px 10px",
+  minHeight: "32px",
+  padding: "6px 8px",
   borderRadius: "10px",
   border: 0,
   background: "linear-gradient(135deg, #38bdf8, #0ea5e9)",
   color: "#082032",
   fontWeight: 700,
   cursor: "pointer",
-  fontSize: "0.76rem"
+  fontSize: "0.72rem"
 };
 
 const ghostButtonStyle: CSSProperties = {
-  minHeight: "34px",
-  padding: "7px 10px",
+  minHeight: "32px",
+  padding: "6px 8px",
   borderRadius: "10px",
   border: "1px solid rgba(148, 163, 184, 0.22)",
   background: "transparent",
   color: "#94a3b8",
   cursor: "pointer",
-  fontSize: "0.76rem"
+  fontSize: "0.72rem"
 };
 
 const canvasFrameStyle: CSSProperties = {

@@ -84,17 +84,17 @@ const hiddenLabelStyle: CSSProperties = {
 const rowStyle: CSSProperties = {
   display: "grid",
   gridTemplateColumns: "1fr",
-  gap: "6px"
+  gap: "4px"
 };
 
 const selectStyle: CSSProperties = {
-  minHeight: "36px",
-  padding: "8px 10px",
-  borderRadius: "12px",
+  minHeight: "32px",
+  padding: "6px 8px",
+  borderRadius: "10px",
   border: "1px solid rgba(148, 163, 184, 0.24)",
   background: "rgba(15, 23, 42, 0.7)",
   color: "#f8fafc",
-  fontSize: "0.85rem"
+  fontSize: "0.78rem"
 };
 
 const inputStyle: CSSProperties = {

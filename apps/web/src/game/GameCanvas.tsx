@@ -4,7 +4,6 @@ import type { RoomSnapshot } from "@fog-maze-race/shared/contracts/snapshots";
 import { isInsideZone } from "@fog-maze-race/shared/maps/map-definitions";
 
 import { createSceneController, type SceneController } from "./pixi/scene-controller.js";
-import { createBoardLayout } from "./pixi/renderers/board-render.js";
 import {
   PLAYER_MARKER_DIAMETER_RATIO,
   getPlayerMarkerStyle
@@ -74,8 +73,8 @@ export function GameCanvas({ snapshot, selfPlayerId }: GameCanvasProps) {
       data-testid="game-canvas"
       style={{
         width: "100%",
-        minHeight: "560px",
-        height: "clamp(560px, 84vh, 980px)",
+        minHeight: "600px",
+        height: "clamp(600px, 88vh, 1040px)",
         display: "grid",
         placeItems: "center",
         borderRadius: "14px",
@@ -130,16 +129,16 @@ function StartZonePreview({
   }
 
   const members = snapshot.members.filter((member) => member.position && isInsideZone(map.startZone, member.position));
-  const layout = createBoardLayout(map, {
+  const layout = createPreviewLayout(map, {
     viewportWidth: viewport.width,
     viewportHeight: viewport.height
   });
-  const startZoneWidth = map.startZone.maxX - map.startZone.minX + 1;
-  const startZoneHeight = map.startZone.maxY - map.startZone.minY + 1;
-  const panelPadding = Math.max(6, Math.floor(layout.tileSize * 0.26));
+  const startZoneWidth = layout.startZoneWidth;
+  const startZoneHeight = layout.startZoneHeight;
+  const panelPadding = Math.max(2, Math.floor(layout.tileSize * 0.12));
   const dotSize = Math.max(15, Math.floor(layout.tileSize * PLAYER_MARKER_DIAMETER_RATIO));
-  const startPanel = toPanelBox(layout, map.startZone, panelPadding);
-  const mazePanel = toPanelBox(layout, map.mazeZone, panelPadding);
+  const startPanel = toPreviewPanelBox(layout.startX, layout.startY, startZoneWidth, startZoneHeight, layout.tileSize, panelPadding);
+  const mazePanel = toPreviewPanelBox(layout.mazeX, layout.mazeY, layout.mazeWidth, layout.mazeHeight, layout.tileSize, panelPadding);
 
   return (
     <div data-testid="game-canvas" style={canvasShellStyle}>
@@ -171,8 +170,8 @@ function StartZonePreview({
         <div
           style={{
             position: "absolute",
-            left: `${layout.offsetX + map.startZone.minX * layout.tileSize}px`,
-            top: `${layout.offsetY + map.startZone.minY * layout.tileSize}px`,
+            left: `${layout.startX}px`,
+            top: `${layout.startY}px`,
             width: `${startZoneWidth * layout.tileSize}px`,
             height: `${startZoneHeight * layout.tileSize}px`,
             display: "grid",
@@ -186,8 +185,8 @@ function StartZonePreview({
         </div>
         {getPlayerRenderOrder(members, selfPlayerId).map((member) => {
           const position = member.position!;
-          const x = layout.offsetX + position.x * layout.tileSize + layout.tileSize / 2 - dotSize / 2;
-          const y = layout.offsetY + position.y * layout.tileSize + layout.tileSize / 2 - dotSize / 2;
+          const x = layout.startX + (position.x - map.startZone.minX) * layout.tileSize + layout.tileSize / 2 - dotSize / 2;
+          const y = layout.startY + (position.y - map.startZone.minY) * layout.tileSize + layout.tileSize / 2 - dotSize / 2;
           const shape = member.shape;
           const ringSize = dotSize + 8;
 
@@ -229,8 +228,8 @@ function StartZonePreview({
 
 const canvasShellStyle: CSSProperties = {
   width: "100%",
-  minHeight: "560px",
-  height: "clamp(560px, 84vh, 980px)",
+  minHeight: "600px",
+  height: "clamp(600px, 88vh, 1040px)",
   position: "relative",
   borderRadius: "14px",
   overflow: "hidden",
@@ -296,15 +295,73 @@ function playerMarkerPieceStyle(size: number): CSSProperties {
   };
 }
 
-function toPanelBox(
-  layout: ReturnType<typeof createBoardLayout>,
-  bounds: { minX: number; minY: number; maxX: number; maxY: number },
+type PreviewLayout = {
+  tileSize: number;
+  startZoneWidth: number;
+  startZoneHeight: number;
+  mazeWidth: number;
+  mazeHeight: number;
+  startX: number;
+  startY: number;
+  mazeX: number;
+  mazeY: number;
+};
+
+export function createPreviewLayout(
+  map: NonNullable<RoomSnapshot["previewMap"]>,
+  input: { viewportWidth: number; viewportHeight: number }
+): PreviewLayout {
+  const viewportWidth = Math.max(320, Math.floor(input.viewportWidth));
+  const viewportHeight = Math.max(320, Math.floor(input.viewportHeight));
+  const startZoneWidth = map.startZone.maxX - map.startZone.minX + 1;
+  const startZoneHeight = map.startZone.maxY - map.startZone.minY + 1;
+  const mazeWidth = map.mazeZone.maxX - map.mazeZone.minX + 1;
+  const mazeHeight = map.mazeZone.maxY - map.mazeZone.minY + 1;
+  const framePadding = 4;
+  let tileSize = Math.max(
+    18,
+    Math.min(
+      92,
+      Math.floor(
+        Math.min(
+          (viewportWidth - framePadding * 2) / (startZoneWidth + mazeWidth),
+          (viewportHeight - framePadding * 2) / mazeHeight
+        )
+      )
+    )
+  );
+  let gap = Math.max(4, Math.floor(tileSize * 0.08));
+
+  while (startZoneWidth * tileSize + gap + mazeWidth * tileSize + framePadding * 2 > viewportWidth && tileSize > 18) {
+    tileSize -= 1;
+    gap = Math.max(4, Math.floor(tileSize * 0.08));
+  }
+
+  return {
+    tileSize,
+    startZoneWidth,
+    startZoneHeight,
+    mazeWidth,
+    mazeHeight,
+    startX: framePadding,
+    startY: framePadding,
+    mazeX: framePadding + startZoneWidth * tileSize + gap,
+    mazeY: framePadding
+  };
+}
+
+function toPreviewPanelBox(
+  x: number,
+  y: number,
+  widthInTiles: number,
+  heightInTiles: number,
+  tileSize: number,
   padding: number
 ): CSSProperties {
   return {
-    left: `${layout.offsetX + bounds.minX * layout.tileSize - padding}px`,
-    top: `${layout.offsetY + bounds.minY * layout.tileSize - padding}px`,
-    width: `${(bounds.maxX - bounds.minX + 1) * layout.tileSize + padding * 2 - 2}px`,
-    height: `${(bounds.maxY - bounds.minY + 1) * layout.tileSize + padding * 2 - 2}px`
+    left: `${x - padding}px`,
+    top: `${y - padding}px`,
+    width: `${widthInTiles * tileSize + padding * 2 - 2}px`,
+    height: `${heightInTiles * tileSize + padding * 2 - 2}px`
   };
 }
