@@ -58,11 +58,11 @@ export function PlayerSidebar({ snapshot, selfPlayerId }: PlayerSidebarProps) {
 }
 
 const sidebarStyle: CSSProperties = {
-  width: "clamp(216px, 18vw, 236px)",
-  minWidth: "216px",
-  maxWidth: "236px",
-  padding: "12px 13px",
-  borderRadius: "18px",
+  width: "100%",
+  minWidth: 0,
+  maxWidth: "none",
+  padding: "10px 11px",
+  borderRadius: "16px",
   background: "linear-gradient(180deg, rgba(8, 15, 30, 0.9), rgba(7, 16, 30, 0.86))",
   border: "1px solid rgba(148, 163, 184, 0.08)",
   boxShadow: "0 12px 32px rgba(2, 6, 23, 0.16)",
@@ -78,17 +78,17 @@ const headerStyle: CSSProperties = {
 
 const titleStyle: CSSProperties = {
   margin: 0,
-  fontSize: "1.18rem",
+  fontSize: "1rem",
   lineHeight: 1
 };
 
 const countStyle: CSSProperties = {
-  minWidth: "24px",
-  height: "24px",
+  minWidth: "22px",
+  height: "22px",
   display: "inline-grid",
   placeItems: "center",
   borderRadius: "999px",
-  fontSize: "0.74rem",
+  fontSize: "0.7rem",
   color: "#cbd5e1",
   background: "rgba(15, 23, 42, 0.9)",
   border: "1px solid rgba(148, 163, 184, 0.08)"
@@ -97,10 +97,10 @@ const countStyle: CSSProperties = {
 const listStyle: CSSProperties = {
   display: "grid",
   gap: "2px",
-  marginTop: "8px",
-  maxHeight: "min(68vh, 700px)",
+  marginTop: "6px",
+  maxHeight: "min(44vh, 420px)",
   overflowY: "auto",
-  paddingRight: "4px"
+  paddingRight: "2px"
 };
 
 const memberCardStyle: CSSProperties = {
@@ -108,7 +108,7 @@ const memberCardStyle: CSSProperties = {
   justifyContent: "space-between",
   gap: "6px",
   alignItems: "center",
-  padding: "9px 2px",
+  padding: "7px 2px",
   borderBottom: "1px solid rgba(148, 163, 184, 0.06)"
 };
 
@@ -121,8 +121,8 @@ const identityStyle: CSSProperties = {
 
 const markerWrapStyle: CSSProperties = {
   position: "relative",
-  width: "18px",
-  height: "18px",
+  width: "16px",
+  height: "16px",
   flexShrink: 0
 };
 
@@ -139,19 +139,19 @@ function markerPieceStyle(size: number): CSSProperties {
 
 const nameStyle: CSSProperties = {
   display: "block",
-  fontSize: "0.92rem",
+  fontSize: "0.86rem",
   lineHeight: 1.1
 };
 
 const metaStyle: CSSProperties = {
-  margin: "3px 0 0",
+  margin: "2px 0 0",
   color: "#94a3b8",
-  fontSize: "0.74rem"
+  fontSize: "0.72rem"
 };
 
 const rankStyle: CSSProperties = {
   color: "#fde68a",
-  fontSize: "0.72rem",
+  fontSize: "0.68rem",
   letterSpacing: "0.08em",
   textTransform: "uppercase",
   whiteSpace: "nowrap"

@@ -47,7 +47,7 @@ export function HostControls({
           name="rename-room-name"
           value={draftName}
           onChange={(event) => setDraftName(event.target.value)}
-          placeholder="방 이름 수정"
+          placeholder="방 이름"
           style={inputStyle}
         />
         <button
@@ -81,34 +81,38 @@ const hiddenLabelStyle: CSSProperties = {
 
 const rowStyle: CSSProperties = {
   display: "grid",
-  gridTemplateColumns: "104px 1fr auto",
-  gap: "8px"
+  gridTemplateColumns: "80px minmax(0, 1fr) auto",
+  gap: "6px"
 };
 
 const selectStyle: CSSProperties = {
-  minHeight: "38px",
-  padding: "8px 12px",
-  borderRadius: "13px",
+  minHeight: "36px",
+  padding: "8px 10px",
+  borderRadius: "12px",
   border: "1px solid rgba(148, 163, 184, 0.24)",
   background: "rgba(15, 23, 42, 0.7)",
-  color: "#f8fafc"
+  color: "#f8fafc",
+  fontSize: "0.85rem"
 };
 
 const inputStyle: CSSProperties = {
-  minHeight: "38px",
-  padding: "8px 12px",
-  borderRadius: "13px",
+  minHeight: "36px",
+  padding: "8px 10px",
+  borderRadius: "12px",
   border: "1px solid rgba(148, 163, 184, 0.24)",
   background: "rgba(15, 23, 42, 0.7)",
-  color: "#f8fafc"
+  color: "#f8fafc",
+  fontSize: "0.85rem"
 };
 
 const renameButtonStyle: CSSProperties = {
-  minHeight: "38px",
-  padding: "8px 13px",
-  borderRadius: "13px",
+  minHeight: "36px",
+  padding: "8px 11px",
+  borderRadius: "12px",
   border: "1px solid rgba(56, 189, 248, 0.24)",
   background: "rgba(56, 189, 248, 0.12)",
   color: "#bae6fd",
-  cursor: "pointer"
+  cursor: "pointer",
+  fontSize: "0.82rem",
+  whiteSpace: "nowrap"
 };
