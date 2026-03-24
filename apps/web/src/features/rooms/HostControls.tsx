@@ -39,6 +39,7 @@ export function HostControls({
           <option value={5}>5x5</option>
           <option value={3}>3x3</option>
         </select>
+        {/* 
         <label htmlFor="rename-room-name" style={hiddenLabelStyle}>
           방 이름 수정
         </label>
@@ -57,6 +58,7 @@ export function HostControls({
         >
           이름 변경
         </button>
+        */}
       </div>
     </div>
   );
@@ -81,7 +83,7 @@ const hiddenLabelStyle: CSSProperties = {
 
 const rowStyle: CSSProperties = {
   display: "grid",
-  gridTemplateColumns: "80px minmax(0, 1fr) auto",
+  gridTemplateColumns: "1fr",
   gap: "6px"
 };
 

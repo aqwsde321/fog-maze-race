@@ -74,8 +74,8 @@ export function GameCanvas({ snapshot, selfPlayerId }: GameCanvasProps) {
       data-testid="game-canvas"
       style={{
         width: "100%",
-        minHeight: "420px",
-        height: "clamp(420px, 62vh, 760px)",
+        minHeight: "500px",
+        height: "clamp(500px, 74vh, 900px)",
         display: "grid",
         placeItems: "center",
         borderRadius: "20px",
@@ -155,8 +155,7 @@ function StartZonePreview({
           }}
         >
           <div style={previewHintStyle}>
-            <strong style={previewHintTitleStyle}>미로는 시작 후 공개</strong>
-            <p style={previewHintBodyStyle}>카운트다운 동안 시작 구역에서 위치를 정리하세요.</p>
+            <strong style={previewHintTitleStyle}>시작 후 공개</strong>
           </div>
         </div>
         <div
@@ -230,10 +229,10 @@ function StartZonePreview({
 
 const canvasShellStyle: CSSProperties = {
   width: "100%",
-  minHeight: "420px",
-  height: "clamp(420px, 62vh, 760px)",
+  minHeight: "500px",
+  height: "clamp(500px, 74vh, 900px)",
   position: "relative",
-  borderRadius: "18px",
+  borderRadius: "16px",
   overflow: "hidden",
   background: "transparent"
 };
@@ -256,24 +255,17 @@ const previewHintStyle: CSSProperties = {
   display: "grid",
   placeItems: "center",
   alignContent: "center",
-  gap: "10px",
+  gap: "8px",
   textAlign: "center",
   padding: "24px",
   color: "#8fa8c7"
 };
 
 const previewHintTitleStyle: CSSProperties = {
-  fontSize: "1rem",
+  fontSize: "0.94rem",
   letterSpacing: "0.08em",
   textTransform: "uppercase",
   color: "#d8e4f5"
-};
-
-const previewHintBodyStyle: CSSProperties = {
-  margin: 0,
-  fontSize: "0.88rem",
-  lineHeight: 1.5,
-  maxWidth: "22ch"
 };
 
 function previewTileStyle(tileSize: number): CSSProperties {

@@ -199,10 +199,10 @@ function isEditableTarget(target: EventTarget | null) {
 const shellStyle: CSSProperties = {
   position: "relative",
   display: "grid",
-  gridTemplateColumns: "minmax(0, 1fr) clamp(244px, 19vw, 276px)",
-  gap: "clamp(10px, 1.2vw, 16px)",
+  gridTemplateColumns: "minmax(0, 1fr) clamp(184px, 14vw, 212px)",
+  gap: "clamp(8px, 1vw, 14px)",
   width: "100%",
-  maxWidth: "1408px",
+  maxWidth: "1460px",
   margin: "0 auto",
   alignItems: "start",
   overflowX: "hidden"
@@ -216,7 +216,7 @@ const mainColumnStyle: CSSProperties = {
 
 const railStyle: CSSProperties = {
   display: "grid",
-  gap: "10px",
+  gap: "8px",
   width: "100%",
   minWidth: 0,
   alignSelf: "start"
@@ -224,11 +224,11 @@ const railStyle: CSSProperties = {
 
 const topBarStyle: CSSProperties = {
   display: "grid",
-  gap: "10px",
+  gap: "8px",
   width: "100%",
   minWidth: 0,
   boxSizing: "border-box",
-  padding: "12px",
+  padding: "10px",
   borderRadius: "16px",
   overflow: "hidden",
   background: "linear-gradient(180deg, rgba(8, 15, 30, 0.92), rgba(7, 16, 30, 0.88))",
@@ -240,7 +240,7 @@ const roomHeaderRowStyle: CSSProperties = {
   display: "flex",
   alignItems: "flex-start",
   justifyContent: "space-between",
-  gap: "12px"
+  gap: "10px"
 };
 
 const roomHeaderStyle: CSSProperties = {
@@ -262,20 +262,20 @@ const labelStyle: CSSProperties = {
 
 const roomNameStyle: CSSProperties = {
   margin: "3px 0 0",
-  fontSize: "1.18rem",
+  fontSize: "1.04rem",
   lineHeight: 1.05
 };
 
 const statusPanelStyle: CSSProperties = {
   flexShrink: 0,
-  minWidth: "68px",
+  minWidth: "60px",
   textAlign: "right"
 };
 
 const statusValueStyle: CSSProperties = {
   display: "block",
   marginTop: "3px",
-  fontSize: "0.85rem",
+  fontSize: "0.8rem",
   color: "#f8fafc"
 };
 
@@ -284,52 +284,55 @@ const actionRailStyle: CSSProperties = {
   alignItems: "center",
   flexWrap: "wrap",
   justifyContent: "flex-end",
-  gap: "8px"
+  gap: "6px"
 };
 
 const actionDividerStyle: CSSProperties = {
   width: "1px",
-  height: "20px",
+  height: "18px",
   background: "rgba(148, 163, 184, 0.14)"
 };
 
 const dangerButtonStyle: CSSProperties = {
-  minHeight: "36px",
-  padding: "8px 11px",
-  borderRadius: "12px",
+  minHeight: "34px",
+  padding: "7px 9px",
+  borderRadius: "10px",
   border: "1px solid rgba(248, 113, 113, 0.2)",
   background: "rgba(239, 68, 68, 0.12)",
   color: "#fecaca",
-  cursor: "pointer"
+  cursor: "pointer",
+  fontSize: "0.8rem"
 };
 
 const startButtonStyle: CSSProperties = {
-  minHeight: "36px",
-  padding: "8px 12px",
-  borderRadius: "12px",
+  minHeight: "34px",
+  padding: "7px 10px",
+  borderRadius: "10px",
   border: 0,
   background: "linear-gradient(135deg, #38bdf8, #0ea5e9)",
   color: "#082032",
   fontWeight: 700,
-  cursor: "pointer"
+  cursor: "pointer",
+  fontSize: "0.8rem"
 };
 
 const ghostButtonStyle: CSSProperties = {
-  minHeight: "36px",
-  padding: "8px 12px",
-  borderRadius: "12px",
+  minHeight: "34px",
+  padding: "7px 10px",
+  borderRadius: "10px",
   border: "1px solid rgba(148, 163, 184, 0.22)",
   background: "transparent",
   color: "#94a3b8",
-  cursor: "pointer"
+  cursor: "pointer",
+  fontSize: "0.8rem"
 };
 
 const canvasFrameStyle: CSSProperties = {
   position: "relative",
   width: "100%",
   boxSizing: "border-box",
-  padding: "10px",
-  borderRadius: "16px",
+  padding: "8px",
+  borderRadius: "14px",
   overflow: "hidden",
   background: "linear-gradient(180deg, rgba(8, 15, 30, 0.82), rgba(6, 14, 26, 0.88))",
   border: "1px solid rgba(56, 189, 248, 0.12)",

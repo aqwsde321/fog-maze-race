@@ -19,9 +19,9 @@ export type BoardLayout = {
   offsetY: number;
 };
 
-const BOARD_PADDING = 28;
+const BOARD_PADDING = 16;
 const MIN_TILE_SIZE = 18;
-const MAX_TILE_SIZE = 56;
+const MAX_TILE_SIZE = 72;
 
 export function createBoardLayout(
   map: Pick<MapDefinition, "width" | "height">,

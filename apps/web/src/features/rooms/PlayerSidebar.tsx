@@ -61,8 +61,8 @@ const sidebarStyle: CSSProperties = {
   width: "100%",
   minWidth: 0,
   maxWidth: "none",
-  padding: "10px 11px",
-  borderRadius: "16px",
+  padding: "8px 9px",
+  borderRadius: "14px",
   background: "linear-gradient(180deg, rgba(8, 15, 30, 0.9), rgba(7, 16, 30, 0.86))",
   border: "1px solid rgba(148, 163, 184, 0.08)",
   boxShadow: "0 12px 32px rgba(2, 6, 23, 0.16)",
@@ -78,7 +78,7 @@ const headerStyle: CSSProperties = {
 
 const titleStyle: CSSProperties = {
   margin: 0,
-  fontSize: "1rem",
+  fontSize: "0.92rem",
   lineHeight: 1
 };
 
@@ -97,8 +97,8 @@ const countStyle: CSSProperties = {
 const listStyle: CSSProperties = {
   display: "grid",
   gap: "2px",
-  marginTop: "6px",
-  maxHeight: "min(44vh, 420px)",
+  marginTop: "4px",
+  maxHeight: "min(40vh, 360px)",
   overflowY: "auto",
   paddingRight: "2px"
 };
@@ -108,21 +108,21 @@ const memberCardStyle: CSSProperties = {
   justifyContent: "space-between",
   gap: "6px",
   alignItems: "center",
-  padding: "7px 2px",
+  padding: "6px 2px",
   borderBottom: "1px solid rgba(148, 163, 184, 0.06)"
 };
 
 const identityStyle: CSSProperties = {
   display: "flex",
-  gap: "9px",
+  gap: "8px",
   alignItems: "center",
   minWidth: 0
 };
 
 const markerWrapStyle: CSSProperties = {
   position: "relative",
-  width: "16px",
-  height: "16px",
+  width: "14px",
+  height: "14px",
   flexShrink: 0
 };
 
@@ -139,19 +139,19 @@ function markerPieceStyle(size: number): CSSProperties {
 
 const nameStyle: CSSProperties = {
   display: "block",
-  fontSize: "0.86rem",
+  fontSize: "0.8rem",
   lineHeight: 1.1
 };
 
 const metaStyle: CSSProperties = {
   margin: "2px 0 0",
   color: "#94a3b8",
-  fontSize: "0.72rem"
+  fontSize: "0.68rem"
 };
 
 const rankStyle: CSSProperties = {
   color: "#fde68a",
-  fontSize: "0.68rem",
+  fontSize: "0.64rem",
   letterSpacing: "0.08em",
   textTransform: "uppercase",
   whiteSpace: "nowrap"
