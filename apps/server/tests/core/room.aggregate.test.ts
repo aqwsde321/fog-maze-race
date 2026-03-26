@@ -15,7 +15,6 @@ describe("RoomAggregate", () => {
       nickname: "Host",
       color: "#f97316",
       shape: "circle",
-      face: "dot",
       state: "waiting",
       position: null
     });
@@ -24,7 +23,6 @@ describe("RoomAggregate", () => {
       nickname: "Guest1",
       color: "#38bdf8",
       shape: "square",
-      face: "flat",
       state: "waiting",
       position: null
     });
@@ -33,7 +31,6 @@ describe("RoomAggregate", () => {
       nickname: "Guest2",
       color: "#22c55e",
       shape: "diamond",
-      face: "caret",
       state: "waiting",
       position: null
     });
@@ -56,7 +53,6 @@ describe("RoomAggregate", () => {
       nickname: "Host",
       color: "#f97316",
       shape: "circle",
-      face: "dot",
       state: "waiting",
       position: null
     });
@@ -68,7 +64,6 @@ describe("RoomAggregate", () => {
         nickname: "Late",
         color: "#38bdf8",
         shape: "square",
-        face: "flat",
         state: "waiting",
         position: null
       })

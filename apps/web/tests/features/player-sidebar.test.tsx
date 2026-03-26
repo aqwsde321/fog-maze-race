@@ -38,14 +38,12 @@ describe("PlayerSidebar", () => {
     const selfEyes = cards[0]?.querySelectorAll('[data-marker-eye="true"]');
     const guestDot = cards[1]?.querySelector('[data-marker-shape]');
     const guestEyes = cards[1]?.querySelectorAll('[data-marker-eye="true"]');
-    const guestFace = cards[1]?.querySelector('[data-marker-face="caret"]');
 
     expect(selfRing).not.toBeNull();
     expect(selfDot?.getAttribute("data-marker-shape")).toBe("circle");
     expect(selfEyes).toHaveLength(2);
     expect(guestDot?.getAttribute("data-marker-shape")).toBe("square");
     expect(guestEyes).toHaveLength(2);
-    expect(guestFace).not.toBeNull();
     expect(container.textContent).toContain("만두 (나)");
     expect(container.textContent).toContain("참가자");
   });
@@ -68,7 +66,6 @@ function buildSnapshot(): RoomSnapshot {
         nickname: "만두",
         color: "#ff8c42",
         shape: "circle",
-        face: "dot",
         state: "waiting",
         position: { x: 0, y: 1 },
         finishRank: null,
@@ -79,7 +76,6 @@ function buildSnapshot(): RoomSnapshot {
         nickname: "아르민",
         color: "#3b82f6",
         shape: "square",
-        face: "caret",
         state: "waiting",
         position: { x: 1, y: 1 },
         finishRank: null,
