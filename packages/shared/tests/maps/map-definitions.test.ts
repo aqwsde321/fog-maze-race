@@ -6,9 +6,23 @@ import {
   MAP_DEFINITIONS,
   buildMapDefinition,
   createBlankMazeRows,
+  getMapById,
   getMazeRows,
   isWalkableTile
 } from "../../src/maps/map-definitions.js";
+
+const HARD_MAP_IDS = [
+  "delta-snare",
+  "epsilon-vault",
+  "zeta-rift",
+  "eta-gauntlet",
+  "theta-bastion",
+  "iota-weave",
+  "kappa-trap",
+  "lambda-spine",
+  "mu-labyrinth",
+  "nu-fortress"
+] as const;
 
 describe("MAP_DEFINITIONS", () => {
   it("uses a fixed 3x5 start zone, a 5-tile connector, and a single goal tile", () => {
@@ -82,6 +96,19 @@ describe("MAP_DEFINITIONS", () => {
       })
     ).toThrowError("MAP_UNREACHABLE");
   });
+
+  it("includes ten hard-tier mazes with dense walls and long optimal routes", () => {
+    for (const mapId of HARD_MAP_IDS) {
+      const map = getMapById(mapId);
+
+      expect(map, `${mapId} should be registered`).toBeDefined();
+      expect(zoneWidth(map!.mazeZone)).toBe(25);
+      expect(zoneHeight(map!.mazeZone)).toBe(25);
+      expect(wallRatio(map!)).toBeGreaterThan(0.5);
+      expect(connectorEntryCount(map!)).toBe(1);
+      expect(shortestMazePathLength(map!)).toBeGreaterThanOrEqual(95);
+    }
+  });
 });
 
 function overlaps(left: ZoneBounds, right: ZoneBounds) {
@@ -135,6 +162,47 @@ function connectorEntryCount(map: (typeof MAP_DEFINITIONS)[number]) {
     }
   }
   return count;
+}
+
+function shortestMazePathLength(map: (typeof MAP_DEFINITIONS)[number]) {
+  const rows = getMazeRows(map);
+  const queue = rows
+    .slice(0, Math.min(5, rows.length))
+    .flatMap((row, y) => (row[0] === "." || row[0] === "G" ? [{ x: 0, y, distance: 0 }] : []));
+  const visited = new Set(queue.map((position) => toKey(position)));
+
+  while (queue.length > 0) {
+    const current = queue.shift()!;
+    if (rows[current.y]![current.x] === "G") {
+      return current.distance;
+    }
+
+    for (const next of neighbors(current)) {
+      if (
+        next.x < 0 ||
+        next.y < 0 ||
+        next.y >= rows.length ||
+        next.x >= rows[0]!.length ||
+        rows[next.y]![next.x] === "#"
+      ) {
+        continue;
+      }
+
+      const key = toKey(next);
+      if (visited.has(key)) {
+        continue;
+      }
+
+      visited.add(key);
+      queue.push({
+        x: next.x,
+        y: next.y,
+        distance: current.distance + 1
+      });
+    }
+  }
+
+  throw new Error(`Expected ${map.mapId} to have a reachable goal`);
 }
 
 function canReachGoal(
