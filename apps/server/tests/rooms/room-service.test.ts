@@ -68,6 +68,51 @@ describe("RoomService", () => {
     expect(new Set(colors).size).toBe(15);
   });
 
+  it("reuses only colors that are no longer occupied when a player leaves and rejoins", () => {
+    const service = new RoomService(new RevisionSync(), new MapRegistry(), {
+      random: () => 0
+    });
+    const room = service.createRoom({
+      session: new PlayerSession({
+        playerId: "host",
+        nickname: "Host"
+      }),
+      name: "Alpha"
+    });
+
+    service.joinRoom({
+      roomId: room.roomId,
+      session: new PlayerSession({
+        playerId: "guest-1",
+        nickname: "Guest1"
+      })
+    });
+    service.joinRoom({
+      roomId: room.roomId,
+      session: new PlayerSession({
+        playerId: "guest-2",
+        nickname: "Guest2"
+      })
+    });
+
+    const beforeLeave = service.getSnapshot(room.roomId).members.map((member) => member.color);
+    expect(beforeLeave).toEqual(["#ff355e", "#ff8a00", "#ff2bd6"]);
+
+    service.removePlayer(room.roomId, "guest-1");
+
+    service.joinRoom({
+      roomId: room.roomId,
+      session: new PlayerSession({
+        playerId: "guest-3",
+        nickname: "Guest3"
+      })
+    });
+
+    const afterRejoin = service.getSnapshot(room.roomId).members.map((member) => member.color);
+    expect(afterRejoin).toEqual(["#ff355e", "#ff2bd6", "#ff8a00"]);
+    expect(new Set(afterRejoin).size).toBe(3);
+  });
+
   it("distributes marker shapes evenly across 15 players", () => {
     const service = new RoomService(new RevisionSync(), new MapRegistry());
     const room = service.createRoom({

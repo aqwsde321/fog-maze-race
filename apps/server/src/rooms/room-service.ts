@@ -108,7 +108,7 @@ export class RoomService {
 
   joinRoom(input: { roomId: string; session: PlayerSession }): RoomJoinedPayload {
     const runtime = this.requireRuntime(input.roomId);
-    const nextColor = PLAYER_COLORS[runtime.room.listMembers().length % PLAYER_COLORS.length]!;
+    const nextColor = nextAvailableColor(runtime.room.listMembers());
     const previewMap = this.mapRegistry.get(runtime.previewMapId);
     const nextAssignedShape =
       runtime.shapeDeck[runtime.shapeCursor] ?? nextShape(runtime.shapeCursor);
@@ -329,6 +329,12 @@ function normalizeRoomName(name: string) {
 
 function nextShape(index: number): PlayerMarkerShape {
   return PLAYER_MARKER_SHAPES[index % PLAYER_MARKER_SHAPES.length]!;
+}
+
+function nextAvailableColor(members: Array<{ color: string }>) {
+  const usedColors = new Set(members.map((member) => member.color));
+  const available = PLAYER_COLORS.find((color) => !usedColors.has(color));
+  return available ?? PLAYER_COLORS[members.length % PLAYER_COLORS.length]!;
 }
 
 function createShapeDeck(maxPlayers: number, random: () => number) {
