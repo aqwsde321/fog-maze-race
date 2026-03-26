@@ -6,6 +6,10 @@ import type {
 } from "@fog-maze-race/shared/contracts/realtime";
 import type { MapView, RoomSnapshot } from "@fog-maze-race/shared/contracts/snapshots";
 import {
+  PLAYER_MARKER_FACES,
+  type PlayerMarkerFace
+} from "@fog-maze-race/shared/domain/player-marker-face";
+import {
   PLAYER_MARKER_SHAPES,
   type PlayerMarkerShape
 } from "@fog-maze-race/shared/domain/player-marker-shape";
@@ -75,6 +79,7 @@ export class RoomService {
       nickname: input.session.nickname,
       color: PLAYER_COLORS[0],
       shape: nextShape(0),
+      face: nextFace(),
       state: "waiting",
       position: previewMap?.startSlots[0] ?? null
     });
@@ -100,6 +105,7 @@ export class RoomService {
       nickname: input.session.nickname,
       color: nextColor,
       shape: nextShape(runtime.room.listMembers().length),
+      face: nextFace(),
       state: "waiting",
       position: previewMap?.startSlots[runtime.room.listMembers().length] ?? previewMap?.startSlots.at(-1) ?? null
     });
@@ -253,6 +259,7 @@ export class RoomService {
         nickname: member.nickname,
         color: member.color,
         shape: member.shape,
+        face: member.face,
         state: member.state,
         position: member.position,
         finishRank: member.finishRank,
@@ -310,6 +317,10 @@ function normalizeRoomName(name: string) {
 
 function nextShape(index: number): PlayerMarkerShape {
   return PLAYER_MARKER_SHAPES[index % PLAYER_MARKER_SHAPES.length]!;
+}
+
+function nextFace(): PlayerMarkerFace {
+  return PLAYER_MARKER_FACES[Math.floor(Math.random() * PLAYER_MARKER_FACES.length)]!;
 }
 
 function serializeMap(map: MapDefinition, visibilityRadius = map.visibilityRadius): MapView {

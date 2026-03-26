@@ -30,6 +30,10 @@
       "types": "./dist/domain/player-marker-shape.d.ts",
       "default": "./dist/domain/player-marker-shape.js"
     },
+    "./domain/player-marker-face": {
+      "types": "./dist/domain/player-marker-face.d.ts",
+      "default": "./dist/domain/player-marker-face.js"
+    },
     "./domain/result-entry": {
       "types": "./dist/domain/result-entry.d.ts",
       "default": "./dist/domain/result-entry.js"

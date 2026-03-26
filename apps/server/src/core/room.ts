@@ -1,4 +1,5 @@
 import type { GridPosition } from "@fog-maze-race/shared/domain/grid-position";
+import type { PlayerMarkerFace } from "@fog-maze-race/shared/domain/player-marker-face";
 import type { PlayerMarkerShape } from "@fog-maze-race/shared/domain/player-marker-shape";
 import type {
   RoomMemberState,
@@ -10,6 +11,7 @@ export type RoomMemberRecord = {
   nickname: string;
   color: string;
   shape: PlayerMarkerShape;
+  face: PlayerMarkerFace;
   joinOrder: number;
   state: RoomMemberState;
   position: GridPosition | null;

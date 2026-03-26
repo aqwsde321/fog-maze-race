@@ -1,5 +1,6 @@
 import type { CSSProperties } from "react";
 import type { Graphics } from "pixi.js";
+import type { PlayerMarkerFace } from "@fog-maze-race/shared/domain/player-marker-face";
 import type { PlayerMarkerShape } from "@fog-maze-race/shared/domain/player-marker-shape";
 
 export const PLAYER_MARKER_DIAMETER_RATIO = 0.64;
@@ -61,15 +62,52 @@ export function getPlayerMarkerEyesWrapStyle(size: number): CSSProperties {
   };
 }
 
-export function getPlayerMarkerEyeStyle(size: number): CSSProperties {
-  const eyeSize = Math.max(2, Math.round(size * 0.14));
+export function getPlayerMarkerEyeContent(face: PlayerMarkerFace) {
+  switch (face) {
+    case "dot":
+      return "";
+    case "flat":
+      return "";
+    case "caret":
+      return "^";
+  }
+}
+
+export function getPlayerMarkerEyeStyle(face: PlayerMarkerFace, size: number): CSSProperties {
+  if (face === "dot") {
+    const eyeSize = Math.max(2, Math.round(size * 0.14));
+
+    return {
+      width: `${eyeSize}px`,
+      height: `${eyeSize}px`,
+      borderRadius: "999px",
+      background: MARKER_EYE_COLOR,
+      opacity: 0.92
+    };
+  }
+
+  if (face === "flat") {
+    const eyeWidth = Math.max(4, Math.round(size * 0.22));
+    const eyeHeight = Math.max(2, Math.round(size * 0.08));
+
+    return {
+      width: `${eyeWidth}px`,
+      height: `${eyeHeight}px`,
+      borderRadius: "999px",
+      background: MARKER_EYE_COLOR,
+      opacity: 0.92
+    };
+  }
 
   return {
-    width: `${eyeSize}px`,
-    height: `${eyeSize}px`,
-    borderRadius: "999px",
-    background: MARKER_EYE_COLOR,
-    opacity: 0.92
+    minWidth: `${Math.max(5, Math.round(size * 0.18))}px`,
+    color: MARKER_EYE_COLOR,
+    fontSize: `${Math.max(6, Math.round(size * 0.24))}px`,
+    lineHeight: 1,
+    fontWeight: 700,
+    fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
+    textAlign: "center",
+    opacity: 0.96
   };
 }
 
@@ -140,17 +178,61 @@ export function drawPlayerMarkerEyes(
   centerX: number,
   centerY: number,
   radius: number,
+  face: PlayerMarkerFace,
   style?: {
     color?: number;
     alpha?: number;
   }
 ) {
-  const eyeRadius = Math.max(1.1, radius * 0.14);
   const eyeOffsetX = Math.max(2, radius * 0.36);
   const eyeOffsetY = Math.max(1, radius * 0.18);
   const color = style?.color ?? 0x081120;
   const alpha = style?.alpha ?? 0.92;
+  const eyeCenterY = centerY - eyeOffsetY;
 
-  graphics.circle(centerX - eyeOffsetX, centerY - eyeOffsetY, eyeRadius).fill({ color, alpha });
-  graphics.circle(centerX + eyeOffsetX, centerY - eyeOffsetY, eyeRadius).fill({ color, alpha });
+  if (face === "dot") {
+    const eyeRadius = Math.max(1.1, radius * 0.14);
+    graphics.circle(centerX - eyeOffsetX, eyeCenterY, eyeRadius).fill({ color, alpha });
+    graphics.circle(centerX + eyeOffsetX, eyeCenterY, eyeRadius).fill({ color, alpha });
+    return;
+  }
+
+  if (face === "flat") {
+    const eyeWidth = Math.max(3.8, radius * 0.44);
+    const eyeHeight = Math.max(1.4, radius * 0.1);
+    const roundness = eyeHeight / 2;
+
+    graphics
+      .roundRect(centerX - eyeOffsetX - eyeWidth / 2, eyeCenterY - eyeHeight / 2, eyeWidth, eyeHeight, roundness)
+      .fill({ color, alpha });
+    graphics
+      .roundRect(centerX + eyeOffsetX - eyeWidth / 2, eyeCenterY - eyeHeight / 2, eyeWidth, eyeHeight, roundness)
+      .fill({ color, alpha });
+    return;
+  }
+
+  const eyeWidth = Math.max(3.6, radius * 0.42);
+  const eyeHeight = Math.max(2.2, radius * 0.22);
+  const lineWidth = Math.max(1.1, radius * 0.08);
+
+  graphics
+    .poly([
+      centerX - eyeOffsetX - eyeWidth / 2,
+      eyeCenterY + eyeHeight / 2,
+      centerX - eyeOffsetX,
+      eyeCenterY - eyeHeight / 2,
+      centerX - eyeOffsetX + eyeWidth / 2,
+      eyeCenterY + eyeHeight / 2
+    ])
+    .stroke({ color, width: lineWidth, alpha });
+  graphics
+    .poly([
+      centerX + eyeOffsetX - eyeWidth / 2,
+      eyeCenterY + eyeHeight / 2,
+      centerX + eyeOffsetX,
+      eyeCenterY - eyeHeight / 2,
+      centerX + eyeOffsetX + eyeWidth / 2,
+      eyeCenterY + eyeHeight / 2
+    ])
+    .stroke({ color, width: lineWidth, alpha });
 }

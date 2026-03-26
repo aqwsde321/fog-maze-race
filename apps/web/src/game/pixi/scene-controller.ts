@@ -151,10 +151,6 @@ export async function createSceneController(container: HTMLDivElement): Promise<
         });
 
         if (member.playerId === selfPlayerId) {
-          drawPlayerMarkerEyes(playerLayer, centerX, centerY, markerRadius, {
-            color: 0x081120,
-            alpha: 0.92
-          });
           drawPlayerMarkerShape(
             playerLayer,
             markerShape,
@@ -169,6 +165,11 @@ export async function createSceneController(container: HTMLDivElement): Promise<
             }
           );
         }
+
+        drawPlayerMarkerEyes(playerLayer, centerX, centerY, markerRadius, member.face, {
+          color: 0x081120,
+          alpha: 0.92
+        });
       }
 
       if (match) {

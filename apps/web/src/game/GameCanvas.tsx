@@ -6,6 +6,7 @@ import { isInsideZone } from "@fog-maze-race/shared/maps/map-definitions";
 import { createSceneController, type SceneController } from "./pixi/scene-controller.js";
 import {
   PLAYER_MARKER_DIAMETER_RATIO,
+  getPlayerMarkerEyeContent,
   getPlayerMarkerEyeStyle,
   getPlayerMarkerEyesWrapStyle,
   getPlayerMarkerStyle
@@ -219,12 +220,18 @@ function StartZonePreview({
                     color: member.color
                   }}
                 />
-                {member.playerId === selfPlayerId ? (
-                  <span data-marker-eyes="true" style={getPlayerMarkerEyesWrapStyle(dotSize)}>
-                    <span data-marker-eye="true" style={getPlayerMarkerEyeStyle(dotSize)} />
-                    <span data-marker-eye="true" style={getPlayerMarkerEyeStyle(dotSize)} />
+                <span
+                  data-marker-eyes="true"
+                  data-marker-face={member.face}
+                  style={getPlayerMarkerEyesWrapStyle(dotSize)}
+                >
+                  <span data-marker-eye="true" style={getPlayerMarkerEyeStyle(member.face, dotSize)}>
+                    {getPlayerMarkerEyeContent(member.face)}
                   </span>
-                ) : null}
+                  <span data-marker-eye="true" style={getPlayerMarkerEyeStyle(member.face, dotSize)}>
+                    {getPlayerMarkerEyeContent(member.face)}
+                  </span>
+                </span>
               </div>
             </Fragment>
           );

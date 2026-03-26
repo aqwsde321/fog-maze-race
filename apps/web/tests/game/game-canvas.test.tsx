@@ -52,7 +52,7 @@ describe("GameCanvas preview layout", () => {
     expect(Number.parseFloat(startPanel!.style.width)).toBeLessThan(Number.parseFloat(mazePanel!.style.width));
   });
 
-  it("uses the shared marker size ratio for the waiting preview marker", async () => {
+  it("uses the shared marker size ratio and renders faces for the waiting preview marker", async () => {
     const snapshot = buildWaitingSnapshot();
     const map = getMapById("alpha-run")!;
 
@@ -63,6 +63,7 @@ describe("GameCanvas preview layout", () => {
     const selfRing = container.querySelector<HTMLElement>('[data-marker-self-ring="true"]');
     const selfDot = container.querySelector<HTMLElement>('[data-marker-shape="circle"]');
     const selfEyes = container.querySelectorAll('[data-marker-eye="true"]');
+    const selfFace = container.querySelector('[data-marker-face="flat"]');
     const layout = createPreviewLayout(map, {
       viewportWidth: 960,
       viewportHeight: 540
@@ -72,6 +73,7 @@ describe("GameCanvas preview layout", () => {
     expect(selfDot).not.toBeNull();
     expect(selfRing).not.toBeNull();
     expect(selfEyes).toHaveLength(2);
+    expect(selfFace).not.toBeNull();
     expect(selfDot?.style.width).toBe(`${expectedDotSize}px`);
     expect(selfDot?.style.height).toBe(`${expectedDotSize}px`);
   });
@@ -99,6 +101,7 @@ function buildWaitingSnapshot(): RoomSnapshot {
         nickname: "아르민",
         color: "#fb7185",
         shape: "circle",
+        face: "flat",
         state: "waiting",
         position: map.startSlots[0] ?? { x: 0, y: 1 },
         finishRank: null,

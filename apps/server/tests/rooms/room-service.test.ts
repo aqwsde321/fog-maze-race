@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { PLAYER_MARKER_FACES } from "@fog-maze-race/shared/domain/player-marker-face";
 import { getMapById } from "@fog-maze-race/shared/maps/map-definitions";
 
 import { RevisionSync } from "../../src/ws/revision-sync.js";
@@ -8,7 +9,7 @@ import { MatchAggregate } from "../../src/core/match.js";
 import { MapRegistry } from "../../src/maps/map-registry.js";
 
 describe("RoomService", () => {
-  it("assigns player colors and marker shapes from the server palette", () => {
+  it("assigns player colors, shapes, and faces from the server palette", () => {
     const service = new RoomService(new RevisionSync(), new MapRegistry());
     const hostSession = new PlayerSession({
       playerId: "host",
@@ -32,9 +33,11 @@ describe("RoomService", () => {
     const members = service.getSnapshot(created.roomId).members;
     const colors = members.map((member) => member.color);
     const shapes = members.map((member) => member.shape);
+    const faces = members.map((member) => member.face);
 
     expect(colors).toEqual(["#ff355e", "#ff8a00"]);
     expect(shapes).toEqual(["circle", "square"]);
+    expect(faces.every((face) => PLAYER_MARKER_FACES.includes(face))).toBe(true);
     expect(colors).not.toContain("#22d3ee");
     expect(colors).not.toContain("#14b8a6");
     expect(colors).not.toContain("#facc15");
