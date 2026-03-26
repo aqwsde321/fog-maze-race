@@ -1,7 +1,11 @@
 import type { CSSProperties } from "react";
 
 import type { RoomSnapshot } from "@fog-maze-race/shared/contracts/snapshots";
-import { getPlayerMarkerStyle } from "../../game/player-marker.js";
+import {
+  getPlayerMarkerEyeStyle,
+  getPlayerMarkerEyesWrapStyle,
+  getPlayerMarkerStyle
+} from "../../game/player-marker.js";
 
 type PlayerSidebarProps = {
   snapshot: RoomSnapshot;
@@ -38,6 +42,12 @@ export function PlayerSidebar({ snapshot, selfPlayerId }: PlayerSidebarProps) {
                     color: member.color
                   }}
                 />
+                {member.playerId === selfPlayerId ? (
+                  <span data-marker-eyes="true" style={getPlayerMarkerEyesWrapStyle(12)}>
+                    <span data-marker-eye="true" style={getPlayerMarkerEyeStyle(12)} />
+                    <span data-marker-eye="true" style={getPlayerMarkerEyeStyle(12)} />
+                  </span>
+                ) : null}
               </span>
               <div>
                 <strong style={nameStyle}>

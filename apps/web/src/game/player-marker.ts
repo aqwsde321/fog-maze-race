@@ -4,6 +4,7 @@ import type { PlayerMarkerShape } from "@fog-maze-race/shared/domain/player-mark
 
 export const PLAYER_MARKER_DIAMETER_RATIO = 0.64;
 export const PLAYER_MARKER_SELF_RING_RATIO = 0.39;
+const MARKER_EYE_COLOR = "#081120";
 
 export function getPlayerMarkerStyle(
   shape: PlayerMarkerShape,
@@ -40,6 +41,36 @@ export function getPlayerMarkerStyle(
         clipPath: "polygon(0% 0%, 100% 0%, 50% 100%)"
       };
   }
+}
+
+export function getPlayerMarkerEyesWrapStyle(size: number): CSSProperties {
+  const width = Math.max(6, Math.round(size * 0.5));
+  const height = Math.max(4, Math.round(size * 0.18));
+
+  return {
+    position: "absolute",
+    left: "50%",
+    top: "42%",
+    transform: "translate(-50%, -50%)",
+    width: `${width}px`,
+    height: `${height}px`,
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    pointerEvents: "none"
+  };
+}
+
+export function getPlayerMarkerEyeStyle(size: number): CSSProperties {
+  const eyeSize = Math.max(2, Math.round(size * 0.14));
+
+  return {
+    width: `${eyeSize}px`,
+    height: `${eyeSize}px`,
+    borderRadius: "999px",
+    background: MARKER_EYE_COLOR,
+    opacity: 0.92
+  };
 }
 
 export function drawPlayerMarkerShape(
@@ -102,4 +133,24 @@ export function drawPlayerMarkerShape(
       alpha: style.alpha ?? 1
     });
   }
+}
+
+export function drawPlayerMarkerEyes(
+  graphics: Graphics,
+  centerX: number,
+  centerY: number,
+  radius: number,
+  style?: {
+    color?: number;
+    alpha?: number;
+  }
+) {
+  const eyeRadius = Math.max(1.1, radius * 0.14);
+  const eyeOffsetX = Math.max(2, radius * 0.36);
+  const eyeOffsetY = Math.max(1, radius * 0.18);
+  const color = style?.color ?? 0x081120;
+  const alpha = style?.alpha ?? 0.92;
+
+  graphics.circle(centerX - eyeOffsetX, centerY - eyeOffsetY, eyeRadius).fill({ color, alpha });
+  graphics.circle(centerX + eyeOffsetX, centerY - eyeOffsetY, eyeRadius).fill({ color, alpha });
 }

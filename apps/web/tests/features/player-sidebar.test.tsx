@@ -25,7 +25,7 @@ describe("PlayerSidebar", () => {
     container.remove();
   });
 
-  it("shows a border only for the current player marker", async () => {
+  it("shows a border and eyes only for the current player marker", async () => {
     await act(async () => {
       root.render(<PlayerSidebar snapshot={buildSnapshot()} selfPlayerId="player-1" />);
     });
@@ -35,11 +35,15 @@ describe("PlayerSidebar", () => {
 
     const selfRing = cards[0]?.querySelector('[data-marker-self-ring="true"]');
     const selfDot = cards[0]?.querySelector('[data-marker-shape]');
+    const selfEyes = cards[0]?.querySelectorAll('[data-marker-eye="true"]');
     const guestDot = cards[1]?.querySelector('[data-marker-shape]');
+    const guestEyes = cards[1]?.querySelectorAll('[data-marker-eye="true"]');
 
     expect(selfRing).not.toBeNull();
     expect(selfDot?.getAttribute("data-marker-shape")).toBe("circle");
+    expect(selfEyes).toHaveLength(2);
     expect(guestDot?.getAttribute("data-marker-shape")).toBe("square");
+    expect(guestEyes).toHaveLength(0);
     expect(container.textContent).toContain("만두 (나)");
     expect(container.textContent).toContain("참가자");
   });

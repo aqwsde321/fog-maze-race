@@ -62,6 +62,7 @@ describe("GameCanvas preview layout", () => {
 
     const selfRing = container.querySelector<HTMLElement>('[data-marker-self-ring="true"]');
     const selfDot = container.querySelector<HTMLElement>('[data-marker-shape="circle"]');
+    const selfEyes = container.querySelectorAll('[data-marker-eye="true"]');
     const layout = createPreviewLayout(map, {
       viewportWidth: 960,
       viewportHeight: 540
@@ -70,6 +71,7 @@ describe("GameCanvas preview layout", () => {
 
     expect(selfDot).not.toBeNull();
     expect(selfRing).not.toBeNull();
+    expect(selfEyes).toHaveLength(2);
     expect(selfDot?.style.width).toBe(`${expectedDotSize}px`);
     expect(selfDot?.style.height).toBe(`${expectedDotSize}px`);
   });

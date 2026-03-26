@@ -9,6 +9,7 @@ import { renderFogOverlay } from "./renderers/fog-renderer.js";
 import {
   PLAYER_MARKER_DIAMETER_RATIO,
   PLAYER_MARKER_SELF_RING_RATIO,
+  drawPlayerMarkerEyes,
   drawPlayerMarkerShape
 } from "../player-marker.js";
 import { getPlayerRenderOrder } from "../player-render-order.js";
@@ -150,6 +151,10 @@ export async function createSceneController(container: HTMLDivElement): Promise<
         });
 
         if (member.playerId === selfPlayerId) {
+          drawPlayerMarkerEyes(playerLayer, centerX, centerY, markerRadius, {
+            color: 0x081120,
+            alpha: 0.92
+          });
           drawPlayerMarkerShape(
             playerLayer,
             markerShape,
