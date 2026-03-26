@@ -43,20 +43,28 @@ export type RoomRuntime = {
   match: MatchAggregate | null;
   previewMapId: string;
   visibilitySize: 3 | 5 | 7;
+  shapeDeck: PlayerMarkerShape[];
+  shapeCursor: number;
 };
 
 export class RoomService {
   private readonly rooms = new Map<string, RoomRuntime>();
   private readonly resultsDurationMs: number;
   private readonly forcedPreviewMapId: string | null;
+  private readonly random: () => number;
 
   constructor(
     private readonly revisionSync: RevisionSync,
     private readonly mapRegistry: MapRegistry,
-    options?: { resultsDurationMs?: number; forcedPreviewMapId?: string | null }
+    options?: {
+      resultsDurationMs?: number;
+      forcedPreviewMapId?: string | null;
+      random?: () => number;
+    }
   ) {
     this.resultsDurationMs = options?.resultsDurationMs ?? 6_000;
     this.forcedPreviewMapId = options?.forcedPreviewMapId ?? null;
+    this.random = options?.random ?? Math.random;
   }
 
   createRoom(input: { session: PlayerSession; name: string }): RoomJoinedPayload {
@@ -69,17 +77,25 @@ export class RoomService {
       name,
       hostPlayerId: input.session.playerId
     });
+    const shapeDeck = createShapeDeck(room.maxPlayers, this.random);
 
     room.join({
       playerId: input.session.playerId,
       nickname: input.session.nickname,
       color: PLAYER_COLORS[0],
-      shape: nextShape(0),
+      shape: shapeDeck[0] ?? nextShape(0),
       state: "waiting",
       position: previewMap?.startSlots[0] ?? null
     });
 
-    this.rooms.set(roomId, { room, match: null, previewMapId, visibilitySize: 7 });
+    this.rooms.set(roomId, {
+      room,
+      match: null,
+      previewMapId,
+      visibilitySize: 7,
+      shapeDeck,
+      shapeCursor: 1
+    });
     input.session.currentRoomId = roomId;
     this.syncRoomRevision(roomId);
 
@@ -94,15 +110,18 @@ export class RoomService {
     const runtime = this.requireRuntime(input.roomId);
     const nextColor = PLAYER_COLORS[runtime.room.listMembers().length % PLAYER_COLORS.length]!;
     const previewMap = this.mapRegistry.get(runtime.previewMapId);
+    const nextAssignedShape =
+      runtime.shapeDeck[runtime.shapeCursor] ?? nextShape(runtime.shapeCursor);
 
     runtime.room.join({
       playerId: input.session.playerId,
       nickname: input.session.nickname,
       color: nextColor,
-      shape: nextShape(runtime.room.listMembers().length),
+      shape: nextAssignedShape,
       state: "waiting",
       position: previewMap?.startSlots[runtime.room.listMembers().length] ?? previewMap?.startSlots.at(-1) ?? null
     });
+    runtime.shapeCursor += 1;
 
     input.session.currentRoomId = input.roomId;
     this.syncRoomRevision(input.roomId);
@@ -310,6 +329,19 @@ function normalizeRoomName(name: string) {
 
 function nextShape(index: number): PlayerMarkerShape {
   return PLAYER_MARKER_SHAPES[index % PLAYER_MARKER_SHAPES.length]!;
+}
+
+function createShapeDeck(maxPlayers: number, random: () => number) {
+  const deck = Array.from({ length: maxPlayers }, (_, index) => nextShape(index));
+
+  for (let index = deck.length - 1; index > 0; index -= 1) {
+    const swapIndex = Math.floor(random() * (index + 1));
+    const current = deck[index]!;
+    deck[index] = deck[swapIndex]!;
+    deck[swapIndex] = current;
+  }
+
+  return deck;
 }
 
 function serializeMap(map: MapDefinition, visibilityRadius = map.visibilityRadius): MapView {

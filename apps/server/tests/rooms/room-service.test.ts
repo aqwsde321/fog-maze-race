@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { getMapById } from "@fog-maze-race/shared/maps/map-definitions";
+import { PLAYER_MARKER_SHAPES } from "@fog-maze-race/shared/domain/player-marker-shape";
 
 import { RevisionSync } from "../../src/ws/revision-sync.js";
 import { RoomService } from "../../src/rooms/room-service.js";
@@ -9,7 +10,9 @@ import { MapRegistry } from "../../src/maps/map-registry.js";
 
 describe("RoomService", () => {
   it("assigns player colors and marker shapes from the server palette", () => {
-    const service = new RoomService(new RevisionSync(), new MapRegistry());
+    const service = new RoomService(new RevisionSync(), new MapRegistry(), {
+      random: () => 0
+    });
     const hostSession = new PlayerSession({
       playerId: "host",
       nickname: "호스트"
@@ -34,7 +37,7 @@ describe("RoomService", () => {
     const shapes = members.map((member) => member.shape);
 
     expect(colors).toEqual(["#ff355e", "#ff8a00"]);
-    expect(shapes).toEqual(["circle", "square"]);
+    expect(shapes).toEqual(["square", "diamond"]);
     expect(colors).not.toContain("#22d3ee");
     expect(colors).not.toContain("#14b8a6");
     expect(colors).not.toContain("#facc15");
@@ -65,7 +68,7 @@ describe("RoomService", () => {
     expect(new Set(colors).size).toBe(15);
   });
 
-  it("cycles marker shapes deterministically by join order", () => {
+  it("distributes marker shapes evenly across 15 players", () => {
     const service = new RoomService(new RevisionSync(), new MapRegistry());
     const room = service.createRoom({
       session: new PlayerSession({
@@ -75,7 +78,7 @@ describe("RoomService", () => {
       name: "Alpha"
     });
 
-    for (let index = 1; index < 7; index += 1) {
+    for (let index = 1; index < 15; index += 1) {
       service.joinRoom({
         roomId: room.roomId,
         session: new PlayerSession({
@@ -86,16 +89,15 @@ describe("RoomService", () => {
     }
 
     const shapes = service.getSnapshot(room.roomId).members.map((member) => member.shape);
+    const counts = new Map(PLAYER_MARKER_SHAPES.map((shape) => [shape, 0]));
 
-    expect(shapes).toEqual([
-      "circle",
-      "square",
-      "diamond",
-      "triangle",
-      "triangle-down",
-      "circle",
-      "square"
-    ]);
+    for (const shape of shapes) {
+      counts.set(shape, (counts.get(shape) ?? 0) + 1);
+    }
+
+    expect(shapes).toHaveLength(15);
+    expect(new Set(shapes).size).toBe(PLAYER_MARKER_SHAPES.length);
+    expect([...counts.values()]).toEqual([3, 3, 3, 3, 3]);
   });
 
   it("includes the result display duration in ended match snapshots", () => {
