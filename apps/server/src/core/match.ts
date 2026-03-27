@@ -74,7 +74,10 @@ export class MatchAggregate {
     return isInsideZone(this.map.goalZone, position);
   }
 
-  markFinished(input: { playerId: string; nickname: string; color: string; position: GridPosition }) {
+  markFinished(
+    input: { playerId: string; nickname: string; color: string; position: GridPosition },
+    now = Date.now()
+  ) {
     if (!this.isGoal(input.position)) {
       return null;
     }
@@ -86,13 +89,15 @@ export class MatchAggregate {
 
     this.finishOrder.push(input.playerId);
     const rank = this.finishOrder.length;
+    const elapsedMs = this.startedAt === null ? null : Math.max(now - this.startedAt, 0);
 
     this.results.push({
       playerId: input.playerId,
       nickname: input.nickname,
       color: input.color,
       outcome: "finished",
-      rank
+      rank,
+      elapsedMs
     });
 
     return rank;
@@ -109,7 +114,8 @@ export class MatchAggregate {
       nickname: input.nickname,
       color: input.color,
       outcome: "left",
-      rank: null
+      rank: null,
+      elapsedMs: null
     });
   }
 

@@ -33,6 +33,9 @@ export function ResultOverlay({ snapshot, isHost, onResetToWaiting }: ResultOver
               <div>
                 <p style={nameStyle}>{result.nickname}</p>
                 <p style={metaStyle}>{result.outcome === "finished" ? "완주" : "나감"}</p>
+                {result.outcome === "finished" && result.elapsedMs !== null ? (
+                  <p style={timeStyle}>소요시간 {formatElapsedTime(result.elapsedMs)}</p>
+                ) : null}
               </div>
             </article>
           ))}
@@ -128,6 +131,12 @@ const metaStyle: CSSProperties = {
   color: "#94a3b8"
 };
 
+const timeStyle: CSSProperties = {
+  margin: "4px 0 0",
+  color: "#fde68a",
+  fontVariantNumeric: "tabular-nums"
+};
+
 const resetButtonStyle: CSSProperties = {
   marginTop: "18px",
   border: "none",
@@ -139,3 +148,11 @@ const resetButtonStyle: CSSProperties = {
   background: "linear-gradient(135deg, #fde68a, #f59e0b)",
   cursor: "pointer"
 };
+
+function formatElapsedTime(elapsedMs: number) {
+  const minutes = Math.floor(elapsedMs / 60_000);
+  const seconds = Math.floor((elapsedMs % 60_000) / 1_000);
+  const milliseconds = elapsedMs % 1_000;
+
+  return `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}.${String(milliseconds).padStart(3, "0")}`;
+}

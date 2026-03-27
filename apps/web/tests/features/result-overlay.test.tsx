@@ -79,16 +79,37 @@ describe("ResultOverlay", () => {
     expect(container.textContent).toContain("호스트가 새 게임을 준비하면");
     expect(container.querySelector('[data-testid="results-reset-button"]')).toBeNull();
   });
+
+  it("shows each finished player's elapsed time in the results modal", async () => {
+    await act(async () => {
+      root.render(
+        <ResultOverlay
+          snapshot={buildEndedSnapshot(2, { elapsedMsBase: 20_000 })}
+          isHost
+          onResetToWaiting={vi.fn()}
+        />
+      );
+    });
+
+    expect(container.textContent).toContain("소요시간 00:20.000");
+    expect(container.textContent).toContain("소요시간 00:21.000");
+  });
 });
 
-function buildEndedSnapshot(resultCount = 1): RoomSnapshot {
+function buildEndedSnapshot(
+  resultCount = 1,
+  options?: {
+    elapsedMsBase?: number;
+  }
+): RoomSnapshot {
   const results = Array.from({ length: resultCount }, (_, index) => ({
     playerId: `player-${index + 1}`,
     nickname: `호${index + 1}`,
     color: `hsl(${(index * 24) % 360} 80% 60%)`,
     outcome: "finished" as const,
-    rank: index + 1
-  }));
+    rank: index + 1,
+    elapsedMs: (options?.elapsedMsBase ?? 20_000) + index * 1_000
+  })) as NonNullable<RoomSnapshot["match"]>["results"];
 
   return {
     revision: 1,
