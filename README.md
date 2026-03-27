@@ -150,6 +150,7 @@ pnpm typecheck
 
 ## 상세 문서
 
+- [Render 배포 가이드](./docs/deploy-render.md)
 - [빠른 시작](./specs/001-fog-maze-race/quickstart.md)
 - [기능 명세](./specs/001-fog-maze-race/spec.md)
 - [실시간 이벤트 계약](./specs/001-fog-maze-race/contracts/realtime-events.md)

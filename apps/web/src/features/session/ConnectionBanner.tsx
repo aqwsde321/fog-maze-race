@@ -12,8 +12,8 @@ export function ConnectionBanner({ connectionState }: ConnectionBannerProps) {
   return (
     <div style={bannerStyle}>
       {connectionState === "connecting"
-        ? "서버에 재연결 중입니다."
-        : "연결이 끊겼습니다. 복구를 시도하고 있습니다."}
+        ? "서버에 연결 중입니다. 배포 서버가 잠들어 있었다면 잠시만 기다려 주세요."
+        : "연결이 끊겼습니다. 복구를 시도하고 있습니다. 오래 걸리면 새로고침해 주세요."}
     </div>
   );
 }

@@ -1,0 +1,13 @@
+services:
+  - type: web
+    runtime: docker
+    name: fog-maze-race
+    plan: free
+    region: singapore
+    dockerfilePath: ./Dockerfile
+    dockerContext: ./
+    healthCheckPath: /health
+    autoDeployTrigger: commit
+    envVars:
+      - key: APP_VERSION
+        value: render
