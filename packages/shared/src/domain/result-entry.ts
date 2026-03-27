@@ -6,4 +6,5 @@ export type ResultEntry = {
   color: string;
   outcome: ResultOutcome;
   rank: number | null;
+  elapsedMs: number | null;
 };

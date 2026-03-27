@@ -278,7 +278,8 @@ function buildSnapshot(
                   nickname: "호1",
                   color: "#38bdf8",
                   outcome: "finished",
-                  rank: 1
+                  rank: 1,
+                  elapsedMs: 20_000
                 }
               ]
             : [],
