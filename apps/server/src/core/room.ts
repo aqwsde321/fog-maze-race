@@ -17,6 +17,18 @@ export type RoomMemberRecord = {
   finishRank: number | null;
 };
 
+export type RoomChatMessageRecord = {
+  messageId: string;
+  playerId: string;
+  nickname: string;
+  color: string;
+  content: string;
+  sentAt: string;
+};
+
+const MAX_CHAT_MESSAGES = 30;
+const MAX_CHAT_MESSAGE_LENGTH = 80;
+
 export class RoomAggregate {
   readonly roomId: string;
   name: string;
@@ -26,6 +38,7 @@ export class RoomAggregate {
   revision: number;
 
   private readonly members = new Map<string, RoomMemberRecord>();
+  private readonly chatMessages: RoomChatMessageRecord[] = [];
   private nextJoinOrder = 1;
 
   constructor(input: { roomId: string; name: string; hostPlayerId: string; maxPlayers?: number }) {
@@ -211,6 +224,44 @@ export class RoomAggregate {
 
   hasMembers() {
     return this.members.size > 0;
+  }
+
+  addChatMessage(input: {
+    playerId: string;
+    messageId: string;
+    content: string;
+    sentAt: string;
+  }) {
+    const member = this.members.get(input.playerId);
+    if (!member) {
+      throw new Error("NOT_IN_ROOM");
+    }
+
+    const content = input.content.trim();
+    if (!content || content.length > MAX_CHAT_MESSAGE_LENGTH) {
+      throw new Error("INVALID_CHAT_MESSAGE");
+    }
+
+    const message: RoomChatMessageRecord = {
+      messageId: input.messageId,
+      playerId: member.playerId,
+      nickname: member.nickname,
+      color: member.color,
+      content,
+      sentAt: input.sentAt
+    };
+
+    this.chatMessages.push(message);
+    if (this.chatMessages.length > MAX_CHAT_MESSAGES) {
+      this.chatMessages.splice(0, this.chatMessages.length - MAX_CHAT_MESSAGES);
+    }
+
+    this.bumpRevision();
+    return message;
+  }
+
+  listChatMessages() {
+    return [...this.chatMessages];
   }
 
   private bumpRevision() {

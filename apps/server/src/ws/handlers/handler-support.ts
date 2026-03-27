@@ -41,6 +41,7 @@ export function emitError(socket: Socket, error: unknown) {
 function toErrorCode(code: string): ErrorPayload["code"] {
   switch (code) {
     case "INVALID_NICKNAME":
+    case "INVALID_CHAT_MESSAGE":
     case "ROOM_FULL":
     case "ROOM_NOT_JOINABLE":
     case "HOST_ONLY":
@@ -57,6 +58,8 @@ function toMessage(code: string) {
   switch (code) {
     case "INVALID_NICKNAME":
       return "닉네임은 1자 이상 5자 이하로 입력해야 합니다.";
+    case "INVALID_CHAT_MESSAGE":
+      return "채팅은 1자 이상 80자 이하로 입력해야 합니다.";
     case "ROOM_FULL":
       return "방 인원이 가득 찼습니다.";
     case "ROOM_NOT_JOINABLE":

@@ -69,4 +69,66 @@ describe("RoomAggregate", () => {
       })
     ).toThrowError("ROOM_NOT_JOINABLE");
   });
+
+  it("stores room-wide chat messages and trims the history to the latest 30 entries", () => {
+    const room = new RoomAggregate({
+      roomId: "room-1",
+      name: "Alpha",
+      hostPlayerId: "host"
+    });
+
+    room.join({
+      playerId: "host",
+      nickname: "Host",
+      color: "#f97316",
+      shape: "circle",
+      state: "waiting",
+      position: null
+    });
+
+    for (let index = 0; index < 31; index += 1) {
+      room.addChatMessage({
+        playerId: "host",
+        messageId: `message-${index}`,
+        content: `메시지 ${index}`,
+        sentAt: `2026-03-27T00:00:${String(index).padStart(2, "0")}.000Z`
+      });
+    }
+
+    expect(room.listChatMessages()).toHaveLength(30);
+    expect(room.listChatMessages()[0]?.content).toBe("메시지 1");
+    expect(room.listChatMessages().at(-1)).toMatchObject({
+      messageId: "message-30",
+      playerId: "host",
+      nickname: "Host",
+      color: "#f97316",
+      content: "메시지 30"
+    });
+  });
+
+  it("rejects blank chat messages from room members", () => {
+    const room = new RoomAggregate({
+      roomId: "room-1",
+      name: "Alpha",
+      hostPlayerId: "host"
+    });
+
+    room.join({
+      playerId: "host",
+      nickname: "Host",
+      color: "#f97316",
+      shape: "circle",
+      state: "waiting",
+      position: null
+    });
+
+    expect(() =>
+      room.addChatMessage({
+        playerId: "host",
+        messageId: "message-1",
+        content: "   ",
+        sentAt: "2026-03-27T00:00:00.000Z"
+      })
+    ).toThrowError("INVALID_CHAT_MESSAGE");
+  });
 });

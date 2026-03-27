@@ -6,6 +6,7 @@ import type { RoomSnapshot } from "@fog-maze-race/shared/contracts/snapshots";
 import { HostControls } from "../features/rooms/HostControls.js";
 import { PlayerSidebar } from "../features/rooms/PlayerSidebar.js";
 import { ResultOverlay } from "../features/rooms/ResultOverlay.js";
+import { RoomChatPanel } from "../features/rooms/RoomChatPanel.js";
 import { GameCanvas } from "../game/GameCanvas.js";
 
 type GameScreenProps = {
@@ -19,6 +20,7 @@ type GameScreenProps = {
   onResetToWaiting: () => void;
   onLeaveRoom: () => void;
   onMove: (direction: Direction) => void;
+  onSendChatMessage: (content: string) => void;
 };
 
 export function GameScreen({
@@ -31,7 +33,8 @@ export function GameScreen({
   onForceEndRoom,
   onResetToWaiting,
   onLeaveRoom,
-  onMove
+  onMove,
+  onSendChatMessage
 }: GameScreenProps) {
   const canvasFrameRef = useRef<HTMLDivElement | null>(null);
   const isHost = snapshot.room.hostPlayerId === selfPlayerId;
@@ -109,6 +112,13 @@ export function GameScreen({
           tabIndex={0}
         >
           <GameCanvas snapshot={snapshot} selfPlayerId={selfPlayerId} />
+          <div data-testid="room-chat-dock" style={chatDockStyle}>
+            <RoomChatPanel
+              snapshot={snapshot}
+              selfPlayerId={selfPlayerId}
+              onSendMessage={onSendChatMessage}
+            />
+          </div>
           {snapshot.room.status === "countdown" && countdownValue !== null ? (
             <div data-testid="countdown-overlay" style={countdownOverlayStyle}>
               <div style={countdownCardStyle}>
@@ -344,6 +354,14 @@ const countdownOverlayStyle: CSSProperties = {
   inset: 0,
   display: "grid",
   placeItems: "center",
+  pointerEvents: "none"
+};
+
+const chatDockStyle: CSSProperties = {
+  position: "absolute",
+  left: "0px",
+  bottom: "18px",
+  zIndex: 2,
   pointerEvents: "none"
 };
 

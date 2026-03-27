@@ -18,6 +18,7 @@ import type {
   RoomLeftPayload,
   RoomListUpdatePayload,
   RoomStateUpdatePayload,
+  SendChatMessagePayload,
   SetVisibilitySizePayload,
   StartGamePayload
 } from "@fog-maze-race/shared/contracts/realtime";
@@ -48,6 +49,7 @@ export type RaceSocketCommands = {
   FORCE_END_ROOM: (payload: ForceEndRoomPayload) => void;
   RESET_ROOM: (payload: ResetRoomPayload) => void;
   MOVE: (payload: MovePayload) => void;
+  SEND_CHAT_MESSAGE: (payload: SendChatMessagePayload) => void;
 };
 
 let socket: Socket<RaceSocketEvents, RaceSocketCommands> | null = null;

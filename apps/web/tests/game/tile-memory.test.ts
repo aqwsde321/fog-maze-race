@@ -73,6 +73,7 @@ function buildSnapshot(matchId: string) {
       visibilitySize: 7 as const
     },
     members: [],
+    chat: [],
     previewMap: null,
     match: {
       matchId,

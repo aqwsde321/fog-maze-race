@@ -12,14 +12,29 @@ vi.mock("../../src/game/pixi/scene-controller.js", () => ({
 import { GameCanvas } from "../../src/game/GameCanvas.js";
 import { PLAYER_MARKER_DIAMETER_RATIO } from "../../src/game/player-marker.js";
 import { createPreviewLayout } from "../../src/game/GameCanvas.js";
+import { createSceneController } from "../../src/game/pixi/scene-controller.js";
 
 (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
 describe("GameCanvas preview layout", () => {
   let container: HTMLDivElement;
   let root: Root;
+  let resizeObserverCallback: ResizeObserverCallback | null;
+  const createSceneControllerMock = vi.mocked(createSceneController);
 
   beforeEach(() => {
+    resizeObserverCallback = null;
+    class ResizeObserverMock {
+      constructor(callback: ResizeObserverCallback) {
+        resizeObserverCallback = callback;
+      }
+
+      observe() {}
+
+      disconnect() {}
+    }
+
+    vi.stubGlobal("ResizeObserver", ResizeObserverMock);
     container = document.createElement("div");
     container.style.width = "960px";
     container.style.height = "540px";
@@ -32,6 +47,8 @@ describe("GameCanvas preview layout", () => {
       root.unmount();
     });
     container.remove();
+    vi.unstubAllGlobals();
+    createSceneControllerMock.mockReset();
   });
 
   it("keeps the live board composition in waiting mode but hides the connector strip", async () => {
@@ -75,6 +92,28 @@ describe("GameCanvas preview layout", () => {
     expect(selfDot?.style.width).toBe(`${expectedDotSize}px`);
     expect(selfDot?.style.height).toBe(`${expectedDotSize}px`);
   });
+
+  it("rerenders the live Pixi scene when the canvas container is resized after the game starts", async () => {
+    const controller = {
+      render: vi.fn(),
+      destroy: vi.fn()
+    };
+    createSceneControllerMock.mockResolvedValue(controller as never);
+
+    await act(async () => {
+      root.render(<GameCanvas snapshot={buildPlayingSnapshot()} selfPlayerId="player-1" />);
+    });
+
+    expect(createSceneControllerMock).toHaveBeenCalledTimes(1);
+    expect(controller.render).toHaveBeenCalledTimes(1);
+    expect(resizeObserverCallback).not.toBeNull();
+
+    await act(async () => {
+      resizeObserverCallback?.([], {} as ResizeObserver);
+    });
+
+    expect(controller.render).toHaveBeenCalledTimes(2);
+  });
 });
 
 function buildWaitingSnapshot(): RoomSnapshot {
@@ -105,6 +144,7 @@ function buildWaitingSnapshot(): RoomSnapshot {
         isHost: true
       }
     ],
+    chat: [],
     previewMap: {
       mapId: map.mapId,
       width: map.width,
@@ -118,5 +158,61 @@ function buildWaitingSnapshot(): RoomSnapshot {
       visibilityRadius: map.visibilityRadius
     },
     match: null
+  };
+}
+
+function buildPlayingSnapshot(): RoomSnapshot {
+  const map = getMapById("training-lap");
+  if (!map) {
+    throw new Error("training-lap map not found");
+  }
+
+  return {
+    revision: 2,
+    room: {
+      roomId: "room-1",
+      name: "Alpha",
+      status: "playing",
+      hostPlayerId: "player-1",
+      maxPlayers: 15,
+      visibilitySize: 7
+    },
+    members: [
+      {
+        playerId: "player-1",
+        nickname: "아르민",
+        color: "#fb7185",
+        shape: "circle",
+        state: "playing",
+        position: { x: 0, y: 1 },
+        finishRank: null,
+        isHost: true
+      }
+    ],
+    chat: [],
+    previewMap: null,
+    match: {
+      matchId: "match-1",
+      mapId: map.mapId,
+      status: "playing",
+      countdownValue: null,
+      startedAt: "2026-03-28T00:00:00.000Z",
+      endedAt: null,
+      resultsDurationMs: null,
+      finishOrder: [],
+      results: [],
+      map: {
+        mapId: map.mapId,
+        width: map.width,
+        height: map.height,
+        tiles: map.tiles,
+        startZone: map.startZone,
+        mazeZone: map.mazeZone,
+        goalZone: map.goalZone,
+        startSlots: map.startSlots,
+        connectorTiles: map.connectorTiles,
+        visibilityRadius: map.visibilityRadius
+      }
+    }
   };
 }

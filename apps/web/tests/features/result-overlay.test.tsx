@@ -112,6 +112,7 @@ function buildEndedSnapshot(resultCount = 1): RoomSnapshot {
         isHost: true
       }
     ],
+    chat: [],
     previewMap: null,
     match: {
       matchId: "match-1",

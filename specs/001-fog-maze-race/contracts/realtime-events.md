@@ -128,6 +128,21 @@ type MovePayload = {
 - 클라이언트는 방향만 전송한다.
 - 서버는 방 상태, 멤버십, 벽 충돌, 매치 상태를 검증한 뒤 위치를 갱신한다.
 
+### `SEND_CHAT_MESSAGE`
+
+```ts
+type SendChatMessagePayload = {
+  roomId: string;
+  content: string;
+};
+```
+
+**규칙**
+
+- 방 안에 있는 플레이어만 보낼 수 있다.
+- `content`는 trim 후 1~80자여야 한다.
+- 서버는 최신 30개 메시지만 보관하고, 결과는 다음 `ROOM_STATE_UPDATE` 스냅샷에 포함한다.
+
 ## 서버 -> 클라이언트 이벤트
 
 ### `CONNECTED`
@@ -196,6 +211,7 @@ type RoomStateUpdatePayload = {
 
 - 생성, 입장, 나가기, 방장 위임, 재접속 복구, 강제 종료 등 클라이언트 드리프트 가능성이 있는 모든 상태 전이 뒤에 보낸다.
 - 클라이언트는 이 페이로드로 로컬 authoritative 스냅샷을 통째로 교체해야 한다.
+- 전체 채팅 메시지 갱신도 이 이벤트를 사용한다.
 
 ### `GAME_STARTING`
 

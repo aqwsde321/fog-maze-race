@@ -49,6 +49,11 @@ export type MovePayload = {
   inputSeq: number;
 };
 
+export type SendChatMessagePayload = {
+  roomId: string;
+  content: string;
+};
+
 export type ConnectedPayload = {
   playerId: string;
   nickname: string;
@@ -123,6 +128,7 @@ export type GameEndedPayload = {
 
 export type ErrorCode =
   | "INVALID_NICKNAME"
+  | "INVALID_CHAT_MESSAGE"
   | "ROOM_FULL"
   | "ROOM_NOT_JOINABLE"
   | "HOST_ONLY"

@@ -21,9 +21,16 @@ type GameCanvasProps = {
 export function GameCanvas({ snapshot, selfPlayerId }: GameCanvasProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const controllerRef = useRef<SceneController | null>(null);
+  const latestSnapshotRef = useRef<RoomSnapshot | null>(snapshot);
+  const latestSelfPlayerIdRef = useRef<string | null>(selfPlayerId);
   const shouldUsePixi = Boolean(
     snapshot?.match && (snapshot.room.status === "playing" || snapshot.room.status === "ended")
   );
+
+  useEffect(() => {
+    latestSnapshotRef.current = snapshot;
+    latestSelfPlayerIdRef.current = selfPlayerId;
+  }, [selfPlayerId, snapshot]);
 
   useEffect(() => {
     let cancelled = false;
@@ -63,6 +70,21 @@ export function GameCanvas({ snapshot, selfPlayerId }: GameCanvasProps) {
 
     controllerRef.current?.render(snapshot, selfPlayerId);
   }, [selfPlayerId, shouldUsePixi, snapshot]);
+
+  useEffect(() => {
+    if (!shouldUsePixi || typeof ResizeObserver === "undefined" || !containerRef.current) {
+      return;
+    }
+
+    const observer = new ResizeObserver(() => {
+      controllerRef.current?.render(latestSnapshotRef.current, latestSelfPlayerIdRef.current);
+    });
+    observer.observe(containerRef.current);
+
+    return () => {
+      observer.disconnect();
+    };
+  }, [shouldUsePixi]);
 
   const previewMap = snapshot?.match?.map ?? snapshot?.previewMap ?? null;
   if (!shouldUsePixi && snapshot && previewMap) {
