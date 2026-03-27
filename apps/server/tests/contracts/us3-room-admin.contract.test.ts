@@ -155,6 +155,41 @@ describe("US3 room administration contract", () => {
     await waitForSnapshot(guest, (snapshot) => snapshot.room.status === "waiting", 1_000);
   }, 15_000);
 
+  it("syncs room chat messages to every member in the room", async () => {
+    const host = createRaceSocket();
+    const guest = createRaceSocket();
+
+    host.connect();
+    guest.connect();
+
+    host.emit("CONNECT", { nickname: "호1" });
+    guest.emit("CONNECT", { nickname: "게2" });
+
+    await once(host, "CONNECTED");
+    await once(guest, "CONNECTED");
+    await delay(60);
+
+    host.emit("CREATE_ROOM", { name: "Alpha" });
+    const hostJoined = await once(host, "ROOM_JOINED");
+
+    guest.emit("JOIN_ROOM", { roomId: hostJoined.roomId });
+    await once(guest, "ROOM_JOINED");
+
+    host.emit("SEND_CHAT_MESSAGE", {
+      roomId: hostJoined.roomId,
+      content: "  안개 조심  "
+    });
+
+    const hostSnapshot = await waitForSnapshot(host, (snapshot) => snapshot.chat.length === 1, 1_000);
+    const guestSnapshot = await waitForSnapshot(guest, (snapshot) => snapshot.chat.length === 1, 1_000);
+
+    expect(hostSnapshot.chat).toEqual(guestSnapshot.chat);
+    expect(guestSnapshot.chat[0]).toMatchObject({
+      nickname: "호1",
+      content: "안개 조심"
+    });
+  }, 10_000);
+
   function createRaceSocket() {
     const socket = createClient(`http://127.0.0.1:${port}`, {
       transports: ["websocket"],

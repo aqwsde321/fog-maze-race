@@ -192,6 +192,18 @@ export class RoomService {
     return this.getSnapshot(roomId);
   }
 
+  sendChatMessage(roomId: string, playerId: string, content: string) {
+    const runtime = this.requireRuntime(roomId);
+    runtime.room.addChatMessage({
+      playerId,
+      messageId: randomUUID(),
+      content,
+      sentAt: new Date().toISOString()
+    });
+    this.syncRoomRevision(roomId);
+    return this.getSnapshot(roomId);
+  }
+
   findRuntime(roomId: string) {
     return this.rooms.get(roomId) ?? null;
   }
@@ -276,6 +288,14 @@ export class RoomService {
         position: member.position,
         finishRank: member.finishRank,
         isHost: member.playerId === runtime.room.hostPlayerId
+      })),
+      chat: runtime.room.listChatMessages().map((message) => ({
+        messageId: message.messageId,
+        playerId: message.playerId,
+        nickname: message.nickname,
+        color: message.color,
+        content: message.content,
+        sentAt: message.sentAt
       })),
       previewMap: previewMap ? serializeMap(previewMap, this.getVisibilityRadius(roomId)) : null,
       match: runtime.match

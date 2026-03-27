@@ -105,6 +105,7 @@ function buildWaitingSnapshot(): RoomSnapshot {
         isHost: true
       }
     ],
+    chat: [],
     previewMap: {
       mapId: map.mapId,
       width: map.width,

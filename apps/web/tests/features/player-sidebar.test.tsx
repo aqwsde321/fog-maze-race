@@ -82,6 +82,7 @@ function buildSnapshot(): RoomSnapshot {
         isHost: false
       }
     ],
+    chat: [],
     previewMap: null,
     match: null
   };

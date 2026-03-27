@@ -302,6 +302,17 @@ export function App() {
     });
   }
 
+  function handleSendChatMessage(content: string) {
+    if (!snapshot) {
+      return;
+    }
+
+    socketRef.current.emit("SEND_CHAT_MESSAGE", {
+      roomId: snapshot.room.roomId,
+      content
+    });
+  }
+
   return (
     <main style={pageStyle}>
       <div style={backgroundGlowStyle} />
@@ -345,6 +356,7 @@ export function App() {
                 onResetToWaiting={handleResetToWaiting}
                 onLeaveRoom={handleLeaveRoom}
                 onMove={handleMove}
+                onSendChatMessage={handleSendChatMessage}
               />
             )}
           </>

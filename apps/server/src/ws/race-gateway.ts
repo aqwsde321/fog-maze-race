@@ -9,6 +9,7 @@ import { DisconnectGraceRegistry } from "./disconnect-grace.js";
 import { RevisionSync } from "./revision-sync.js";
 import { createRoomEventSink, handlePlayerDisconnect } from "./handlers/recovery-handlers.js";
 import { registerAdminHandlers } from "./handlers/admin-handlers.js";
+import { registerChatHandlers } from "./handlers/chat-handlers.js";
 import { registerMatchHandlers } from "./handlers/match-handlers.js";
 import { registerSessionHandlers } from "./handlers/session-handlers.js";
 
@@ -49,6 +50,12 @@ export async function buildRaceGateway(io: Server, options: MatchServiceOptions 
       sessions,
       roomService,
       matchService
+    });
+    registerChatHandlers({
+      io,
+      socket,
+      sessions,
+      roomService
     });
 
     socket.on("disconnect", () => {

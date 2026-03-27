@@ -195,4 +195,27 @@ describe("RoomService", () => {
     expect(updated.room.visibilitySize).toBe(5);
     expect(updated.previewMap?.visibilityRadius).toBe(2);
   });
+
+  it("includes room chat messages in snapshots and normalizes the submitted text", () => {
+    const service = new RoomService(new RevisionSync(), new MapRegistry());
+    const created = service.createRoom({
+      session: new PlayerSession({
+        playerId: "host",
+        nickname: "호스트"
+      }),
+      name: "Alpha"
+    });
+
+    service.sendChatMessage(created.roomId, "host", "  같이 갑시다   ");
+
+    const snapshot = service.getSnapshot(created.roomId);
+
+    expect(snapshot.chat).toHaveLength(1);
+    expect(snapshot.chat[0]).toMatchObject({
+      playerId: "host",
+      nickname: "호스트",
+      content: "같이 갑시다",
+      color: "#ff355e"
+    });
+  });
 });

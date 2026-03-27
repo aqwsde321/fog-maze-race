@@ -15,6 +15,15 @@ export type RoomMemberView = {
   isHost: boolean;
 };
 
+export type RoomChatMessageView = {
+  messageId: string;
+  playerId: string;
+  nickname: string;
+  color: string;
+  content: string;
+  sentAt: string;
+};
+
 export type MapView = {
   mapId: string;
   width: number;
@@ -52,6 +61,7 @@ export type RoomSnapshot = {
     visibilitySize: 3 | 5 | 7;
   };
   members: RoomMemberView[];
+  chat: RoomChatMessageView[];
   previewMap: MapView | null;
   match: MatchView | null;
 };

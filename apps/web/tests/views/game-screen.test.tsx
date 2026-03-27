@@ -21,6 +21,10 @@ vi.mock("../../src/features/rooms/PlayerSidebar.js", () => ({
   PlayerSidebar: () => <aside data-testid="player-sidebar" />
 }));
 
+vi.mock("../../src/features/rooms/RoomChatPanel.js", () => ({
+  RoomChatPanel: () => <section data-testid="room-chat-panel" />
+}));
+
 vi.mock("../../src/features/rooms/ResultOverlay.js", () => ({
   ResultOverlay: ({
     isHost,
@@ -108,6 +112,7 @@ describe("GameScreen keyboard control", () => {
           onResetToWaiting={vi.fn()}
           onLeaveRoom={vi.fn()}
           onMove={onMove}
+          onSendChatMessage={vi.fn()}
         />
       );
     });
@@ -138,6 +143,7 @@ describe("GameScreen keyboard control", () => {
           onResetToWaiting={vi.fn()}
           onLeaveRoom={vi.fn()}
           onMove={vi.fn()}
+          onSendChatMessage={vi.fn()}
         />
       );
     });
@@ -163,11 +169,35 @@ describe("GameScreen keyboard control", () => {
           onResetToWaiting={vi.fn()}
           onLeaveRoom={vi.fn()}
           onMove={vi.fn()}
+          onSendChatMessage={vi.fn()}
         />
       );
     });
 
     expect(container.textContent).not.toContain("시작");
+  });
+
+  it("anchors the room chat panel to the left edge of the game frame", async () => {
+    await act(async () => {
+      root.render(
+        <GameScreen
+          snapshot={buildSnapshot("waiting")}
+          selfPlayerId="player-1"
+          countdownValue={null}
+          onStartGame={vi.fn()}
+          onRenameRoom={vi.fn()}
+          onSetVisibilitySize={vi.fn()}
+          onForceEndRoom={vi.fn()}
+          onResetToWaiting={vi.fn()}
+          onLeaveRoom={vi.fn()}
+          onMove={vi.fn()}
+          onSendChatMessage={vi.fn()}
+        />
+      );
+    });
+
+    const chatDock = container.querySelector<HTMLElement>('[data-testid="room-chat-dock"]');
+    expect(chatDock?.style.left).toBe("0px");
   });
 
   it("passes the reset action to the result overlay for hosts after the race ends", async () => {
@@ -186,6 +216,7 @@ describe("GameScreen keyboard control", () => {
           onResetToWaiting={onResetToWaiting}
           onLeaveRoom={vi.fn()}
           onMove={vi.fn()}
+          onSendChatMessage={vi.fn()}
         />
       );
     });
@@ -213,6 +244,7 @@ describe("GameScreen keyboard control", () => {
           onResetToWaiting={vi.fn()}
           onLeaveRoom={vi.fn()}
           onMove={onMove}
+          onSendChatMessage={vi.fn()}
         />
       );
     });
@@ -260,6 +292,7 @@ function buildSnapshot(
         isHost: selfPlayerId === hostPlayerId
       }
     ],
+    chat: [],
     previewMap: null,
     match: status === "countdown" || status === "playing" || status === "ended"
       ? {
@@ -278,7 +311,8 @@ function buildSnapshot(
                   nickname: "호1",
                   color: "#38bdf8",
                   outcome: "finished",
-                  rank: 1
+                  rank: 1,
+                  elapsedMs: 20_000
                 }
               ]
             : [],
