@@ -193,18 +193,26 @@ export function App() {
   }, [isAdminRoute, nickname, playerId]);
 
   function handleEnterLobby() {
-    const nextNickname = nickname.trim().slice(0, 5);
-    if (!nextNickname) {
+    submitNickname(nickname);
+  }
+
+  function handleUpdateNickname(nextNickname: string) {
+    submitNickname(nextNickname);
+  }
+
+  function submitNickname(nextNickname: string) {
+    const normalizedNickname = nextNickname.trim().slice(0, 5);
+    if (!normalizedNickname) {
       return;
     }
 
     const socket = socketRef.current;
     setConnectionState("connecting");
-    setNickname(nextNickname);
+    setNickname(normalizedNickname);
 
     if (socket.connected) {
       socket.emit("CONNECT", {
-        nickname: nextNickname,
+        nickname: normalizedNickname,
         playerId: playerId ?? undefined
       });
       return;
@@ -261,6 +269,16 @@ export function App() {
     });
   }
 
+  function handleResetToWaiting() {
+    if (!snapshot) {
+      return;
+    }
+
+    socketRef.current.emit("RESET_ROOM", {
+      roomId: snapshot.room.roomId
+    });
+  }
+
   function handleLeaveRoom() {
     if (!snapshot) {
       return;
@@ -301,6 +319,8 @@ export function App() {
                   rooms={rooms}
                   roomName={roomName}
                   nickname={nickname}
+                  connectionState={connectionState}
+                  onNicknameSubmit={handleUpdateNickname}
                   onRoomNameChange={setRoomName}
                   onCreateRoom={handleCreateRoom}
                   onJoinRoom={handleJoinRoom}
@@ -322,6 +342,7 @@ export function App() {
                 onRenameRoom={handleRenameRoom}
                 onSetVisibilitySize={handleSetVisibilitySize}
                 onForceEndRoom={handleForceEndRoom}
+                onResetToWaiting={handleResetToWaiting}
                 onLeaveRoom={handleLeaveRoom}
                 onMove={handleMove}
               />

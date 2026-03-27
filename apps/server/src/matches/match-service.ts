@@ -43,7 +43,6 @@ export type MatchServiceOptions = {
 
 type TimerBucket = {
   countdown: ReturnType<typeof setTimeout>[];
-  reset: ReturnType<typeof setTimeout> | null;
 };
 
 export class MatchService {
@@ -180,9 +179,6 @@ export class MatchService {
   dispose() {
     for (const timers of this.timers.values()) {
       timers.countdown.forEach((timer) => clearTimeout(timer));
-      if (timers.reset) {
-        clearTimeout(timers.reset);
-      }
     }
 
     this.timers.clear();
@@ -236,6 +232,25 @@ export class MatchService {
 
     forceEndMatch(runtime.room, runtime.match);
     this.finishGame(roomId, sink);
+  }
+
+  resetRoomToWaiting(roomId: string, requestedBy: string, sink: MatchEventSink) {
+    const runtime = this.roomService.findRuntime(roomId);
+    if (!runtime || !runtime.match) {
+      return;
+    }
+
+    if (runtime.room.hostPlayerId !== requestedBy) {
+      throw new Error("HOST_ONLY");
+    }
+
+    if (runtime.room.status !== "ended") {
+      throw new Error("ROOM_NOT_JOINABLE");
+    }
+
+    const snapshot = resetRoom(this.roomService, roomId);
+    sink.emitRoomState({ roomId, snapshot });
+    sink.emitRoomListUpdate();
   }
 
   private scheduleCountdown(roomId: string, sink: MatchEventSink, initialDelayMs: number) {
@@ -311,26 +326,10 @@ export class MatchService {
     sink.emitGameEnded({
       roomId,
       results: [...match.results],
-      returnToWaitingAt: new Date(Date.now() + this.options.resultsDurationMs).toISOString(),
+      returnToWaitingAt: null,
       revision: endedSnapshot.revision
     });
     sink.emitRoomListUpdate();
-
-    const bucket = this.getTimerBucket(roomId);
-    if (bucket.reset) {
-      clearTimeout(bucket.reset);
-    }
-
-    bucket.reset = setTimeout(() => {
-      const activeRuntime = this.roomService.findRuntime(roomId);
-      if (!activeRuntime) {
-        return;
-      }
-
-      const snapshot = resetRoom(this.roomService, roomId);
-      sink.emitRoomState({ roomId, snapshot });
-      sink.emitRoomListUpdate();
-    }, this.options.resultsDurationMs);
   }
 
   private emitPositionUpdate(
@@ -364,8 +363,7 @@ export class MatchService {
     }
 
     const created: TimerBucket = {
-      countdown: [],
-      reset: null
+      countdown: []
     };
 
     this.timers.set(roomId, created);

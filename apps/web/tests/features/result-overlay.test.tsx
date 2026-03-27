@@ -13,8 +13,6 @@ describe("ResultOverlay", () => {
   let root: Root;
 
   beforeEach(() => {
-    vi.useFakeTimers();
-    vi.setSystemTime(new Date("2026-03-23T00:00:00.000Z"));
     container = document.createElement("div");
     document.body.appendChild(container);
     root = createRoot(container);
@@ -24,26 +22,74 @@ describe("ResultOverlay", () => {
     await act(async () => {
       root.unmount();
     });
-    vi.useRealTimers();
     container.remove();
   });
 
-  it("shows the remaining seconds until the result overlay closes", async () => {
-    await act(async () => {
-      root.render(<ResultOverlay snapshot={buildEndedSnapshot()} />);
-    });
-
-    expect(container.textContent).toContain("6초 뒤 결과창이 닫히고 새 게임 대기 상태로 돌아갑니다.");
+  it("shows a host-only reset button instead of an auto-close timer", async () => {
+    const onResetToWaiting = vi.fn();
 
     await act(async () => {
-      vi.advanceTimersByTime(2_200);
+      root.render(
+        <ResultOverlay
+          snapshot={buildEndedSnapshot()}
+          isHost
+          onResetToWaiting={onResetToWaiting}
+        />
+      );
     });
 
-    expect(container.textContent).toContain("4초 뒤 결과창이 닫히고 새 게임 대기 상태로 돌아갑니다.");
+    expect(container.textContent).toContain("새 게임 준비");
+    expect(container.textContent).not.toContain("초 뒤 결과창이 닫히고");
+
+    await act(async () => {
+      container.querySelector<HTMLButtonElement>('[data-testid="results-reset-button"]')?.click();
+    });
+
+    expect(onResetToWaiting).toHaveBeenCalledTimes(1);
+  });
+
+  it("keeps long result lists scrollable inside the modal", async () => {
+    await act(async () => {
+      root.render(
+        <ResultOverlay
+          snapshot={buildEndedSnapshot(15)}
+          isHost
+          onResetToWaiting={vi.fn()}
+        />
+      );
+    });
+
+    const resultList = container.querySelector<HTMLElement>('[data-testid="results-list"]');
+    expect(resultList).not.toBeNull();
+    expect(resultList?.style.overflowY).toBe("auto");
+    expect(resultList?.style.maxHeight).toBe("min(48vh, 420px)");
+  });
+
+  it("shows a waiting message to guests while the host prepares the next race", async () => {
+    await act(async () => {
+      root.render(
+        <ResultOverlay
+          snapshot={buildEndedSnapshot()}
+          isHost={false}
+          onResetToWaiting={vi.fn()}
+        />
+      );
+    });
+
+    expect(container.textContent).toContain("호스트가 새 게임을 준비하면");
+    expect(container.querySelector('[data-testid="results-reset-button"]')).toBeNull();
   });
 });
 
-function buildEndedSnapshot(): RoomSnapshot {
+function buildEndedSnapshot(resultCount = 1): RoomSnapshot {
+  const results = Array.from({ length: resultCount }, (_, index) => ({
+    playerId: `player-${index + 1}`,
+    nickname: `호${index + 1}`,
+    color: `hsl(${(index * 24) % 360} 80% 60%)`,
+    outcome: "finished" as const,
+    rank: index + 1
+  }));
+
   return {
     revision: 1,
     room: {
@@ -75,16 +121,8 @@ function buildEndedSnapshot(): RoomSnapshot {
       startedAt: "2026-03-22T23:59:40.000Z",
       endedAt: "2026-03-23T00:00:00.000Z",
       resultsDurationMs: 6_000,
-      finishOrder: ["player-1"],
-      results: [
-        {
-          playerId: "player-1",
-          nickname: "호1",
-          color: "#38bdf8",
-          outcome: "finished",
-          rank: 1
-        }
-      ],
+      finishOrder: results.map((result) => result.playerId),
+      results,
       map: {
         mapId: "training-lap",
         width: 9,

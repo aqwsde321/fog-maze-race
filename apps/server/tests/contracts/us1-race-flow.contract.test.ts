@@ -122,6 +122,7 @@ describe("US1 race flow contract", () => {
     const countdownEvents: number[] = [];
     const finishEvents: PlayerFinishedPayload[] = [];
     const gameEndedEvents: GameEndedPayload[] = [];
+    const roomStateEvents: RoomStateUpdatePayload[] = [];
     host.on("COUNTDOWN", (payload) => {
       countdownEvents.push(payload.value);
     });
@@ -130,6 +131,9 @@ describe("US1 race flow contract", () => {
     });
     host.on("GAME_ENDED", (payload) => {
       gameEndedEvents.push(payload);
+    });
+    host.on("ROOM_STATE_UPDATE", (payload) => {
+      roomStateEvents.push(payload);
     });
 
     await waitFor(
@@ -157,14 +161,17 @@ describe("US1 race flow contract", () => {
     expect(gameEnded.results).toHaveLength(2);
     expect(gameEnded.results.map((entry) => entry.rank).sort()).toEqual([1, 2]);
     expect(countdownEvents).toEqual(expect.arrayContaining([3, 2, 1, 0]));
+    expect(roomStateEvents.at(-1)?.snapshot.room.status).toBe("ended");
 
-    await waitFor(
-      async () => {
-        const snapshot = await once(host, "ROOM_STATE_UPDATE");
-        return snapshot.snapshot.room.status === "waiting" && snapshot.snapshot.previewMap !== null;
-      },
-      1000
-    );
+    await delay(120);
+    expect(roomStateEvents.at(-1)?.snapshot.room.status).toBe("ended");
+
+    host.emit("RESET_ROOM", { roomId: hostJoined.roomId });
+
+    await waitFor(async () => {
+      const snapshot = await once(host, "ROOM_STATE_UPDATE");
+      return snapshot.snapshot.room.status === "waiting" && snapshot.snapshot.previewMap !== null;
+    }, 1_000);
   });
 
   function createRaceSocket() {

@@ -54,7 +54,7 @@ describe("US3 room administration contract", () => {
     await app.close();
   });
 
-  it("renames rooms, reassigns the host, and lets the new host force-end the match", async () => {
+  it("renames rooms, reassigns the host, and lets the new host force-end then reset the match", async () => {
     const host = createRaceSocket();
     const guest = createRaceSocket();
     const watcher = createRaceSocket();
@@ -147,6 +147,11 @@ describe("US3 room administration contract", () => {
       ])
     );
 
+    watcher.emit("RESET_ROOM", { roomId: hostJoined.roomId });
+    const resetDenied = await once(watcher, "ERROR");
+    expect(resetDenied.code).toBe("HOST_ONLY");
+
+    guest.emit("RESET_ROOM", { roomId: hostJoined.roomId });
     await waitForSnapshot(guest, (snapshot) => snapshot.room.status === "waiting", 1_000);
   }, 15_000);
 

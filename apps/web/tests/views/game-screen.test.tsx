@@ -22,7 +22,20 @@ vi.mock("../../src/features/rooms/PlayerSidebar.js", () => ({
 }));
 
 vi.mock("../../src/features/rooms/ResultOverlay.js", () => ({
-  ResultOverlay: () => <div data-testid="result-overlay" />
+  ResultOverlay: ({
+    isHost,
+    onResetToWaiting
+  }: {
+    isHost: boolean;
+    onResetToWaiting: () => void;
+  }) => (
+    <div data-testid="result-overlay">
+      <span data-testid="result-overlay-role">{isHost ? "host" : "guest"}</span>
+      <button data-testid="result-overlay-reset" type="button" onClick={onResetToWaiting}>
+        reset
+      </button>
+    </div>
+  )
 }));
 
 describe("GameScreen keyboard control", () => {
@@ -92,6 +105,7 @@ describe("GameScreen keyboard control", () => {
           onRenameRoom={vi.fn()}
           onSetVisibilitySize={vi.fn()}
           onForceEndRoom={vi.fn()}
+          onResetToWaiting={vi.fn()}
           onLeaveRoom={vi.fn()}
           onMove={onMove}
         />
@@ -121,6 +135,7 @@ describe("GameScreen keyboard control", () => {
           onRenameRoom={vi.fn()}
           onSetVisibilitySize={vi.fn()}
           onForceEndRoom={vi.fn()}
+          onResetToWaiting={vi.fn()}
           onLeaveRoom={vi.fn()}
           onMove={vi.fn()}
         />
@@ -145,6 +160,7 @@ describe("GameScreen keyboard control", () => {
           onRenameRoom={vi.fn()}
           onSetVisibilitySize={vi.fn()}
           onForceEndRoom={vi.fn()}
+          onResetToWaiting={vi.fn()}
           onLeaveRoom={vi.fn()}
           onMove={vi.fn()}
         />
@@ -152,6 +168,35 @@ describe("GameScreen keyboard control", () => {
     });
 
     expect(container.textContent).not.toContain("시작");
+  });
+
+  it("passes the reset action to the result overlay for hosts after the race ends", async () => {
+    const onResetToWaiting = vi.fn();
+
+    await act(async () => {
+      root.render(
+        <GameScreen
+          snapshot={buildSnapshot("ended")}
+          selfPlayerId="player-1"
+          countdownValue={null}
+          onStartGame={vi.fn()}
+          onRenameRoom={vi.fn()}
+          onSetVisibilitySize={vi.fn()}
+          onForceEndRoom={vi.fn()}
+          onResetToWaiting={onResetToWaiting}
+          onLeaveRoom={vi.fn()}
+          onMove={vi.fn()}
+        />
+      );
+    });
+
+    expect(container.querySelector('[data-testid="result-overlay-role"]')?.textContent).toBe("host");
+
+    await act(async () => {
+      container.querySelector<HTMLButtonElement>('[data-testid="result-overlay-reset"]')?.click();
+    });
+
+    expect(onResetToWaiting).toHaveBeenCalledTimes(1);
   });
 
   async function renderScreen(snapshot: RoomSnapshot, onMove: (direction: Direction) => void) {
@@ -165,6 +210,7 @@ describe("GameScreen keyboard control", () => {
           onRenameRoom={vi.fn()}
           onSetVisibilitySize={vi.fn()}
           onForceEndRoom={vi.fn()}
+          onResetToWaiting={vi.fn()}
           onLeaveRoom={vi.fn()}
           onMove={onMove}
         />
@@ -208,24 +254,34 @@ function buildSnapshot(
         nickname: "호1",
         color: "#38bdf8",
         shape: "circle",
-        state: status === "playing" ? "playing" : "waiting",
+        state: status === "playing" ? "playing" : status === "ended" ? "finished" : "waiting",
         position: { x: 0, y: 1 },
-        finishRank: null,
+        finishRank: status === "ended" ? 1 : null,
         isHost: selfPlayerId === hostPlayerId
       }
     ],
     previewMap: null,
-    match: status === "countdown" || status === "playing"
+    match: status === "countdown" || status === "playing" || status === "ended"
       ? {
           matchId: "match-1",
           mapId: "training-lap",
-          status: status === "countdown" ? "countdown" : "playing",
+          status: status === "countdown" ? "countdown" : status === "ended" ? "ended" : "playing",
           countdownValue: status === "countdown" ? 3 : null,
-          startedAt: null,
-          endedAt: null,
-          resultsDurationMs: null,
-          finishOrder: [],
-          results: [],
+          startedAt: status === "ended" ? "2026-03-22T23:59:40.000Z" : null,
+          endedAt: status === "ended" ? "2026-03-23T00:00:00.000Z" : null,
+          resultsDurationMs: status === "ended" ? 6_000 : null,
+          finishOrder: status === "ended" ? [selfPlayerId] : [],
+          results: status === "ended"
+            ? [
+                {
+                  playerId: selfPlayerId,
+                  nickname: "호1",
+                  color: "#38bdf8",
+                  outcome: "finished",
+                  rank: 1
+                }
+              ]
+            : [],
           map: {
             mapId: "training-lap",
             width: 9,

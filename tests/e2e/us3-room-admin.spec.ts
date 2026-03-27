@@ -48,6 +48,7 @@ test("US3 hosts can hand off authority and force-end the next round", async ({
       timeout: 6_000
     });
     await expect(guest.page.getByTestId("results-overlay").getByText("나감").first()).toBeVisible();
+    await guest.page.getByRole("button", { name: "새 게임 준비" }).click();
     await expect(guest.page.getByTestId("room-status")).toContainText("waiting", {
       timeout: 6_000
     });

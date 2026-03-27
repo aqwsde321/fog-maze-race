@@ -2,6 +2,7 @@ import type { Server, Socket } from "socket.io";
 import type {
   ForceEndRoomPayload,
   LeaveRoomPayload,
+  ResetRoomPayload,
   RenameRoomPayload,
   SetVisibilitySizePayload
 } from "@fog-maze-race/shared/contracts/realtime";
@@ -80,6 +81,19 @@ export function registerAdminHandlers({
     try {
       const session = requireSession(socket, sessions);
       matchService.forceEnd(payload.roomId, session.playerId, createRoomEventSink(io, roomService, payload.roomId));
+    } catch (error) {
+      emitError(socket, error);
+    }
+  });
+
+  socket.on("RESET_ROOM", (payload: ResetRoomPayload) => {
+    try {
+      const session = requireSession(socket, sessions);
+      matchService.resetRoomToWaiting(
+        payload.roomId,
+        session.playerId,
+        createRoomEventSink(io, roomService, payload.roomId)
+      );
     } catch (error) {
       emitError(socket, error);
     }

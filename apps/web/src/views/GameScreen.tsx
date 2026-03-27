@@ -16,6 +16,7 @@ type GameScreenProps = {
   onRenameRoom: (name: string) => void;
   onSetVisibilitySize: (visibilitySize: 3 | 5 | 7) => void;
   onForceEndRoom: () => void;
+  onResetToWaiting: () => void;
   onLeaveRoom: () => void;
   onMove: (direction: Direction) => void;
 };
@@ -28,6 +29,7 @@ export function GameScreen({
   onRenameRoom,
   onSetVisibilitySize,
   onForceEndRoom,
+  onResetToWaiting,
   onLeaveRoom,
   onMove
 }: GameScreenProps) {
@@ -115,7 +117,7 @@ export function GameScreen({
               </div>
             </div>
           ) : null}
-          <ResultOverlay snapshot={snapshot} />
+          <ResultOverlay snapshot={snapshot} isHost={isHost} onResetToWaiting={onResetToWaiting} />
         </div>
       </div>
 

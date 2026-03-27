@@ -1,35 +1,16 @@
-import { useEffect, useState, type CSSProperties } from "react";
+import type { CSSProperties } from "react";
 
 import type { RoomSnapshot } from "@fog-maze-race/shared/contracts/snapshots";
 
 type ResultOverlayProps = {
   snapshot: RoomSnapshot;
+  isHost: boolean;
+  onResetToWaiting: () => void;
 };
 
-export function ResultOverlay({ snapshot }: ResultOverlayProps) {
+export function ResultOverlay({ snapshot, isHost, onResetToWaiting }: ResultOverlayProps) {
   const results = snapshot.match?.results ?? [];
   const isVisible = snapshot.room.status === "ended" && results.length > 0;
-  const endsAt =
-    snapshot.match?.endedAt && snapshot.match.resultsDurationMs
-      ? new Date(snapshot.match.endedAt).getTime() + snapshot.match.resultsDurationMs
-      : null;
-
-  const [remainingSeconds, setRemainingSeconds] = useState(() => getRemainingSeconds(endsAt));
-
-  useEffect(() => {
-    setRemainingSeconds(getRemainingSeconds(endsAt));
-    if (!endsAt) {
-      return;
-    }
-
-    const timer = window.setInterval(() => {
-      setRemainingSeconds(getRemainingSeconds(endsAt));
-    }, 200);
-
-    return () => {
-      window.clearInterval(timer);
-    };
-  }, [endsAt]);
 
   if (!isVisible) {
     return null;
@@ -40,10 +21,12 @@ export function ResultOverlay({ snapshot }: ResultOverlayProps) {
       <section style={cardStyle}>
         <p style={eyebrowStyle}>Result</p>
         <h2 style={headingStyle}>레이스 종료</h2>
-        <p data-testid="results-reset-timer" style={timerStyle}>
-          {remainingSeconds}초 뒤 결과창이 닫히고 새 게임 대기 상태로 돌아갑니다.
+        <p style={descriptionStyle}>
+          {isHost
+            ? "순위를 확인한 뒤 새 게임 준비 버튼을 눌러 다음 레이스 대기 상태로 돌아가세요."
+            : "호스트가 새 게임을 준비하면 새 게임 대기 상태로 돌아갑니다."}
         </p>
-        <div style={resultListStyle}>
+        <div data-testid="results-list" style={resultListStyle}>
           {results.map((result) => (
             <article key={result.playerId} style={resultItemStyle}>
               <strong style={placeStyle}>{result.rank ? `${result.rank}위` : "나감"}</strong>
@@ -54,17 +37,19 @@ export function ResultOverlay({ snapshot }: ResultOverlayProps) {
             </article>
           ))}
         </div>
+        {isHost ? (
+          <button
+            data-testid="results-reset-button"
+            type="button"
+            onClick={onResetToWaiting}
+            style={resetButtonStyle}
+          >
+            새 게임 준비
+          </button>
+        ) : null}
       </section>
     </div>
   );
-}
-
-function getRemainingSeconds(endsAt: number | null) {
-  if (!endsAt) {
-    return 0;
-  }
-
-  return Math.max(0, Math.ceil((endsAt - Date.now()) / 1000));
 }
 
 const overlayStyle: CSSProperties = {
@@ -77,12 +62,16 @@ const overlayStyle: CSSProperties = {
 };
 
 const cardStyle: CSSProperties = {
+  display: "grid",
+  gridTemplateRows: "auto auto auto minmax(0, 1fr) auto",
   width: "min(420px, calc(100% - 32px))",
+  maxHeight: "min(560px, calc(100vh - 32px))",
   padding: "28px",
   borderRadius: "26px",
   background: "linear-gradient(180deg, rgba(15, 23, 42, 0.96), rgba(8, 15, 30, 0.94))",
   border: "1px solid rgba(250, 204, 21, 0.24)",
-  boxShadow: "0 28px 80px rgba(2, 6, 23, 0.42)"
+  boxShadow: "0 28px 80px rgba(2, 6, 23, 0.42)",
+  boxSizing: "border-box"
 };
 
 const eyebrowStyle: CSSProperties = {
@@ -98,7 +87,7 @@ const headingStyle: CSSProperties = {
   fontSize: "2rem"
 };
 
-const timerStyle: CSSProperties = {
+const descriptionStyle: CSSProperties = {
   margin: "0 0 18px",
   color: "#cbd5e1",
   fontSize: "0.92rem",
@@ -107,7 +96,11 @@ const timerStyle: CSSProperties = {
 
 const resultListStyle: CSSProperties = {
   display: "grid",
-  gap: "12px"
+  gap: "12px",
+  minHeight: 0,
+  maxHeight: "min(48vh, 420px)",
+  overflowY: "auto",
+  paddingRight: "6px"
 };
 
 const resultItemStyle: CSSProperties = {
@@ -133,4 +126,16 @@ const nameStyle: CSSProperties = {
 const metaStyle: CSSProperties = {
   margin: "6px 0 0",
   color: "#94a3b8"
+};
+
+const resetButtonStyle: CSSProperties = {
+  marginTop: "18px",
+  border: "none",
+  borderRadius: "16px",
+  padding: "14px 18px",
+  fontSize: "0.98rem",
+  fontWeight: 700,
+  color: "#020617",
+  background: "linear-gradient(135deg, #fde68a, #f59e0b)",
+  cursor: "pointer"
 };

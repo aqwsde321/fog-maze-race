@@ -39,6 +39,10 @@ export type ForceEndRoomPayload = {
   roomId: string;
 };
 
+export type ResetRoomPayload = {
+  roomId: string;
+};
+
 export type MovePayload = {
   roomId: string;
   direction: Direction;
@@ -113,7 +117,7 @@ export type PlayerFinishedPayload = {
 export type GameEndedPayload = {
   roomId: string;
   results: ResultEntry[];
-  returnToWaitingAt: string;
+  returnToWaitingAt: string | null;
   revision: number;
 };
 

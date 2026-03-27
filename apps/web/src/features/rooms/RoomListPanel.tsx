@@ -1,4 +1,4 @@
-import type { CSSProperties } from "react";
+import { useEffect, useState, type CSSProperties } from "react";
 
 import type { RoomListItem } from "@fog-maze-race/shared/contracts/realtime";
 
@@ -6,6 +6,8 @@ type RoomListPanelProps = {
   rooms: RoomListItem[];
   roomName: string;
   nickname: string;
+  connectionState: "idle" | "connecting" | "connected" | "disconnected";
+  onNicknameSubmit: (value: string) => void;
   onRoomNameChange: (value: string) => void;
   onCreateRoom: () => void;
   onJoinRoom: (roomId: string) => void;
@@ -15,15 +17,55 @@ export function RoomListPanel({
   rooms,
   roomName,
   nickname,
+  connectionState,
+  onNicknameSubmit,
   onRoomNameChange,
   onCreateRoom,
   onJoinRoom
 }: RoomListPanelProps) {
+  const [nicknameDraft, setNicknameDraft] = useState(nickname);
+
+  useEffect(() => {
+    setNicknameDraft(nickname);
+  }, [nickname]);
+
+  const canSubmitNickname = Boolean(nicknameDraft.trim()) && nicknameDraft.trim().slice(0, 5) !== nickname && connectionState !== "connecting";
+
   return (
     <section style={layoutStyle}>
       <div style={heroCardStyle}>
         <p style={miniLabelStyle}>Connected Player</p>
-        <h2 style={headingStyle}>{nickname}</h2>
+        <div style={nicknameEditorStyle}>
+          <div style={nicknameFieldWrapStyle}>
+            <label htmlFor="lobby-nickname" style={nicknameFieldLabelStyle}>
+              닉네임
+            </label>
+            <input
+              id="lobby-nickname"
+              name="lobby-nickname"
+              maxLength={5}
+              value={nicknameDraft}
+              onChange={(event) => setNicknameDraft(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === "Enter" && canSubmitNickname) {
+                  event.preventDefault();
+                  onNicknameSubmit(nicknameDraft);
+                }
+              }}
+              aria-label="닉네임 수정"
+              style={nicknameInputStyle}
+            />
+          </div>
+          <button
+            data-testid="nickname-submit-button"
+            type="button"
+            onClick={() => onNicknameSubmit(nicknameDraft)}
+            disabled={!canSubmitNickname}
+            style={nicknameSubmitButtonStyle}
+          >
+            {connectionState === "connecting" ? "변경 중..." : "닉네임 변경"}
+          </button>
+        </div>
         <p style={copyStyle}>대기 중인 방을 고르거나 새 레이스를 바로 시작할 수 있습니다.</p>
         <label htmlFor="room-name" style={fieldLabelStyle}>
           방 이름
@@ -100,9 +142,50 @@ const miniLabelStyle: CSSProperties = {
   fontSize: "0.8rem"
 };
 
-const headingStyle: CSSProperties = {
-  margin: "14px 0 10px",
-  fontSize: "clamp(2rem, 4vw, 3rem)"
+const nicknameEditorStyle: CSSProperties = {
+  display: "grid",
+  gridTemplateColumns: "minmax(0, 1fr) auto",
+  gap: "14px",
+  alignItems: "end",
+  marginTop: "14px",
+  marginBottom: "12px"
+};
+
+const nicknameFieldWrapStyle: CSSProperties = {
+  minWidth: 0
+};
+
+const nicknameFieldLabelStyle: CSSProperties = {
+  display: "block",
+  marginBottom: "8px",
+  color: "#94a3b8",
+  fontSize: "0.82rem",
+  letterSpacing: "0.12em",
+  textTransform: "uppercase"
+};
+
+const nicknameInputStyle: CSSProperties = {
+  width: "100%",
+  padding: "0",
+  border: "none",
+  outline: "none",
+  background: "transparent",
+  color: "#f8fafc",
+  fontSize: "clamp(2rem, 4vw, 4.3rem)",
+  fontWeight: 800,
+  lineHeight: 1.05
+};
+
+const nicknameSubmitButtonStyle: CSSProperties = {
+  minHeight: "52px",
+  padding: "13px 18px",
+  borderRadius: "999px",
+  border: "1px solid rgba(56, 189, 248, 0.24)",
+  background: "rgba(56, 189, 248, 0.12)",
+  color: "#bae6fd",
+  fontWeight: 700,
+  cursor: "pointer",
+  whiteSpace: "nowrap"
 };
 
 const copyStyle: CSSProperties = {

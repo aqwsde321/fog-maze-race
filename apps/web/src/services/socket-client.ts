@@ -12,6 +12,7 @@ import type {
   JoinRoomPayload,
   MovePayload,
   PlayerMovedPayload,
+  ResetRoomPayload,
   RenameRoomPayload,
   RoomJoinedPayload,
   RoomLeftPayload,
@@ -45,6 +46,7 @@ export type RaceSocketCommands = {
   SET_VISIBILITY_SIZE: (payload: SetVisibilitySizePayload) => void;
   START_GAME: (payload: StartGamePayload) => void;
   FORCE_END_ROOM: (payload: ForceEndRoomPayload) => void;
+  RESET_ROOM: (payload: ResetRoomPayload) => void;
   MOVE: (payload: MovePayload) => void;
 };
 

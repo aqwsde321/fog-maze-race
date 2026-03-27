@@ -2,7 +2,7 @@ import { expect, test, type Page } from "@playwright/test";
 
 import { closeRaceClients, createRaceClients } from "./helpers/multi-client.js";
 
-test("US1 players can finish a race and return to waiting", async ({ browser }) => {
+test("US1 players can finish a race and return to waiting after the host resets from results", async ({ browser }) => {
   const clients = await createRaceClients(browser, 2);
   const [host, guest] = clients;
   const roomName = `A${Date.now().toString().slice(-4)}`;
@@ -55,7 +55,8 @@ test("US1 players can finish a race and return to waiting", async ({ browser }) 
       timeout: 6_000
     });
     await expect(host.page.getByTestId("results-overlay").getByText("1위")).toBeVisible();
-    await expect(host.page.getByTestId("results-reset-timer")).toContainText("초 뒤 결과창이 닫히고 새 게임 대기 상태로 돌아갑니다.");
+    await expect(host.page.getByRole("button", { name: "새 게임 준비" })).toBeVisible();
+    await host.page.getByRole("button", { name: "새 게임 준비" }).click();
     await expect(host.page.getByTestId("room-status")).toContainText("waiting", {
       timeout: 6_000
     });
