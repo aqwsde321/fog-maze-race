@@ -39,7 +39,7 @@ test("results overlay shows elapsed time for each finisher", async ({ browser })
     await expect
       .poll(async () => {
         const text = await overlay.textContent();
-        return text?.match(/소요시간 \d{2}:\d{2}\.\d{3}/g)?.length ?? 0;
+        return text?.match(/\d{2}:\d{2}\.\d{3}/g)?.length ?? 0;
       })
       .toBe(2);
   } finally {

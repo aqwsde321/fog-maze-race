@@ -30,13 +30,15 @@ export function ResultOverlay({ snapshot, isHost, onResetToWaiting }: ResultOver
           {results.map((result) => (
             <article key={result.playerId} style={resultItemStyle}>
               <strong style={placeStyle}>{result.rank ? `${result.rank}위` : "나감"}</strong>
-              <div>
-                <p style={nameStyle}>{result.nickname}</p>
-                <p style={metaStyle}>{result.outcome === "finished" ? "완주" : "나감"}</p>
-                {result.outcome === "finished" && result.elapsedMs !== null ? (
-                  <p style={timeStyle}>소요시간 {formatElapsedTime(result.elapsedMs)}</p>
-                ) : null}
+              <div style={summaryStyle}>
+                <span style={nameStyle}>{result.nickname}</span>
+                <span style={metaStyle}>{result.outcome === "finished" ? "완주" : "나감"}</span>
               </div>
+              <span style={timeStyle}>
+                {result.outcome === "finished" && result.elapsedMs !== null
+                  ? formatElapsedTime(result.elapsedMs)
+                  : "-"}
+              </span>
             </article>
           ))}
         </div>
@@ -67,7 +69,7 @@ const overlayStyle: CSSProperties = {
 const cardStyle: CSSProperties = {
   display: "grid",
   gridTemplateRows: "auto auto auto minmax(0, 1fr) auto",
-  width: "min(420px, calc(100% - 32px))",
+  width: "min(560px, calc(100% - 32px))",
   maxHeight: "min(560px, calc(100vh - 32px))",
   padding: "28px",
   borderRadius: "26px",
@@ -108,10 +110,10 @@ const resultListStyle: CSSProperties = {
 
 const resultItemStyle: CSSProperties = {
   display: "grid",
-  gridTemplateColumns: "72px 1fr",
-  gap: "14px",
+  gridTemplateColumns: "72px minmax(0, 1fr) auto",
+  gap: "16px",
   alignItems: "center",
-  padding: "14px",
+  padding: "14px 18px",
   borderRadius: "18px",
   background: "rgba(15, 23, 42, 0.78)"
 };
@@ -121,20 +123,33 @@ const placeStyle: CSSProperties = {
   color: "#fde68a"
 };
 
+const summaryStyle: CSSProperties = {
+  display: "flex",
+  alignItems: "baseline",
+  gap: "10px",
+  minWidth: 0,
+  overflow: "hidden",
+  whiteSpace: "nowrap"
+};
+
 const nameStyle: CSSProperties = {
-  margin: 0,
+  minWidth: 0,
+  overflow: "hidden",
+  textOverflow: "ellipsis",
   fontWeight: 700
 };
 
 const metaStyle: CSSProperties = {
-  margin: "6px 0 0",
+  flexShrink: 0,
   color: "#94a3b8"
 };
 
 const timeStyle: CSSProperties = {
-  margin: "4px 0 0",
+  flexShrink: 0,
   color: "#fde68a",
-  fontVariantNumeric: "tabular-nums"
+  fontVariantNumeric: "tabular-nums",
+  fontWeight: 700,
+  whiteSpace: "nowrap"
 };
 
 const resetButtonStyle: CSSProperties = {

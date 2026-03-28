@@ -80,7 +80,7 @@ describe("ResultOverlay", () => {
     expect(container.querySelector('[data-testid="results-reset-button"]')).toBeNull();
   });
 
-  it("shows each finished player's elapsed time in the results modal", async () => {
+  it("shows each finished player's elapsed time on a single row without a time label", async () => {
     await act(async () => {
       root.render(
         <ResultOverlay
@@ -91,8 +91,15 @@ describe("ResultOverlay", () => {
       );
     });
 
-    expect(container.textContent).toContain("소요시간 00:20.000");
-    expect(container.textContent).toContain("소요시간 00:21.000");
+    const resultItems = Array.from(
+      container.querySelectorAll<HTMLElement>('[data-testid="results-list"] article')
+    );
+
+    expect(container.textContent).not.toContain("소요시간");
+    expect(container.textContent).toContain("00:20.000");
+    expect(container.textContent).toContain("00:21.000");
+    expect(resultItems[0]?.querySelectorAll("p")).toHaveLength(0);
+    expect(resultItems[1]?.querySelectorAll("p")).toHaveLength(0);
   });
 });
 
