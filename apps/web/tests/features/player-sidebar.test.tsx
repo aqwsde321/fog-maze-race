@@ -47,6 +47,17 @@ describe("PlayerSidebar", () => {
     expect(container.textContent).toContain("만두 (나)");
     expect(container.textContent).toContain("참가자");
   });
+
+  it("caps the player list at half the viewport height and scrolls overflow internally", async () => {
+    await act(async () => {
+      root.render(<PlayerSidebar snapshot={buildSnapshot()} selfPlayerId="player-1" />);
+    });
+
+    const list = container.querySelector<HTMLElement>('[data-testid="player-sidebar-list"]');
+
+    expect(list?.style.maxHeight).toBe("50vh");
+    expect(list?.style.overflowY).toBe("auto");
+  });
 });
 
 function buildSnapshot(): RoomSnapshot {

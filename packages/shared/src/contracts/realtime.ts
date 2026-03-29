@@ -54,6 +54,14 @@ export type SendChatMessagePayload = {
   content: string;
 };
 
+export type PingCheckPayload = {
+  clientSentAt: string;
+};
+
+export type PingCheckAckPayload = {
+  serverReceivedAt: string;
+};
+
 export type ConnectedPayload = {
   playerId: string;
   nickname: string;

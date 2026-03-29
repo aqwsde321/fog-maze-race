@@ -3,11 +3,37 @@ import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { Direction } from "@fog-maze-race/shared/domain/grid-position";
+import type { ServerHealthSnapshot } from "@fog-maze-race/shared/contracts/server-health";
 import type { RoomSnapshot } from "@fog-maze-race/shared/contracts/snapshots";
 
 import { GameScreen } from "../../src/views/GameScreen.js";
 
+const {
+  getSocketClientMock,
+  pingEmitMock,
+  pingTimeoutMock
+} = vi.hoisted(() => {
+  const pingEmitMock = vi.fn();
+  const pingTimeoutMock = vi.fn(() => ({
+    emit: pingEmitMock
+  }));
+  const getSocketClientMock = vi.fn(() => ({
+    connected: true,
+    timeout: pingTimeoutMock
+  }));
+
+  return {
+    getSocketClientMock,
+    pingEmitMock,
+    pingTimeoutMock
+  };
+});
+
 (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
+
+vi.mock("../../src/services/socket-client.js", () => ({
+  getSocketClient: getSocketClientMock
+}));
 
 vi.mock("../../src/game/GameCanvas.js", () => ({
   GameCanvas: () => <div data-testid="game-canvas" />
@@ -45,11 +71,22 @@ vi.mock("../../src/features/rooms/ResultOverlay.js", () => ({
 describe("GameScreen keyboard control", () => {
   let container: HTMLDivElement;
   let root: Root;
+  let fetchMock: ReturnType<typeof vi.fn>;
 
   beforeEach(() => {
     container = document.createElement("div");
     document.body.appendChild(container);
     root = createRoot(container);
+    fetchMock = vi.fn().mockResolvedValue(jsonResponse(buildServerHealth()));
+    vi.stubGlobal("fetch", fetchMock);
+    pingEmitMock.mockReset();
+    pingTimeoutMock.mockClear();
+    getSocketClientMock.mockClear();
+    pingEmitMock.mockImplementation((eventName: string, payload: unknown, acknowledge?: () => void) => {
+      if (eventName === "PING_CHECK") {
+        acknowledge?.();
+      }
+    });
   });
 
   afterEach(async () => {
@@ -57,6 +94,8 @@ describe("GameScreen keyboard control", () => {
       root.unmount();
     });
     container.remove();
+    vi.unstubAllGlobals();
+    vi.useRealTimers();
   });
 
   it("focuses the game frame and handles arrow keys only while playing", async () => {
@@ -177,7 +216,7 @@ describe("GameScreen keyboard control", () => {
     expect(container.textContent).not.toContain("시작");
   });
 
-  it("anchors the room chat panel to the left edge of the game frame", async () => {
+  it("keeps the room chat panel collapsed until the floating toggle is opened", async () => {
     await act(async () => {
       root.render(
         <GameScreen
@@ -196,8 +235,22 @@ describe("GameScreen keyboard control", () => {
       );
     });
 
-    const chatDock = container.querySelector<HTMLElement>('[data-testid="room-chat-dock"]');
-    expect(chatDock?.style.left).toBe("0px");
+    const chatToggle = container.querySelector<HTMLButtonElement>('[data-testid="room-chat-toggle"]');
+
+    expect(chatToggle?.style.pointerEvents).toBe("auto");
+    expect(container.querySelector('[data-testid="room-chat-panel"]')).toBeNull();
+
+    await act(async () => {
+      chatToggle?.click();
+    });
+
+    expect(container.querySelector('[data-testid="room-chat-panel"]')).not.toBeNull();
+
+    await act(async () => {
+      chatToggle?.click();
+    });
+
+    expect(container.querySelector('[data-testid="room-chat-panel"]')).toBeNull();
   });
 
   it("passes the reset action to the result overlay for hosts after the race ends", async () => {
@@ -228,6 +281,333 @@ describe("GameScreen keyboard control", () => {
     });
 
     expect(onResetToWaiting).toHaveBeenCalledTimes(1);
+  });
+
+  it("keeps server diagnostics collapsed until the floating toggle is opened", async () => {
+    await act(async () => {
+      root.render(
+        <GameScreen
+          snapshot={buildSnapshot("waiting")}
+          selfPlayerId="player-1"
+          countdownValue={null}
+          onStartGame={vi.fn()}
+          onRenameRoom={vi.fn()}
+          onSetVisibilitySize={vi.fn()}
+          onForceEndRoom={vi.fn()}
+          onResetToWaiting={vi.fn()}
+          onLeaveRoom={vi.fn()}
+          onMove={vi.fn()}
+          onSendChatMessage={vi.fn()}
+        />
+      );
+    });
+
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(container.querySelector('[data-testid="server-health-panel"]')).toBeNull();
+
+    await act(async () => {
+      container.querySelector<HTMLButtonElement>('[data-testid="server-health-toggle"]')?.click();
+    });
+    await flush();
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/api/health",
+      expect.objectContaining({
+        cache: "no-store",
+        signal: expect.any(AbortSignal)
+      })
+    );
+    expect(pingTimeoutMock).toHaveBeenCalledWith(4_000);
+    expect(pingEmitMock).toHaveBeenCalledWith(
+      "PING_CHECK",
+      expect.objectContaining({
+        clientSentAt: expect.any(String)
+      }),
+      expect.any(Function)
+    );
+    expect(container.querySelector('[data-testid="server-health-panel"]')).not.toBeNull();
+    expect(container.textContent).toContain("온라인");
+    expect(container.textContent).toContain("현재 / 10초 평균 또는 최대");
+    expect(container.textContent).toContain("Ping");
+    expect(container.textContent).toMatch(/\d+\.\dms \/ \d+\.\dms/);
+    expect(container.textContent).toContain("linux x64");
+    expect(container.textContent).toContain("12.5% / 10.2%");
+    expect(container.textContent).toContain("3.8ms / 7.4ms");
+    expect(container.textContent).toContain("1 / 1");
+    expect(container.textContent).toContain("방 인원");
+    expect(container.textContent).toContain("전체 플레이어");
+    expect(container.textContent).toContain("전체 소켓");
+    expect(container.textContent).toContain("128.0 MB");
+    expect(container.textContent).toContain("48.0 MB / 64.0 MB");
+    expect(container.textContent).toContain("4.0 GB / 16.0 GB");
+    expect(container.textContent).toContain("24.0 / 18.5");
+    expect(container.textContent).toContain("60.0 / 52.1");
+    expect(container.textContent).toContain("2.0 / 0.6");
+    expect(container.textContent).toContain("900.0 / 750.0");
+  });
+
+  it("keeps info icons only on metrics that need explanation", async () => {
+    await act(async () => {
+      root.render(
+        <GameScreen
+          snapshot={buildSnapshot("waiting")}
+          selfPlayerId="player-1"
+          countdownValue={null}
+          onStartGame={vi.fn()}
+          onRenameRoom={vi.fn()}
+          onSetVisibilitySize={vi.fn()}
+          onForceEndRoom={vi.fn()}
+          onResetToWaiting={vi.fn()}
+          onLeaveRoom={vi.fn()}
+          onMove={vi.fn()}
+          onSendChatMessage={vi.fn()}
+        />
+      );
+    });
+
+    await act(async () => {
+      container.querySelector<HTMLButtonElement>('[data-testid="server-health-toggle"]')?.click();
+    });
+    await flush();
+
+    expect(container.querySelector('[data-testid="server-metric-info-ping"]')).not.toBeNull();
+    expect(container.querySelector('[data-testid="server-metric-info-cpu"]')).not.toBeNull();
+    expect(container.querySelector('[data-testid="server-metric-info-uptime"]')).toBeNull();
+    expect(container.querySelector('[data-testid="server-metric-info-moves"]')).toBeNull();
+    expect(container.querySelector('[data-testid="server-metric-info-node"]')).toBeNull();
+  });
+
+  it("renders sparklines only for the trend metrics", async () => {
+    await act(async () => {
+      root.render(
+        <GameScreen
+          snapshot={buildSnapshot("waiting")}
+          selfPlayerId="player-1"
+          countdownValue={null}
+          onStartGame={vi.fn()}
+          onRenameRoom={vi.fn()}
+          onSetVisibilitySize={vi.fn()}
+          onForceEndRoom={vi.fn()}
+          onResetToWaiting={vi.fn()}
+          onLeaveRoom={vi.fn()}
+          onMove={vi.fn()}
+          onSendChatMessage={vi.fn()}
+        />
+      );
+    });
+
+    await act(async () => {
+      container.querySelector<HTMLButtonElement>('[data-testid="server-health-toggle"]')?.click();
+    });
+    await flush();
+
+    expect(container.querySelector('[data-testid="server-metric-graph-ping"]')).not.toBeNull();
+    expect(container.querySelector('[data-testid="server-metric-graph-cpu"]')).not.toBeNull();
+    expect(container.querySelector('[data-testid="server-metric-graph-loop"]')).not.toBeNull();
+    expect(container.querySelector('[data-testid="server-metric-graph-heap"]')).not.toBeNull();
+    expect(container.querySelector('[data-testid="server-metric-graph-rss"]')).not.toBeNull();
+    expect(container.querySelector('[data-testid="server-metric-graph-fanout"]')).not.toBeNull();
+
+    expect(container.querySelector('[data-testid="server-metric-graph-sockets"]')).toBeNull();
+    expect(container.querySelector('[data-testid="server-metric-graph-memory"]')).toBeNull();
+    expect(container.querySelector('[data-testid="server-metric-graph-state"]')).toBeNull();
+  });
+
+  it("shows a metric tooltip when the info icon is hovered", async () => {
+    await act(async () => {
+      root.render(
+        <GameScreen
+          snapshot={buildSnapshot("waiting")}
+          selfPlayerId="player-1"
+          countdownValue={null}
+          onStartGame={vi.fn()}
+          onRenameRoom={vi.fn()}
+          onSetVisibilitySize={vi.fn()}
+          onForceEndRoom={vi.fn()}
+          onResetToWaiting={vi.fn()}
+          onLeaveRoom={vi.fn()}
+          onMove={vi.fn()}
+          onSendChatMessage={vi.fn()}
+        />
+      );
+    });
+
+    await act(async () => {
+      container.querySelector<HTMLButtonElement>('[data-testid="server-health-toggle"]')?.click();
+    });
+    await flush();
+
+    const cpuInfo = container.querySelector<HTMLElement>('[data-testid="server-metric-info-cpu"]');
+
+    expect(cpuInfo).not.toBeNull();
+    expect(container.querySelector('[data-testid="server-metric-tooltip-cpu"]')).toBeNull();
+
+    await act(async () => {
+      cpuInfo?.dispatchEvent(new MouseEvent("mouseover", { bubbles: true }));
+    });
+
+    const tooltip = document.body.querySelector<HTMLElement>('[data-testid="server-metric-tooltip-cpu"]');
+
+    expect(tooltip?.textContent).toContain("현재, 오른쪽은 최근 10초 평균 CPU 사용률");
+    expect(tooltip?.parentElement).toBe(document.body);
+
+    await act(async () => {
+      cpuInfo?.dispatchEvent(new MouseEvent("mouseout", { bubbles: true }));
+    });
+
+    expect(document.body.querySelector('[data-testid="server-metric-tooltip-cpu"]')).toBeNull();
+  });
+
+  it("keeps the tooltip layer outside the panel body and avoids internal panel scrolling", async () => {
+    await act(async () => {
+      root.render(
+        <GameScreen
+          snapshot={buildSnapshot("waiting")}
+          selfPlayerId="player-1"
+          countdownValue={null}
+          onStartGame={vi.fn()}
+          onRenameRoom={vi.fn()}
+          onSetVisibilitySize={vi.fn()}
+          onForceEndRoom={vi.fn()}
+          onResetToWaiting={vi.fn()}
+          onLeaveRoom={vi.fn()}
+          onMove={vi.fn()}
+          onSendChatMessage={vi.fn()}
+        />
+      );
+    });
+
+    await act(async () => {
+      container.querySelector<HTMLButtonElement>('[data-testid="server-health-toggle"]')?.click();
+    });
+    await flush();
+
+    const panel = container.querySelector<HTMLElement>('[data-testid="server-health-panel"]');
+    const scrollBody = container.querySelector<HTMLElement>('[data-testid="server-health-scroll"]');
+
+    expect(panel?.style.overflow).toBe("visible");
+    expect(scrollBody?.style.overflowY).toBe("visible");
+  });
+
+  it("shows a degraded state when the health check fails", async () => {
+    fetchMock.mockRejectedValueOnce(new Error("network failed"));
+
+    await act(async () => {
+      root.render(
+        <GameScreen
+          snapshot={buildSnapshot("waiting")}
+          selfPlayerId="player-1"
+          countdownValue={null}
+          onStartGame={vi.fn()}
+          onRenameRoom={vi.fn()}
+          onSetVisibilitySize={vi.fn()}
+          onForceEndRoom={vi.fn()}
+          onResetToWaiting={vi.fn()}
+          onLeaveRoom={vi.fn()}
+          onMove={vi.fn()}
+          onSendChatMessage={vi.fn()}
+        />
+      );
+    });
+
+    await act(async () => {
+      container.querySelector<HTMLButtonElement>('[data-testid="server-health-toggle"]')?.click();
+    });
+    await flush();
+
+    expect(container.textContent).toContain("상태 확인 실패");
+  });
+
+  it("keeps the previous server status when a health refresh returns 304", async () => {
+    vi.useFakeTimers();
+    fetchMock
+      .mockResolvedValueOnce(jsonResponse(buildServerHealth()))
+      .mockResolvedValueOnce(notModifiedResponse());
+
+    await act(async () => {
+      root.render(
+        <GameScreen
+          snapshot={buildSnapshot("waiting")}
+          selfPlayerId="player-1"
+          countdownValue={null}
+          onStartGame={vi.fn()}
+          onRenameRoom={vi.fn()}
+          onSetVisibilitySize={vi.fn()}
+          onForceEndRoom={vi.fn()}
+          onResetToWaiting={vi.fn()}
+          onLeaveRoom={vi.fn()}
+          onMove={vi.fn()}
+          onSendChatMessage={vi.fn()}
+        />
+      );
+    });
+
+    await act(async () => {
+      container.querySelector<HTMLButtonElement>('[data-testid="server-health-toggle"]')?.click();
+    });
+    await flush();
+
+    expect(container.textContent).toContain("온라인");
+
+    await act(async () => {
+      vi.advanceTimersByTime(2_000);
+      await Promise.resolve();
+    });
+    await flush();
+
+    expect(container.textContent).toContain("온라인");
+    expect(container.textContent).not.toContain("상태 확인 실패");
+  });
+
+  it("stops polling again when the floating diagnostics panel is closed", async () => {
+    vi.useFakeTimers();
+
+    await act(async () => {
+      root.render(
+        <GameScreen
+          snapshot={buildSnapshot("waiting")}
+          selfPlayerId="player-1"
+          countdownValue={null}
+          onStartGame={vi.fn()}
+          onRenameRoom={vi.fn()}
+          onSetVisibilitySize={vi.fn()}
+          onForceEndRoom={vi.fn()}
+          onResetToWaiting={vi.fn()}
+          onLeaveRoom={vi.fn()}
+          onMove={vi.fn()}
+          onSendChatMessage={vi.fn()}
+        />
+      );
+    });
+
+    await act(async () => {
+      container.querySelector<HTMLButtonElement>('[data-testid="server-health-toggle"]')?.click();
+    });
+    await flush();
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+
+    await act(async () => {
+      vi.advanceTimersByTime(2_000);
+      await Promise.resolve();
+    });
+    await flush();
+
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+
+    await act(async () => {
+      container.querySelector<HTMLButtonElement>('[data-testid="server-health-toggle"]')?.click();
+    });
+    await flush();
+
+    await act(async () => {
+      vi.advanceTimersByTime(4_000);
+      await Promise.resolve();
+    });
+    await flush();
+
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(container.querySelector('[data-testid="server-health-panel"]')).toBeNull();
   });
 
   async function renderScreen(snapshot: RoomSnapshot, onMove: (direction: Direction) => void) {
@@ -358,4 +738,76 @@ function buildSnapshot(
         }
       : null
   };
+}
+
+function buildServerHealth(): ServerHealthSnapshot {
+  return {
+    ok: true,
+    service: "fog-maze-race",
+    version: "dev",
+    checkedAt: "2026-03-28T01:00:00.000Z",
+    uptimeSeconds: 321,
+    runtime: {
+      nodeVersion: "v22.15.0",
+      platform: "linux",
+      arch: "x64"
+    },
+    system: {
+      cpuCores: 8,
+      totalMemoryBytes: 16 * 1024 * 1024 * 1024,
+      freeMemoryBytes: 4 * 1024 * 1024 * 1024
+    },
+    process: {
+      rssBytes: 128 * 1024 * 1024,
+      heapUsedBytes: 48 * 1024 * 1024,
+      heapTotalBytes: 64 * 1024 * 1024,
+      externalBytes: 12 * 1024 * 1024
+    },
+    load: {
+      cpuPercent: 12.5,
+      eventLoopLagMs: 3.8,
+      eventLoopLagMaxMs: 5.2,
+      activeRooms: 1,
+      activePlayers: 15,
+      activeMatches: 1,
+      connectedSockets: 15,
+      movesPerSecond: 24,
+      chatMessagesPerSecond: 2,
+      roomStateUpdatesPerSecond: 60,
+      broadcastsPerSecond: 75,
+      fanoutPerSecond: 900
+    },
+    recent: {
+      avgCpuPercent10s: 10.2,
+      avgEventLoopLagMs10s: 4.1,
+      peakEventLoopLagMs10s: 7.4,
+      avgMovesPerSecond10s: 18.5,
+      avgChatMessagesPerSecond10s: 0.6,
+      avgRoomStateUpdatesPerSecond10s: 52.1,
+      avgBroadcastsPerSecond10s: 66.8,
+      avgFanoutPerSecond10s: 750
+    }
+  };
+}
+
+function jsonResponse(payload: unknown) {
+  return {
+    ok: true,
+    status: 200,
+    json: async () => payload
+  } satisfies Pick<Response, "ok" | "json" | "status">;
+}
+
+function notModifiedResponse() {
+  return {
+    ok: false,
+    status: 304,
+    json: async () => undefined
+  } satisfies Pick<Response, "ok" | "json" | "status">;
+}
+
+async function flush() {
+  await act(async () => {
+    await Promise.resolve();
+  });
 }

@@ -19,7 +19,7 @@ export function PlayerSidebar({ snapshot, selfPlayerId }: PlayerSidebarProps) {
         <h3 style={titleStyle}>플레이어</h3>
         <span style={countStyle}>{snapshot.members.length}</span>
       </div>
-      <div style={listStyle}>
+      <div data-testid="player-sidebar-list" style={listStyle}>
         {snapshot.members.map((member) => (
           <article key={member.playerId} style={memberCardStyle}>
             <div style={identityStyle}>
@@ -109,7 +109,7 @@ const listStyle: CSSProperties = {
   display: "grid",
   gap: "2px",
   marginTop: "4px",
-  maxHeight: "min(40vh, 360px)",
+  maxHeight: "50vh",
   overflowY: "auto",
   paddingRight: "2px"
 };

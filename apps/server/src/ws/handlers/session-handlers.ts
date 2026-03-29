@@ -3,15 +3,17 @@ import type { Server, Socket } from "socket.io";
 import type {
   ConnectPayload,
   CreateRoomPayload,
-  ErrorPayload,
-  JoinRoomPayload
+  JoinRoomPayload,
+  PingCheckAckPayload,
+  PingCheckPayload
 } from "@fog-maze-race/shared/contracts/realtime";
 
+import type { ServerLoadMonitor } from "../../app/server-load-monitor.js";
 import { PlayerSession } from "../../core/player-session.js";
 import { RecoveryService } from "../../rooms/recovery-service.js";
 import { RoomService } from "../../rooms/room-service.js";
 import { DisconnectGraceRegistry } from "../disconnect-grace.js";
-import { emitError, emitRoomListAsync, requireSession } from "./handler-support.js";
+import { emitError, emitRoomListAsync, emitRoomState, requireSession } from "./handler-support.js";
 import { recoverPlayerConnection } from "./recovery-handlers.js";
 
 type SessionHandlerDeps = {
@@ -21,6 +23,7 @@ type SessionHandlerDeps = {
   roomService: RoomService;
   disconnectGrace: DisconnectGraceRegistry;
   recoveryService: RecoveryService;
+  loadMonitor?: ServerLoadMonitor;
 };
 
 export function registerSessionHandlers({
@@ -29,8 +32,15 @@ export function registerSessionHandlers({
   sessions,
   roomService,
   disconnectGrace,
-  recoveryService
+  recoveryService,
+  loadMonitor
 }: SessionHandlerDeps) {
+  socket.on("PING_CHECK", (_payload: PingCheckPayload, acknowledge?: (payload: PingCheckAckPayload) => void) => {
+    acknowledge?.({
+      serverReceivedAt: new Date().toISOString()
+    });
+  });
+
   socket.on("CONNECT", (payload: ConnectPayload) => {
     try {
       const session = resolveSession(payload, sessions, disconnectGrace);
@@ -49,13 +59,13 @@ export function registerSessionHandlers({
           snapshot: recovery.recoveredRoom.snapshot,
           selfPlayerId: session.playerId
         });
-        io.to(recovery.recoveredRoom.roomId).emit("ROOM_STATE_UPDATE", {
+        emitRoomState(io, recovery.recoveredRoom.roomId, {
           roomId: recovery.recoveredRoom.roomId,
           snapshot: recovery.recoveredRoom.snapshot
-        });
+        }, loadMonitor);
       }
 
-      emitRoomListAsync(socket, roomService);
+      emitRoomListAsync(socket, roomService, loadMonitor);
     } catch (error) {
       emitError(socket, error);
     }
@@ -71,7 +81,7 @@ export function registerSessionHandlers({
 
       socket.join(joined.roomId);
       socket.emit("ROOM_JOINED", joined);
-      emitRoomListAsync(io, roomService);
+      emitRoomListAsync(io, roomService, loadMonitor);
     } catch (error) {
       emitError(socket, error);
     }
@@ -87,11 +97,11 @@ export function registerSessionHandlers({
 
       socket.join(joined.roomId);
       socket.emit("ROOM_JOINED", joined);
-      io.to(joined.roomId).emit("ROOM_STATE_UPDATE", {
+      emitRoomState(io, joined.roomId, {
         roomId: joined.roomId,
         snapshot: joined.snapshot
-      });
-      emitRoomListAsync(io, roomService);
+      }, loadMonitor);
+      emitRoomListAsync(io, roomService, loadMonitor);
     } catch (error) {
       emitError(socket, error);
     }

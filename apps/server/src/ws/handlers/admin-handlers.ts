@@ -7,10 +7,11 @@ import type {
   SetVisibilitySizePayload
 } from "@fog-maze-race/shared/contracts/realtime";
 
+import type { ServerLoadMonitor } from "../../app/server-load-monitor.js";
 import { PlayerSession } from "../../core/player-session.js";
 import { MatchService } from "../../matches/match-service.js";
 import { RoomService } from "../../rooms/room-service.js";
-import { emitError, emitRoomListAsync, requireSession } from "./handler-support.js";
+import { emitError, emitRoomListAsync, emitRoomState, requireSession } from "./handler-support.js";
 import { createRoomEventSink } from "./recovery-handlers.js";
 
 type AdminHandlerDeps = {
@@ -19,6 +20,7 @@ type AdminHandlerDeps = {
   sessions: Map<string, PlayerSession>;
   roomService: RoomService;
   matchService: MatchService;
+  loadMonitor?: ServerLoadMonitor;
 };
 
 export function registerAdminHandlers({
@@ -26,12 +28,13 @@ export function registerAdminHandlers({
   socket,
   sessions,
   roomService,
-  matchService
+  matchService,
+  loadMonitor
 }: AdminHandlerDeps) {
   socket.on("LEAVE_ROOM", (payload: LeaveRoomPayload) => {
     try {
       const session = requireSession(socket, sessions);
-      const sink = createRoomEventSink(io, roomService, payload.roomId);
+      const sink = createRoomEventSink(io, roomService, payload.roomId, loadMonitor);
       const removal = roomService.removePlayer(payload.roomId, session.playerId);
 
       session.leave();
@@ -53,11 +56,11 @@ export function registerAdminHandlers({
       const session = requireSession(socket, sessions);
       const snapshot = roomService.renameRoom(payload.roomId, session.playerId, payload.name);
 
-      io.to(payload.roomId).emit("ROOM_STATE_UPDATE", {
+      emitRoomState(io, payload.roomId, {
         roomId: payload.roomId,
         snapshot
-      });
-      emitRoomListAsync(io, roomService);
+      }, loadMonitor);
+      emitRoomListAsync(io, roomService, loadMonitor);
     } catch (error) {
       emitError(socket, error);
     }
@@ -68,10 +71,10 @@ export function registerAdminHandlers({
       const session = requireSession(socket, sessions);
       const snapshot = roomService.setVisibilitySize(payload.roomId, session.playerId, payload.visibilitySize);
 
-      io.to(payload.roomId).emit("ROOM_STATE_UPDATE", {
+      emitRoomState(io, payload.roomId, {
         roomId: payload.roomId,
         snapshot
-      });
+      }, loadMonitor);
     } catch (error) {
       emitError(socket, error);
     }
@@ -80,7 +83,11 @@ export function registerAdminHandlers({
   socket.on("FORCE_END_ROOM", (payload: ForceEndRoomPayload) => {
     try {
       const session = requireSession(socket, sessions);
-      matchService.forceEnd(payload.roomId, session.playerId, createRoomEventSink(io, roomService, payload.roomId));
+      matchService.forceEnd(
+        payload.roomId,
+        session.playerId,
+        createRoomEventSink(io, roomService, payload.roomId, loadMonitor)
+      );
     } catch (error) {
       emitError(socket, error);
     }
@@ -92,7 +99,7 @@ export function registerAdminHandlers({
       matchService.resetRoomToWaiting(
         payload.roomId,
         session.playerId,
-        createRoomEventSink(io, roomService, payload.roomId)
+        createRoomEventSink(io, roomService, payload.roomId, loadMonitor)
       );
     } catch (error) {
       emitError(socket, error);

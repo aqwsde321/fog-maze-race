@@ -4,6 +4,7 @@ import type {
   StartGamePayload
 } from "@fog-maze-race/shared/contracts/realtime";
 
+import type { ServerLoadMonitor } from "../../app/server-load-monitor.js";
 import { PlayerSession } from "../../core/player-session.js";
 import { MatchService } from "../../matches/match-service.js";
 import { RoomService } from "../../rooms/room-service.js";
@@ -16,6 +17,7 @@ type MatchHandlerDeps = {
   sessions: Map<string, PlayerSession>;
   roomService: RoomService;
   matchService: MatchService;
+  loadMonitor?: ServerLoadMonitor;
 };
 
 export function registerMatchHandlers({
@@ -23,7 +25,8 @@ export function registerMatchHandlers({
   socket,
   sessions,
   roomService,
-  matchService
+  matchService,
+  loadMonitor
 }: MatchHandlerDeps) {
   socket.on("START_GAME", (payload: StartGamePayload) => {
     try {
@@ -31,7 +34,7 @@ export function registerMatchHandlers({
       matchService.startGame(
         payload.roomId,
         session.playerId,
-        createRoomEventSink(io, roomService, payload.roomId)
+        createRoomEventSink(io, roomService, payload.roomId, loadMonitor)
       );
     } catch (error) {
       emitError(socket, error);
@@ -41,6 +44,7 @@ export function registerMatchHandlers({
   socket.on("MOVE", (payload: MovePayload) => {
     try {
       const session = requireSession(socket, sessions);
+      loadMonitor?.recordMoveInput();
 
       matchService.move(
         payload.roomId,
@@ -49,7 +53,7 @@ export function registerMatchHandlers({
           direction: payload.direction,
           inputSeq: payload.inputSeq
         },
-        createRoomEventSink(io, roomService, payload.roomId)
+        createRoomEventSink(io, roomService, payload.roomId, loadMonitor)
       );
     } catch (error) {
       emitError(socket, error);

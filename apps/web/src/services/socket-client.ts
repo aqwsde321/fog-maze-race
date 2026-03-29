@@ -7,6 +7,8 @@ import type {
   ForceEndRoomPayload,
   GameStartingPayload,
   LeaveRoomPayload,
+  PingCheckAckPayload,
+  PingCheckPayload,
   PlayerFinishedPayload,
   GameEndedPayload,
   JoinRoomPayload,
@@ -50,6 +52,7 @@ export type RaceSocketCommands = {
   RESET_ROOM: (payload: ResetRoomPayload) => void;
   MOVE: (payload: MovePayload) => void;
   SEND_CHAT_MESSAGE: (payload: SendChatMessagePayload) => void;
+  PING_CHECK: (payload: PingCheckPayload, acknowledge: (payload: PingCheckAckPayload) => void) => void;
 };
 
 let socket: Socket<RaceSocketEvents, RaceSocketCommands> | null = null;

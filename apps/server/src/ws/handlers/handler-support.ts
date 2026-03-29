@@ -1,6 +1,7 @@
 import type { Server, Socket } from "socket.io";
-import type { ErrorPayload } from "@fog-maze-race/shared/contracts/realtime";
+import type { ErrorPayload, RoomStateUpdatePayload } from "@fog-maze-race/shared/contracts/realtime";
 
+import type { ServerLoadMonitor } from "../../app/server-load-monitor.js";
 import { PlayerSession } from "../../core/player-session.js";
 import { RoomService } from "../../rooms/room-service.js";
 
@@ -18,14 +19,42 @@ export function requireSession(socket: Socket, sessions: Map<string, PlayerSessi
   return session;
 }
 
-export function emitRoomListAsync(target: Server | Socket, roomService: RoomService) {
+export function emitRoomListAsync(
+  target: Server | Socket,
+  roomService: RoomService,
+  loadMonitor?: ServerLoadMonitor
+) {
   [0, 40].forEach((delayMs) => {
     setTimeout(() => {
+      if (isServerTarget(target)) {
+        loadMonitor?.recordBroadcast(target.of("/").sockets.size);
+      }
       target.emit("ROOM_LIST_UPDATE", {
         rooms: roomService.listRooms()
       });
     }, delayMs);
   });
+}
+
+export function emitRoomState(
+  io: Server,
+  roomId: string,
+  payload: RoomStateUpdatePayload,
+  loadMonitor?: ServerLoadMonitor
+) {
+  loadMonitor?.recordRoomStateUpdate(getRoomRecipientCount(io, roomId));
+  io.to(roomId).emit("ROOM_STATE_UPDATE", payload);
+}
+
+export function emitRoomEvent(
+  io: Server,
+  roomId: string,
+  eventName: string,
+  payload: unknown,
+  loadMonitor?: ServerLoadMonitor
+) {
+  loadMonitor?.recordBroadcast(getRoomRecipientCount(io, roomId));
+  io.to(roomId).emit(eventName, payload);
 }
 
 export function emitError(socket: Socket, error: unknown) {
@@ -52,6 +81,14 @@ function toErrorCode(code: string): ErrorPayload["code"] {
     default:
       return "UNKNOWN";
   }
+}
+
+function getRoomRecipientCount(io: Server, roomId: string) {
+  return io.of("/").adapter.rooms.get(roomId)?.size ?? 0;
+}
+
+function isServerTarget(target: Server | Socket): target is Server {
+  return typeof (target as Server).of === "function";
 }
 
 function toMessage(code: string) {

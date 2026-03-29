@@ -61,7 +61,7 @@ describe("RoomChatPanel", () => {
     expect(input?.value).toBe("");
   });
 
-  it("uses a fixed narrow panel size and keeps chat overflow inside the log area", async () => {
+  it("uses a taller fixed panel size and keeps chat overflow inside the log area", async () => {
     await act(async () => {
       root.render(
         <RoomChatPanel
@@ -76,7 +76,7 @@ describe("RoomChatPanel", () => {
     const log = container.querySelector<HTMLElement>('[data-testid="room-chat-log"]');
 
     expect(panel?.style.width).toBe("291px");
-    expect(panel?.style.height).toBe("320px");
+    expect(panel?.style.height).toBe("480px");
     expect(log?.style.overflowY).toBe("auto");
     expect(log?.style.minHeight).toBe("0");
   });

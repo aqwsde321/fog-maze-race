@@ -264,6 +264,24 @@ export class RoomService {
       .sort((left, right) => left.name.localeCompare(right.name, "ko-KR"));
   }
 
+  getLoadStats() {
+    let activePlayers = 0;
+    let activeMatches = 0;
+
+    for (const runtime of this.rooms.values()) {
+      activePlayers += runtime.room.listMembers().length;
+      if (runtime.match && runtime.room.status !== "ended") {
+        activeMatches += 1;
+      }
+    }
+
+    return {
+      activeRooms: this.rooms.size,
+      activePlayers,
+      activeMatches
+    };
+  }
+
   getSnapshot(roomId: string): RoomSnapshot {
     const runtime = this.requireRuntime(roomId);
     const revision = Math.max(runtime.room.revision, this.revisionSync.peek(roomId));

@@ -1,11 +1,14 @@
 import fastifyStatic from "@fastify/static";
-import Fastify from "fastify";
+import Fastify, { type FastifyReply, type FastifyRequest } from "fastify";
 import { access } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import { fileURLToPath } from "node:url";
 import { Server as SocketIOServer } from "socket.io";
 
+import type { ServerHealthSnapshot } from "@fog-maze-race/shared/contracts/server-health";
+
+import { ServerLoadMonitor } from "./server-load-monitor.js";
 import { registerAdminMapRoutes } from "../http/admin-map-routes.js";
 import { buildRaceGateway } from "../ws/race-gateway.js";
 
@@ -27,24 +30,44 @@ export async function buildServer(options: BuildServerOptions = {}) {
       skipMiddlewares: true
     }
   });
+  const loadMonitor = new ServerLoadMonitor();
 
   const gateway = await buildRaceGateway(io, {
     countdownStepMs: options.countdownStepMs ?? Number(process.env.COUNTDOWN_STEP_MS ?? 1_000),
     resultsDurationMs: options.resultsDurationMs ?? Number(process.env.RESULTS_DURATION_MS ?? 6_000),
     forcedMapId: options.forcedMapId ?? process.env.FORCED_MAP_ID ?? null,
     recoveryGraceMs,
+    loadMonitor,
     mapStorePath:
       options.mapStorePath ??
       process.env.MAP_STORE_PATH ??
       resolve(dirname(fileURLToPath(import.meta.url)), "../../../../data/maps.json")
   });
 
-  app.get("/health", async () => ({
-    ok: true,
-    service: "fog-maze-race",
-    version: process.env.APP_VERSION ?? "dev",
-    uptimeSeconds: Math.floor(process.uptime())
-  }));
+  loadMonitor.start(() => {
+    const roomStats = gateway.roomService.getLoadStats();
+    return {
+      ...roomStats,
+      connectedSockets: io.of("/").sockets.size
+    };
+  });
+
+  const handleHealthRequest = async (
+    _request: FastifyRequest,
+    reply: FastifyReply
+  ): Promise<ServerHealthSnapshot> => {
+    reply.header("Cache-Control", "no-store, max-age=0");
+
+    return {
+      ok: true,
+      service: "fog-maze-race",
+      version: process.env.APP_VERSION ?? "dev",
+      ...loadMonitor.getSnapshot()
+    };
+  };
+
+  app.get("/health", handleHealthRequest);
+  app.get("/api/health", handleHealthRequest);
 
   await registerAdminMapRoutes(app, gateway.mapRegistry);
 
@@ -69,6 +92,7 @@ export async function buildServer(options: BuildServerOptions = {}) {
   }
 
   app.addHook("onClose", async () => {
+    loadMonitor.stop();
     gateway.dispose();
     await io.close();
   });

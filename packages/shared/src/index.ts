@@ -6,3 +6,4 @@ export * from "./visibility/apply-visibility.js";
 export * from "./contracts/realtime.js";
 export * from "./contracts/snapshots.js";
 export * from "./contracts/admin-maps.js";
+export * from "./contracts/server-health.js";

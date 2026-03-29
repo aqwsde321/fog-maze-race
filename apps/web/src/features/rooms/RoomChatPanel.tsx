@@ -127,7 +127,7 @@ const panelStyle: CSSProperties = {
   gridTemplateRows: "auto minmax(0, 1fr) auto",
   gap: "10px",
   width: "291px",
-  height: "320px",
+  height: "480px",
   padding: "12px",
   borderRadius: "18px",
   boxSizing: "border-box",

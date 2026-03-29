@@ -1,5 +1,6 @@
 import type { Server } from "socket.io";
 
+import type { ServerLoadMonitor } from "../app/server-load-monitor.js";
 import { PlayerSession } from "../core/player-session.js";
 import { MapRegistry } from "../maps/map-registry.js";
 import { MatchService, type MatchServiceOptions } from "../matches/match-service.js";
@@ -13,7 +14,10 @@ import { registerChatHandlers } from "./handlers/chat-handlers.js";
 import { registerMatchHandlers } from "./handlers/match-handlers.js";
 import { registerSessionHandlers } from "./handlers/session-handlers.js";
 
-export async function buildRaceGateway(io: Server, options: MatchServiceOptions & { mapStorePath?: string | null }) {
+export async function buildRaceGateway(
+  io: Server,
+  options: MatchServiceOptions & { loadMonitor?: ServerLoadMonitor; mapStorePath?: string | null }
+) {
   const revisionSync = new RevisionSync();
   const disconnectGrace = new DisconnectGraceRegistry();
   const sessions = new Map<string, PlayerSession>();
@@ -35,27 +39,31 @@ export async function buildRaceGateway(io: Server, options: MatchServiceOptions 
       sessions,
       roomService,
       disconnectGrace,
-      recoveryService
+      recoveryService,
+      loadMonitor: options.loadMonitor
     });
     registerMatchHandlers({
       io,
       socket,
       sessions,
       roomService,
-      matchService
+      matchService,
+      loadMonitor: options.loadMonitor
     });
     registerAdminHandlers({
       io,
       socket,
       sessions,
       roomService,
-      matchService
+      matchService,
+      loadMonitor: options.loadMonitor
     });
     registerChatHandlers({
       io,
       socket,
       sessions,
-      roomService
+      roomService,
+      loadMonitor: options.loadMonitor
     });
 
     socket.on("disconnect", () => {
@@ -71,7 +79,7 @@ export async function buildRaceGateway(io: Server, options: MatchServiceOptions 
       handlePlayerDisconnect({
         playerId,
         recoveryService,
-        sink: createRoomEventSink(io, roomService, session.currentRoomId)
+        sink: createRoomEventSink(io, roomService, session.currentRoomId, options.loadMonitor)
       });
     });
   });

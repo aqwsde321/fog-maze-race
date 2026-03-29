@@ -66,4 +66,87 @@ describe("buildServer", () => {
     expect(apiNotFoundResponse.statusCode).toBe(404);
     expect(apiNotFoundResponse.json()).toEqual({ message: "Route not found" });
   });
+
+  it("returns runtime diagnostics from the api health endpoint", async () => {
+    const response = await app.inject({
+      method: "GET",
+      url: "/api/health"
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.headers["cache-control"]).toBe("no-store, max-age=0");
+
+    const payload = response.json() as {
+      ok: boolean;
+      service: string;
+      version: string;
+      checkedAt: string;
+      uptimeSeconds: number;
+      runtime: {
+        nodeVersion: string;
+        platform: string;
+        arch: string;
+      };
+      system: {
+        cpuCores: number;
+        totalMemoryBytes: number;
+        freeMemoryBytes: number;
+      };
+      process: {
+        rssBytes: number;
+        heapUsedBytes: number;
+        heapTotalBytes: number;
+        externalBytes: number;
+      };
+      load: {
+        cpuPercent: number;
+        eventLoopLagMs: number;
+        eventLoopLagMaxMs: number;
+        activeRooms: number;
+        activePlayers: number;
+        activeMatches: number;
+        connectedSockets: number;
+        movesPerSecond: number;
+        chatMessagesPerSecond: number;
+        roomStateUpdatesPerSecond: number;
+        broadcastsPerSecond: number;
+        fanoutPerSecond: number;
+      };
+      recent: {
+        avgCpuPercent10s: number;
+        avgEventLoopLagMs10s: number;
+        peakEventLoopLagMs10s: number;
+        avgMovesPerSecond10s: number;
+        avgChatMessagesPerSecond10s: number;
+        avgRoomStateUpdatesPerSecond10s: number;
+        avgBroadcastsPerSecond10s: number;
+        avgFanoutPerSecond10s: number;
+      };
+    };
+
+    expect(payload.ok).toBe(true);
+    expect(payload.service).toBe("fog-maze-race");
+    expect(payload.version).toBeTypeOf("string");
+    expect(new Date(payload.checkedAt).toString()).not.toBe("Invalid Date");
+    expect(payload.uptimeSeconds).toBeGreaterThanOrEqual(0);
+    expect(payload.runtime.nodeVersion).toMatch(/^v\d+/);
+    expect(payload.runtime.platform).toBeTypeOf("string");
+    expect(payload.runtime.arch).toBeTypeOf("string");
+    expect(payload.system.cpuCores).toBeGreaterThan(0);
+    expect(payload.system.totalMemoryBytes).toBeGreaterThan(0);
+    expect(payload.system.freeMemoryBytes).toBeGreaterThan(0);
+    expect(payload.process.rssBytes).toBeGreaterThan(0);
+    expect(payload.process.heapUsedBytes).toBeGreaterThan(0);
+    expect(payload.process.heapTotalBytes).toBeGreaterThan(payload.process.heapUsedBytes);
+    expect(payload.process.externalBytes).toBeGreaterThanOrEqual(0);
+    expect(payload.load.activeRooms).toBeGreaterThanOrEqual(0);
+    expect(payload.load.activePlayers).toBeGreaterThanOrEqual(0);
+    expect(payload.load.activeMatches).toBeGreaterThanOrEqual(0);
+    expect(payload.load.connectedSockets).toBeGreaterThanOrEqual(0);
+    expect(payload.load.cpuPercent).toBeGreaterThanOrEqual(0);
+    expect(payload.load.eventLoopLagMs).toBeGreaterThanOrEqual(0);
+    expect(payload.load.eventLoopLagMaxMs).toBeGreaterThanOrEqual(0);
+    expect(payload.recent.avgCpuPercent10s).toBeGreaterThanOrEqual(0);
+    expect(payload.recent.peakEventLoopLagMs10s).toBeGreaterThanOrEqual(0);
+  });
 });

@@ -190,6 +190,32 @@ describe("US3 room administration contract", () => {
     });
   }, 10_000);
 
+  it("acknowledges ping checks so the client can measure round-trip latency", async () => {
+    const socket = createRaceSocket();
+    socket.connect();
+
+    await new Promise<void>((resolve) => {
+      socket.once("connect", () => resolve());
+    });
+
+    const acknowledgement = await new Promise<{ serverReceivedAt: string }>((resolve, reject) => {
+      socket.timeout(1_000).emit("PING_CHECK", { clientSentAt: new Date().toISOString() }, (
+        error: Error | null,
+        payload: { serverReceivedAt: string }
+      ) => {
+        if (error) {
+          reject(error);
+          return;
+        }
+
+        resolve(payload);
+      });
+    });
+
+    expect(typeof acknowledgement.serverReceivedAt).toBe("string");
+    expect(Number.isNaN(new Date(acknowledgement.serverReceivedAt).getTime())).toBe(false);
+  }, 5_000);
+
   function createRaceSocket() {
     const socket = createClient(`http://127.0.0.1:${port}`, {
       transports: ["websocket"],
