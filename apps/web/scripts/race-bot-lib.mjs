@@ -1,4 +1,4 @@
-export const DEFAULT_BOT_URL = "https://nonmaturely-unloaning-merilyn.ngrok-free.dev";
+export const DEFAULT_BOT_URL = "http://127.0.0.1:3000";
 export const DEFAULT_BOT_NICKNAME = "Codex";
 export const DEFAULT_BOT_COUNT = 1;
 export const DEFAULT_JOIN_MESSAGE = "들어왔다.";

@@ -1,6 +1,6 @@
 # Codex 레이스 봇 가이드
 
-`pnpm race:join`은 외부 게임 서버 또는 로컬 서버에 `Socket.IO` 클라이언트로 접속해 방에 참가하는 CLI 봇입니다. 수동 플레이 보조, 멀티플레이 테스트, 간단한 자동 주행 검증에 사용합니다.
+`pnpm race:join`과 `pnpm race:explore`는 외부 게임 서버 또는 로컬 서버에 `Socket.IO` 클라이언트로 접속해 방에 참가하는 CLI 봇입니다. 수동 플레이 보조, 멀티플레이 테스트, 간단한 자동 주행 검증에 사용합니다.
 
 ## 실행 위치
 
@@ -10,7 +10,13 @@
 pnpm race:join
 ```
 
-내부적으로는 `apps/web/scripts/race-bot.mjs`를 실행합니다.
+탐험형 봇:
+
+```bash
+pnpm race:explore
+```
+
+내부적으로는 빠른 최단 경로 봇 `apps/web/scripts/race-bot.mjs`, 시야 제한 탐험형 봇 `apps/web/scripts/race-bot-explorer.mjs`를 각각 실행합니다.
 
 ## 기본 동작
 
@@ -22,12 +28,19 @@ pnpm race:join
 - 게임 상태가 `playing`이 되면 기본적으로 목표 지점까지 자동 주행합니다.
 - 표준 입력 명령으로 상태 확인, 채팅, 수동 이동, 종료를 제어할 수 있습니다.
 
+## 두 봇의 차이
+
+- `pnpm race:join`: 서버가 내려준 전체 맵을 기준으로 즉시 최단 경로를 계산합니다.
+- `pnpm race:explore`: 현재 시야에서 보인 타일만 기억하고, 모르는 구역을 frontier 방식으로 탐험합니다.
+- 기존 빠른 봇은 그대로 유지되고, 탐험형 봇은 별도 엔트리로 추가되었습니다.
+
 ## 자주 쓰는 예시
 
 기본 참가:
 
 ```bash
 pnpm race:join
+pnpm race:explore
 ```
 
 두 명 이상 동시에 참가:
@@ -43,10 +56,11 @@ pnpm race:join -- --count 3
 RACE_BOT_ROOM=Alpha pnpm race:join
 ```
 
-외부 공개 주소로 접속:
+로컬 서버 주소를 명시해서 접속:
 
 ```bash
-RACE_BOT_URL=https://your-host.ngrok-free.dev pnpm race:join
+RACE_BOT_URL=http://127.0.0.1:3000 pnpm race:join
+RACE_BOT_URL=http://127.0.0.1:3000 pnpm race:explore
 ```
 
 입장 직후 채팅 보내기:
@@ -59,21 +73,23 @@ RACE_BOT_JOIN_MESSAGE="들어왔다." RACE_BOT_FINISH_MESSAGE="도착했다." pn
 
 ```bash
 RACE_BOT_AUTOPILOT=false pnpm race:join
+RACE_BOT_AUTOPILOT=false pnpm race:explore
 ```
 
 CLI 옵션으로 한 번만 덮어쓰기:
 
 ```bash
-pnpm race:join -- --url https://your-host.ngrok-free.dev --room Alpha --join-message "들어왔어요" --finish-message "도착했어요"
+pnpm race:join -- --url http://127.0.0.1:3000 --room Alpha --join-message "들어왔어요" --finish-message "도착했어요"
 pnpm race:join -- --nickname BotA --no-autopilot
 pnpm race:join -- --no-join-message --no-finish-message
+pnpm race:explore -- --room Alpha --count 2
 ```
 
 ## 환경변수와 CLI 옵션
 
 | 환경변수 | CLI 옵션 | 설명 | 기본값 |
 | --- | --- | --- | --- |
-| `RACE_BOT_URL` | `--url` | 접속할 게임 서버 URL | `https://nonmaturely-unloaning-merilyn.ngrok-free.dev` |
+| `RACE_BOT_URL` | `--url` | 접속할 게임 서버 URL | `http://127.0.0.1:3000` |
 | `RACE_BOT_NICKNAME` | `--nickname` | 봇 닉네임 | `Codex` |
 | `RACE_BOT_COUNT` | `--count` | 동시에 띄울 봇 수 | `1` |
 | `RACE_BOT_ROOM` | `--room` | 참가를 기다릴 방 이름 | 없음 |
@@ -112,10 +128,11 @@ pnpm race:join -- --no-join-message --no-finish-message
 
 ## 운영 팁
 
-- 외부 테스트 시 ngrok 주소가 자주 바뀌면 `RACE_BOT_URL`만 바꿔 재사용하면 됩니다.
+- 기본값은 로컬 서버 `http://127.0.0.1:3000`입니다. 다른 서버에 붙을 때만 `RACE_BOT_URL`을 덮어쓰면 됩니다.
 - 여러 방이 동시에 열리는 환경에서는 `RACE_BOT_ROOM`을 지정하는 편이 안전합니다.
 - 게임에 계속 남아 있으려면 프로세스를 종료하지 않아야 합니다.
 - 자동 주행은 서버가 내려주는 맵 스냅샷을 기준으로 경로를 계산하므로, 일반 사용자 UI 조작과는 별개로 빠르게 반응합니다.
+- 탐험형 봇은 현재 시야에 보인 타일만 기억하고, 막힌 방향은 벽으로 학습한 뒤 다른 frontier를 탐색합니다.
 
 ## 검증
 
