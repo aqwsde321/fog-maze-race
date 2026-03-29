@@ -253,6 +253,58 @@ describe("GameScreen keyboard control", () => {
     expect(container.querySelector('[data-testid="room-chat-panel"]')).toBeNull();
   });
 
+  it("positions the floating server controls to the left of the right rail", async () => {
+    await act(async () => {
+      root.render(
+        <GameScreen
+          snapshot={buildSnapshot("waiting")}
+          selfPlayerId="player-1"
+          countdownValue={null}
+          onStartGame={vi.fn()}
+          onRenameRoom={vi.fn()}
+          onSetVisibilitySize={vi.fn()}
+          onForceEndRoom={vi.fn()}
+          onResetToWaiting={vi.fn()}
+          onLeaveRoom={vi.fn()}
+          onMove={vi.fn()}
+          onSendChatMessage={vi.fn()}
+        />
+      );
+    });
+
+    const dock = container.querySelector<HTMLElement>('[data-testid="server-floating-dock"]');
+
+    expect(dock).not.toBeNull();
+    expect(dock?.style.right.startsWith("calc(")).toBe(true);
+    expect(dock?.style.bottom).toBe("clamp(10px, 1vw, 14px)");
+  });
+
+  it("hides the floating server controls for non-host players", async () => {
+    await act(async () => {
+      root.render(
+        <GameScreen
+          snapshot={buildSnapshot("waiting", {
+            hostPlayerId: "player-2",
+            selfPlayerId: "player-1"
+          })}
+          selfPlayerId="player-1"
+          countdownValue={null}
+          onStartGame={vi.fn()}
+          onRenameRoom={vi.fn()}
+          onSetVisibilitySize={vi.fn()}
+          onForceEndRoom={vi.fn()}
+          onResetToWaiting={vi.fn()}
+          onLeaveRoom={vi.fn()}
+          onMove={vi.fn()}
+          onSendChatMessage={vi.fn()}
+        />
+      );
+    });
+
+    expect(container.querySelector('[data-testid="server-floating-dock"]')).toBeNull();
+    expect(container.querySelector('[data-testid="server-health-toggle"]')).toBeNull();
+  });
+
   it("passes the reset action to the result overlay for hosts after the race ends", async () => {
     const onResetToWaiting = vi.fn();
 

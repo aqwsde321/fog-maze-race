@@ -53,7 +53,7 @@ export function HostControls({
     () => Array.from({ length: Math.max(availableBotSlots, 0) }, (_, index) => index + 1),
     [availableBotSlots]
   );
-  const canOpenBotPanel = canManageBots && availableBotSlots > 0;
+  const canOpenBotPanel = canManageBots && (availableBotSlots > 0 || currentBots.length > 0);
 
   useEffect(() => {
     setDraftName(roomName);
@@ -102,12 +102,8 @@ export function HostControls({
   void draftName;
   void onRenameRoom;
 
-  const canSubmitBots = canOpenBotPanel && botNameDrafts.some((nickname) => Boolean(normalizeNickname(nickname)));
-  const botActionLabel = roomMode === "bot_race" ? "봇 채우기" : "봇 참가시키기";
-  const botHelperText =
-    roomMode === "bot_race"
-      ? "이 방에서는 봇만 참가하고, 당신은 관전과 시작/재시작만 맡습니다."
-      : "이 방에서는 사람과 봇이 함께 달립니다. 시작과 재시작은 계속 방장이 합니다.";
+  const canSubmitBots = canManageBots && availableBotSlots > 0 && botNameDrafts.some((nickname) => Boolean(normalizeNickname(nickname)));
+  const botActionLabel = "봇 참가시키기";
   const canRemoveBots = canManageBots && currentBots.length > 0;
 
   function handleBotNameChange(index: number, value: string) {
@@ -150,7 +146,8 @@ export function HostControls({
 
   return (
     <div style={panelStyle}>
-      <div style={rowStyle}>
+      <div style={cardStyle}>
+        <strong style={sectionTitleStyle}>시야 크기</strong>
         <label htmlFor="visibility-size" style={hiddenLabelStyle}>
           시야 크기
         </label>
@@ -176,7 +173,7 @@ export function HostControls({
           disabled={!canOpenBotPanel}
           style={toggleButtonStyle}
         >
-          {isBotPanelOpen ? "봇 설정 닫기" : "봇 설정"}
+          {isBotPanelOpen ? "봇 설정 닫기" : botActionLabel}
         </button>
       </div>
 
@@ -194,11 +191,11 @@ export function HostControls({
                 <div style={botHeaderRowStyle}>
                   <div style={botHeaderStyle}>
                     <div>
-                      <p style={botLabelStyle}>Bot Control</p>
+                      <p style={botLabelStyle}>Bots</p>
                       <strong style={botTitleStyle}>{botActionLabel}</strong>
                     </div>
-                    <span style={botHintStyle}>{botHelperText}</span>
                   </div>
+                  <span style={slotBadgeStyle}>남은 봇 슬롯 {availableBotSlots}명</span>
                   <button
                     data-testid="bot-panel-close-button"
                     type="button"
@@ -209,65 +206,82 @@ export function HostControls({
                   </button>
                 </div>
 
-                <div style={botConfigRowStyle}>
-                  <label htmlFor="bot-kind" style={hiddenLabelStyle}>
-                    봇 종류
-                  </label>
-                  <select
-                    id="bot-kind"
-                    name="bot-kind"
-                    value={botKind}
-                    disabled={!canManageBots}
-                    onChange={(event) => setBotKind(event.target.value as RoomBotKind)}
-                    style={selectStyle}
-                  >
-                    <option value="explore">탐험형</option>
-                    <option value="join">최단 경로형</option>
-                  </select>
+                {availableBotSlots > 0 ? (
+                  <>
+                    <div style={botConfigRowStyle}>
+                      <label htmlFor="bot-kind" style={hiddenLabelStyle}>
+                        봇 종류
+                      </label>
+                      <select
+                        id="bot-kind"
+                        name="bot-kind"
+                        value={botKind}
+                        disabled={!canManageBots}
+                        onChange={(event) => setBotKind(event.target.value as RoomBotKind)}
+                        style={selectStyle}
+                      >
+                        <option value="explore">탐험형</option>
+                        <option value="join">최단 경로형</option>
+                      </select>
 
-                  <label htmlFor="bot-count" style={hiddenLabelStyle}>
-                    봇 수
-                  </label>
-                  <select
-                    id="bot-count"
-                    name="bot-count"
-                    value={botCount}
-                    disabled={!canManageBots}
-                    onChange={(event) => setBotCount(Number(event.target.value))}
-                    style={selectStyle}
-                  >
-                    {botCountOptions.map((count) => (
-                      <option key={count} value={count}>
-                        {count}명
-                      </option>
-                    ))}
-                  </select>
-                </div>
+                      <label htmlFor="bot-count" style={hiddenLabelStyle}>
+                        봇 수
+                      </label>
+                      <select
+                        id="bot-count"
+                        name="bot-count"
+                        value={botCount}
+                        disabled={!canManageBots}
+                        onChange={(event) => setBotCount(Number(event.target.value))}
+                        style={selectStyle}
+                      >
+                        {botCountOptions.map((count) => (
+                          <option key={count} value={count}>
+                            {count}명
+                          </option>
+                        ))}
+                      </select>
+                    </div>
 
-                <div style={botInputsStyle}>
-                  {botNameDrafts.map((draft, index) => (
-                    <input
-                      key={`${roomId}-${index}`}
-                      data-testid={`bot-name-input-${index}`}
-                      type="text"
-                      maxLength={5}
-                      value={draft}
-                      disabled={!canManageBots}
-                      onChange={(event) => handleBotNameChange(index, event.target.value)}
-                      style={inputStyle}
-                    />
-                  ))}
-                </div>
+                    <div style={botInputsStyle}>
+                      {botNameDrafts.map((draft, index) => (
+                        <input
+                          key={`${roomId}-${index}`}
+                          data-testid={`bot-name-input-${index}`}
+                          type="text"
+                          maxLength={5}
+                          value={draft}
+                          disabled={!canManageBots}
+                          onChange={(event) => handleBotNameChange(index, event.target.value)}
+                          style={inputStyle}
+                        />
+                      ))}
+                    </div>
 
-                <button
-                  data-testid="add-bots-button"
-                  type="button"
-                  onClick={handleAddBotsClick}
-                  disabled={!canSubmitBots}
-                  style={addBotsButtonStyle}
-                >
-                  {botActionLabel}
-                </button>
+                    <button
+                      data-testid="add-bots-button"
+                      type="button"
+                      onClick={handleAddBotsClick}
+                      disabled={!canSubmitBots}
+                      style={addBotsButtonStyle}
+                    >
+                      {botActionLabel}
+                    </button>
+                  </>
+                ) : (
+                  <div style={fullBotRoomNoticeStyle}>
+                    <p style={fullBotRoomTitleStyle}>추가 가능한 슬롯이 없습니다.</p>
+                    <p style={fullBotRoomMetaStyle}>현재 봇을 제거하면 새 이름으로 다시 채울 수 있습니다.</p>
+                    <button
+                      data-testid="add-bots-button"
+                      type="button"
+                      disabled
+                      style={addBotsButtonStyle}
+                    >
+                      {botActionLabel}
+                    </button>
+                  </div>
+                )}
 
                 <div style={botManageSectionStyle}>
                   <div style={botManageHeaderStyle}>
@@ -317,7 +331,10 @@ function createBotNameDrafts(input: {
   count: number;
   usedNicknames: string[];
 }) {
-  const count = Math.max(1, input.count);
+  const count = Math.max(0, input.count);
+  if (count === 0) {
+    return [];
+  }
   const used = new Set(
     input.usedNicknames
       .map((nickname) => normalizeNickname(nickname))
@@ -392,14 +409,32 @@ const hiddenLabelStyle: CSSProperties = {
   border: 0
 };
 
-const rowStyle: CSSProperties = {
+const cardStyle: CSSProperties = {
   display: "grid",
-  gridTemplateColumns: "1fr",
-  gap: "4px"
+  gap: "8px",
+  padding: "10px",
+  borderRadius: "12px",
+  background: "rgba(15, 23, 42, 0.46)",
+  border: "1px solid rgba(148, 163, 184, 0.08)"
 };
 
-const botToggleWrapStyle: CSSProperties = {
-  display: "grid"
+const sectionTitleStyle: CSSProperties = {
+  display: "block",
+  color: "#f8fafc",
+  fontSize: "0.88rem"
+};
+
+const slotBadgeStyle: CSSProperties = {
+  display: "inline-flex",
+  alignItems: "center",
+  minHeight: "24px",
+  padding: "0 8px",
+  borderRadius: "999px",
+  background: "rgba(56, 189, 248, 0.12)",
+  border: "1px solid rgba(56, 189, 248, 0.18)",
+  color: "#bae6fd",
+  fontSize: "0.7rem",
+  whiteSpace: "nowrap"
 };
 
 const botPanelStyle: CSSProperties = {
@@ -428,14 +463,13 @@ const botOverlayStyle: CSSProperties = {
 
 const botHeaderRowStyle: CSSProperties = {
   display: "grid",
-  gridTemplateColumns: "minmax(0, 1fr) auto",
+  gridTemplateColumns: "minmax(0, 1fr) auto auto",
   gap: "12px",
   alignItems: "start"
 };
 
 const botHeaderStyle: CSSProperties = {
-  display: "grid",
-  gap: "6px"
+  display: "grid"
 };
 
 const botLabelStyle: CSSProperties = {
@@ -449,12 +483,6 @@ const botLabelStyle: CSSProperties = {
 const botTitleStyle: CSSProperties = {
   color: "#f8fafc",
   fontSize: "0.92rem"
-};
-
-const botHintStyle: CSSProperties = {
-  color: "#94a3b8",
-  fontSize: "0.78rem",
-  lineHeight: 1.45
 };
 
 const botCloseButtonStyle: CSSProperties = {
@@ -527,6 +555,28 @@ const botEmptyTextStyle: CSSProperties = {
   fontSize: "0.76rem"
 };
 
+const fullBotRoomNoticeStyle: CSSProperties = {
+  display: "grid",
+  gap: "8px",
+  padding: "10px 11px",
+  borderRadius: "12px",
+  background: "rgba(15, 23, 42, 0.52)",
+  border: "1px solid rgba(148, 163, 184, 0.1)"
+};
+
+const fullBotRoomTitleStyle: CSSProperties = {
+  margin: 0,
+  color: "#e2e8f0",
+  fontSize: "0.8rem"
+};
+
+const fullBotRoomMetaStyle: CSSProperties = {
+  margin: 0,
+  color: "#94a3b8",
+  fontSize: "0.74rem",
+  lineHeight: 1.45
+};
+
 const selectStyle: CSSProperties = {
   minHeight: "32px",
   padding: "6px 8px",
@@ -584,13 +634,18 @@ const removeBotButtonStyle: CSSProperties = {
 };
 
 const toggleButtonStyle: CSSProperties = {
-  minHeight: "34px",
-  padding: "7px 11px",
-  borderRadius: "12px",
+  width: "100%",
+  minHeight: "30px",
+  padding: "5px 10px",
+  borderRadius: "10px",
   border: "1px solid rgba(148, 163, 184, 0.24)",
   background: "rgba(15, 23, 42, 0.7)",
   color: "#cbd5e1",
   cursor: "pointer",
-  fontSize: "0.8rem",
+  fontSize: "0.74rem",
   whiteSpace: "nowrap"
+};
+
+const botToggleWrapStyle: CSSProperties = {
+  display: "grid"
 };

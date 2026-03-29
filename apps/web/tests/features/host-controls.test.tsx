@@ -194,6 +194,54 @@ describe("HostControls", () => {
     expect(toggleButton?.disabled).toBe(true);
   });
 
+  it("keeps bot settings available for removals even when no room slot remains", async () => {
+    const onRemoveBots = vi.fn();
+
+    await act(async () => {
+      root.render(
+        <HostControls
+          roomId="room-1"
+          roomName="Alpha"
+          roomMode="bot_race"
+          visibilitySize={7}
+          canEditVisibility
+          canManageBots
+          availableBotSlots={0}
+          memberNicknames={["host", "bot1", "bot2"]}
+          currentBots={[
+            { playerId: "bot-1", nickname: "bot1" },
+            { playerId: "bot-2", nickname: "bot2" }
+          ]}
+          onRenameRoom={vi.fn()}
+          onSetVisibilitySize={vi.fn()}
+          onAddBots={vi.fn()}
+          onRemoveBots={onRemoveBots}
+        />
+      );
+    });
+
+    const toggleButton = container.querySelector<HTMLButtonElement>('[data-testid="toggle-bot-panel-button"]');
+    expect(toggleButton?.disabled).toBe(false);
+
+    await act(async () => {
+      toggleButton?.click();
+    });
+
+    expect(document.body.textContent).toContain("남은 봇 슬롯 0명");
+
+    const addButton = document.body.querySelector<HTMLButtonElement>('[data-testid="add-bots-button"]');
+    expect(addButton?.disabled).toBe(true);
+
+    const removeButton = document.body.querySelector<HTMLButtonElement>('[data-testid="remove-bot-button-bot-1"]');
+    expect(removeButton).not.toBeNull();
+
+    await act(async () => {
+      removeButton?.click();
+    });
+
+    expect(onRemoveBots).toHaveBeenCalledWith(["bot-1"]);
+  });
+
   it("lets the host remove a specific current bot from the overlay", async () => {
     const onRemoveBots = vi.fn();
 

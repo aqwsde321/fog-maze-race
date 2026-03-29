@@ -31,6 +31,9 @@ type GameScreenProps = {
 
 const SERVER_HEALTH_POLL_INTERVAL_MS = 2_000;
 const SERVER_METRIC_HISTORY_LIMIT = 16;
+const SHELL_RAIL_WIDTH = "clamp(156px, 10.5vw, 178px)";
+const SHELL_COLUMN_GAP = "clamp(6px, 0.8vw, 10px)";
+const SHELL_EDGE_OFFSET = "clamp(8px, 1vw, 12px)";
 
 type PingMetricState = {
   avgMs10s: number | null;
@@ -82,7 +85,11 @@ export function GameScreen({
   const canStart = snapshot.room.status === "waiting" && isHost;
   const canMove = snapshot.room.status === "waiting" || snapshot.room.status === "countdown" || snapshot.room.status === "playing";
   const displayStatus = snapshot.room.status === "countdown" ? "playing" : snapshot.room.status;
-  const availableBotSlots = Math.max(snapshot.room.maxPlayers - snapshot.members.length, 0);
+  const currentRacerCount = snapshot.members.filter((member) => member.role === "racer").length;
+  const availableBotSlots = Math.max(
+    snapshot.room.maxPlayers - (snapshot.room.mode === "bot_race" ? currentRacerCount : snapshot.members.length),
+    0
+  );
   const currentBots = snapshot.members
     .filter((member) => member.kind === "bot")
     .map((member) => ({
@@ -328,7 +335,7 @@ export function GameScreen({
         </div>
       </div>
 
-      <div style={railStyle}>
+      <div data-testid="game-rail" style={railStyle}>
         <header style={topBarStyle}>
           <div style={roomHeaderRowStyle}>
             <div style={roomHeaderStyle}>
@@ -361,20 +368,22 @@ export function GameScreen({
               />
             </div>
           ) : null}
-          <div style={isHost ? hostActionRailStyle : guestActionRailStyle}>
-            {isHost ? (
-              <button type="button" onClick={onStartGame} disabled={!canStart} style={startButtonStyle}>
-                시작
+          <div style={actionPanelStyle}>
+            <div style={isHost ? hostActionRailStyle : guestActionRailStyle}>
+              {isHost ? (
+                <button type="button" onClick={onStartGame} disabled={!canStart} style={startButtonStyle}>
+                  시작
+                </button>
+              ) : null}
+              <button type="button" onClick={onLeaveRoom} style={ghostButtonStyle}>
+                나가기
               </button>
-            ) : null}
-            <button type="button" onClick={onLeaveRoom} style={ghostButtonStyle}>
-              나가기
-            </button>
-            {isHost ? (
-              <button type="button" onClick={onForceEndRoom} disabled={snapshot.room.status === "waiting"} style={dangerButtonStyle}>
-                강제 종료
-              </button>
-            ) : null}
+              {isHost ? (
+                <button type="button" onClick={onForceEndRoom} disabled={snapshot.room.status === "waiting"} style={dangerButtonStyle}>
+                  강제 종료
+                </button>
+              ) : null}
+            </div>
           </div>
 
         </header>
@@ -382,63 +391,65 @@ export function GameScreen({
         <PlayerSidebar snapshot={snapshot} selfPlayerId={selfPlayerId} />
       </div>
 
-      <div style={serverFloatingDockStyle}>
-        {isServerPanelOpen ? (
-          <section data-testid="server-health-panel" style={serverPanelStyle}>
-            <div style={serverHeaderStyle}>
-              <p style={labelStyle}>Server</p>
-              <strong data-testid="server-health-status" style={serverStatusValueStyle(serverHealthError)}>
-                {serverHealthError ? serverHealthError : serverHealth ? "온라인" : "확인 중"}
-              </strong>
-            </div>
-            <div data-testid="server-health-scroll" style={serverPanelBodyStyle}>
-              {serverHealth ? (
-                <>
-                  <p style={serverSubLabelStyle}>현재 / 10초 평균 또는 최대</p>
-                  <div style={serverMetricListStyle}>
-                    {serverMetrics.map((metric) => (
-                      <div key={metric.key} style={serverMetricRowStyle}>
-                        <div style={serverMetricLabelGroupStyle}>
-                          <span style={serverMetricLabelStyle}>{metric.label}</span>
-                          {metric.tooltip ? <MetricInfoButton metric={metric} /> : null}
+      {isHost ? (
+        <div data-testid="server-floating-dock" style={serverFloatingDockStyle}>
+          {isServerPanelOpen ? (
+            <section data-testid="server-health-panel" style={serverPanelStyle}>
+              <div style={serverHeaderStyle}>
+                <p style={labelStyle}>Server</p>
+                <strong data-testid="server-health-status" style={serverStatusValueStyle(serverHealthError)}>
+                  {serverHealthError ? serverHealthError : serverHealth ? "온라인" : "확인 중"}
+                </strong>
+              </div>
+              <div data-testid="server-health-scroll" style={serverPanelBodyStyle}>
+                {serverHealth ? (
+                  <>
+                    <p style={serverSubLabelStyle}>현재 / 10초 평균 또는 최대</p>
+                    <div style={serverMetricListStyle}>
+                      {serverMetrics.map((metric) => (
+                        <div key={metric.key} style={serverMetricRowStyle}>
+                          <div style={serverMetricLabelGroupStyle}>
+                            <span style={serverMetricLabelStyle}>{metric.label}</span>
+                            {metric.tooltip ? <MetricInfoButton metric={metric} /> : null}
+                          </div>
+                          <div style={serverMetricDataStyle}>
+                            <span style={serverMetricValueStyle}>
+                              {metric.value}
+                            </span>
+                            {metric.trend ? <MetricSparkline metric={metric} /> : null}
+                          </div>
                         </div>
-                        <div style={serverMetricDataStyle}>
-                          <span style={serverMetricValueStyle}>
-                            {metric.value}
-                          </span>
-                          {metric.trend ? <MetricSparkline metric={metric} /> : null}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </>
-              ) : (
-                <p style={serverPendingTextStyle}>
-                  {serverHealthError ? "서버 상태를 다시 확인해주세요." : "서버 상태를 불러오는 중입니다."}
-                </p>
-              )}
-            </div>
-          </section>
-        ) : null}
+                      ))}
+                    </div>
+                  </>
+                ) : (
+                  <p style={serverPendingTextStyle}>
+                    {serverHealthError ? "서버 상태를 다시 확인해주세요." : "서버 상태를 불러오는 중입니다."}
+                  </p>
+                )}
+              </div>
+            </section>
+          ) : null}
 
-        <button
-          data-testid="server-health-toggle"
-          type="button"
-          aria-expanded={isServerPanelOpen}
-          onClick={() => {
-            setIsServerPanelOpen((previous) => !previous);
-          }}
-          style={floatingToggleButtonStyle("server", isServerPanelOpen, Boolean(serverHealthError))}
-        >
-          <span style={floatingToggleDotStyle(serverHealthError ? "error" : "server")} />
-          <span style={floatingToggleContentStyle}>
-            <span style={floatingToggleTitleStyle}>서버 부하</span>
-            <strong style={floatingToggleValueStyle(Boolean(serverHealthError))}>
-              {serverHealthError ? "오류" : serverHealth ? "온라인" : "열기"}
-            </strong>
-          </span>
-        </button>
-      </div>
+          <button
+            data-testid="server-health-toggle"
+            type="button"
+            aria-expanded={isServerPanelOpen}
+            onClick={() => {
+              setIsServerPanelOpen((previous) => !previous);
+            }}
+            style={floatingToggleButtonStyle("server", isServerPanelOpen, Boolean(serverHealthError))}
+          >
+            <span style={floatingToggleDotStyle(serverHealthError ? "error" : "server")} />
+            <span style={floatingToggleContentStyle}>
+              <span style={floatingToggleTitleStyle}>서버 부하</span>
+              <strong style={floatingToggleValueStyle(Boolean(serverHealthError))}>
+                {serverHealthError ? "오류" : serverHealth ? "온라인" : "열기"}
+              </strong>
+            </span>
+          </button>
+        </div>
+      ) : null}
     </section>
   );
 }
@@ -574,8 +585,8 @@ function isEditableTarget(target: EventTarget | null) {
 const shellStyle: CSSProperties = {
   position: "relative",
   display: "grid",
-  gridTemplateColumns: "minmax(0, 1fr) clamp(156px, 10.5vw, 178px)",
-  gap: "clamp(6px, 0.8vw, 10px)",
+  gridTemplateColumns: `minmax(0, 1fr) ${SHELL_RAIL_WIDTH}`,
+  gap: SHELL_COLUMN_GAP,
   width: "100%",
   maxWidth: "1500px",
   margin: "0 auto",
@@ -652,6 +663,15 @@ const statusValueStyle: CSSProperties = {
   marginTop: "2px",
   fontSize: "0.76rem",
   color: "#f8fafc"
+};
+
+const actionPanelStyle: CSSProperties = {
+  display: "grid",
+  gap: "4px",
+  padding: "10px",
+  borderRadius: "12px",
+  background: "rgba(15, 23, 42, 0.46)",
+  border: "1px solid rgba(148, 163, 184, 0.08)"
 };
 
 const serverPanelStyle: CSSProperties = {
@@ -763,7 +783,7 @@ const serverPendingTextStyle: CSSProperties = {
 
 const serverFloatingDockStyle: CSSProperties = {
   position: "absolute",
-  right: "clamp(8px, 1vw, 12px)",
+  right: `calc(${SHELL_RAIL_WIDTH} + ${SHELL_COLUMN_GAP} + ${SHELL_EDGE_OFFSET})`,
   bottom: "clamp(10px, 1vw, 14px)",
   zIndex: 4,
   display: "grid",

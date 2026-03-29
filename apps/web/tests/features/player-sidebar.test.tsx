@@ -30,6 +30,8 @@ describe("PlayerSidebar", () => {
       root.render(<PlayerSidebar snapshot={buildSnapshot()} selfPlayerId="player-1" />);
     });
 
+    expect(container.textContent).toContain("플레이어");
+
     const cards = [...container.querySelectorAll("aside article")];
     expect(cards).toHaveLength(2);
 
@@ -57,6 +59,24 @@ describe("PlayerSidebar", () => {
 
     expect(list?.style.maxHeight).toBe("50vh");
     expect(list?.style.overflowY).toBe("auto");
+  });
+
+  it("hides human spectators from the player list in bot race rooms", async () => {
+    await act(async () => {
+      root.render(<PlayerSidebar snapshot={buildBotRaceSnapshot()} selfPlayerId="bot-1" />);
+    });
+
+    const cards = [...container.querySelectorAll("aside article")];
+
+    expect(cards).toHaveLength(2);
+    expect(container.textContent).toContain("레이서");
+    expect(container.textContent).toContain("bot1");
+    expect(container.textContent).toContain("bot2");
+    expect(container.querySelector('[data-testid="player-sidebar-list"]')?.textContent).not.toContain("관전자");
+    const spectatorSummary = container.querySelector('[data-testid="spectator-summary"]')?.textContent ?? "";
+    expect(spectatorSummary).toContain("관전자");
+    expect(spectatorSummary).toContain("1명");
+    expect(spectatorSummary).toContain("채팅 가능");
   });
 });
 
@@ -91,6 +111,62 @@ function buildSnapshot(): RoomSnapshot {
         kind: "human",
         color: "#3b82f6",
         shape: "square",
+        role: "racer",
+        state: "waiting",
+        position: { x: 1, y: 1 },
+        finishRank: null,
+        isHost: false
+      }
+    ],
+    chat: [],
+    previewMap: null,
+    match: null
+  };
+}
+
+function buildBotRaceSnapshot(): RoomSnapshot {
+  return {
+    revision: 1,
+    room: {
+      roomId: "room-2",
+      name: "Bot Only",
+      mode: "bot_race",
+      status: "waiting",
+      hostPlayerId: "viewer-1",
+      maxPlayers: 15,
+      visibilitySize: 7
+    },
+    members: [
+      {
+        playerId: "viewer-1",
+        nickname: "관전자",
+        kind: "human",
+        color: "#ff8c42",
+        shape: "circle",
+        role: "spectator",
+        state: "waiting",
+        position: null,
+        finishRank: null,
+        isHost: true
+      },
+      {
+        playerId: "bot-1",
+        nickname: "bot1",
+        kind: "bot",
+        color: "#3b82f6",
+        shape: "square",
+        role: "racer",
+        state: "waiting",
+        position: { x: 0, y: 1 },
+        finishRank: null,
+        isHost: false
+      },
+      {
+        playerId: "bot-2",
+        nickname: "bot2",
+        kind: "bot",
+        color: "#22c55e",
+        shape: "diamond",
         role: "racer",
         state: "waiting",
         position: { x: 1, y: 1 },
