@@ -46,8 +46,12 @@ describe("HostControls", () => {
       );
     });
 
+    const visibilityRow = container.querySelector<HTMLElement>('[data-testid="visibility-control-row"]');
     const select = container.querySelector("select");
+    expect(visibilityRow).not.toBeNull();
+    expect(visibilityRow?.textContent).toContain("시야");
     expect(select).not.toBeNull();
+    expect(visibilityRow?.style.gridTemplateColumns).toBe("auto minmax(0, 1fr)");
 
     await act(async () => {
       select!.value = "5";
@@ -112,11 +116,19 @@ describe("HostControls", () => {
 
     const overlay = document.body.querySelector<HTMLElement>('[data-testid="bot-panel-overlay"]');
     expect(overlay).not.toBeNull();
+    expect(document.body.querySelector('[data-testid="bot-config-section"]')).not.toBeNull();
+    expect(document.body.querySelector('[data-testid="bot-names-section"]')?.textContent).toContain("봇 이름");
+    expect(document.body.querySelector<HTMLElement>('[data-testid="bot-kind-field"]')?.style.borderRadius).toBe("12px");
+    expect(document.body.querySelector<HTMLElement>('[data-testid="bot-count-field"]')?.style.borderRadius).toBe("12px");
+    expect(document.body.querySelector<HTMLElement>('[data-testid="bot-name-list"]')?.style.overflowY).toBe("auto");
+    expect(document.body.querySelector<HTMLElement>('[data-testid="bot-name-list"]')?.style.maxHeight).toBe("220px");
 
     const nameInputs = document.body.querySelectorAll<HTMLInputElement>('input[data-testid^="bot-name-input-"]');
     expect(nameInputs).toHaveLength(2);
     expect(nameInputs[0]?.value).toBe("bot1");
     expect(nameInputs[1]?.value).toBe("bot2");
+    expect(document.body.querySelector('[data-testid="bot-name-row-0"]')?.textContent).toContain("01");
+    expect(document.body.querySelector('[data-testid="bot-name-row-1"]')?.textContent).toContain("02");
 
     await act(async () => {
       const setValue = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")?.set;

@@ -25,7 +25,14 @@ export function PlayerSidebar({ snapshot, selfPlayerId }: PlayerSidebarProps) {
   return (
     <aside style={sidebarStyle}>
       <div style={headerStyle}>
-        <h3 style={titleStyle}>{title}</h3>
+        <div style={titleGroupStyle}>
+          <h3 style={titleStyle}>{title}</h3>
+          {isBotRaceRoom ? (
+            <span data-testid="spectator-meta" style={spectatorMetaInlineStyle}>
+              관전자 {spectatorCount}명
+            </span>
+          ) : null}
+        </div>
         <span style={countStyle}>{visibleMembers.length}</span>
       </div>
       <div data-testid="player-sidebar-list" style={listStyle}>
@@ -75,15 +82,6 @@ export function PlayerSidebar({ snapshot, selfPlayerId }: PlayerSidebarProps) {
           </article>
         ))}
       </div>
-      {isBotRaceRoom ? (
-        <div data-testid="spectator-summary" style={spectatorCardStyle}>
-          <div style={spectatorHeaderStyle}>
-            <span style={spectatorTitleStyle}>관전자</span>
-            <strong style={spectatorCountStyle}>{spectatorCount}명</strong>
-          </div>
-          <p style={spectatorMetaStyle}>채팅 가능 · 레이스에는 참여하지 않음</p>
-        </div>
-      ) : null}
     </aside>
   );
 }
@@ -104,7 +102,14 @@ const sidebarStyle: CSSProperties = {
 const headerStyle: CSSProperties = {
   display: "flex",
   alignItems: "center",
-  justifyContent: "space-between"
+  justifyContent: "space-between",
+  gap: "8px"
+};
+
+const titleGroupStyle: CSSProperties = {
+  display: "grid",
+  gap: "2px",
+  minWidth: 0
 };
 
 const titleStyle: CSSProperties = {
@@ -134,39 +139,10 @@ const listStyle: CSSProperties = {
   paddingRight: "2px"
 };
 
-const spectatorCardStyle: CSSProperties = {
-  display: "grid",
-  gap: "4px",
-  marginTop: "8px",
-  padding: "9px 10px",
-  borderRadius: "12px",
-  background: "rgba(15, 23, 42, 0.62)",
-  border: "1px solid rgba(148, 163, 184, 0.1)"
-};
-
-const spectatorHeaderStyle: CSSProperties = {
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "space-between",
-  gap: "8px"
-};
-
-const spectatorTitleStyle: CSSProperties = {
-  color: "#e2e8f0",
-  fontSize: "0.76rem",
-  letterSpacing: "0.08em"
-};
-
-const spectatorCountStyle: CSSProperties = {
-  color: "#f8fafc",
-  fontSize: "0.78rem"
-};
-
-const spectatorMetaStyle: CSSProperties = {
-  margin: 0,
+const spectatorMetaInlineStyle: CSSProperties = {
   color: "#94a3b8",
-  fontSize: "0.7rem",
-  lineHeight: 1.4
+  fontSize: "0.68rem",
+  lineHeight: 1.2
 };
 
 const memberCardStyle: CSSProperties = {

@@ -228,6 +228,72 @@ test("different explorer seeds split symmetric frontier choices", () => {
   });
 });
 
+test("decideExplorerMove prefers a known open entry row over seeded unknown rows in 3x3 staging", () => {
+  const map = createMap({
+    tiles: [
+      "SSSC....",
+      "SSSC####",
+      "SSSC....",
+      "SSSC####",
+      "SSSC####"
+    ],
+    startZone: bounds(0, 0, 2, 4),
+    goalZone: bounds(7, 2, 7, 2)
+  });
+  const memory = createMemoryFromRows([
+    "SSSC????",
+    "SSSC####",
+    "SSSC....",
+    "SSSC####",
+    "SSSC####"
+  ]);
+
+  const decision = decideExplorerMove({
+    map,
+    memory,
+    position: { x: 1, y: 1 },
+    seed: 2
+  });
+
+  assert.deepEqual(decision, {
+    direction: "down",
+    reason: "staging"
+  });
+});
+
+test("decideExplorerMove prefers maze frontier tiles over the entry approach after leaving the start area", () => {
+  const map = createMap({
+    tiles: [
+      "SSSC######",
+      "SSSC.....#",
+      "SSSC......",
+      "SSSC######",
+      "SSSC######"
+    ],
+    startZone: bounds(0, 0, 2, 4),
+    goalZone: bounds(9, 2, 9, 2)
+  });
+  const memory = createMemoryFromRows([
+    "SSSC######",
+    "SSSC?...##",
+    "SSSC.....?",
+    "SSSC######",
+    "SSSC######"
+  ]);
+
+  const decision = decideExplorerMove({
+    map,
+    memory,
+    position: { x: 6, y: 2 },
+    seed: 0
+  });
+
+  assert.deepEqual(decision, {
+    direction: "right",
+    reason: "frontier"
+  });
+});
+
 test("createExplorerSeed uses bot suffixes to keep multi-bot behavior stable", () => {
   assert.equal(createExplorerSeed("bot1"), 0);
   assert.equal(createExplorerSeed("bot2"), 1);

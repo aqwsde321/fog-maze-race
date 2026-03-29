@@ -321,7 +321,7 @@ describe("RoomAggregate", () => {
         nickname: "bot3",
         kind: "bot",
         color: "#fde047",
-        shape: "star",
+        shape: "triangle-down",
         role: "racer",
         state: "waiting",
         position: null

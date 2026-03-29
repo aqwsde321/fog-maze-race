@@ -73,10 +73,10 @@ describe("PlayerSidebar", () => {
     expect(container.textContent).toContain("bot1");
     expect(container.textContent).toContain("bot2");
     expect(container.querySelector('[data-testid="player-sidebar-list"]')?.textContent).not.toContain("관전자");
-    const spectatorSummary = container.querySelector('[data-testid="spectator-summary"]')?.textContent ?? "";
-    expect(spectatorSummary).toContain("관전자");
-    expect(spectatorSummary).toContain("1명");
-    expect(spectatorSummary).toContain("채팅 가능");
+    const spectatorMeta = container.querySelector('[data-testid="spectator-meta"]')?.textContent ?? "";
+    expect(spectatorMeta).toContain("관전자");
+    expect(spectatorMeta).toContain("1명");
+    expect(spectatorMeta).not.toContain("채팅 가능");
   });
 });
 

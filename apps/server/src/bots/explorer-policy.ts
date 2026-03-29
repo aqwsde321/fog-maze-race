@@ -1,6 +1,10 @@
 import { movePosition, type Direction, type GridPosition } from "@fog-maze-race/shared/domain/grid-position";
 import type { MapView, RoomSnapshot } from "@fog-maze-race/shared/contracts/snapshots";
-import type { MapDefinition } from "@fog-maze-race/shared/maps/map-definitions";
+import {
+  isConnectorTile,
+  isInsideZone,
+  type MapDefinition
+} from "@fog-maze-race/shared/maps/map-definitions";
 import { createVisibilityProjection, toTileKey } from "@fog-maze-race/shared/visibility/apply-visibility";
 
 type ExplorerDirectionStep = {
@@ -14,6 +18,13 @@ type ExplorerMemory = {
   knownTiles: Map<string, string>;
   visitCounts: Map<string, number>;
   recentTileKeys: string[];
+};
+
+type FrontierCandidate = {
+  isEntryApproach: boolean;
+  path: Direction[];
+  pathKey: string;
+  score: number;
 };
 
 const DIRECTION_STEPS: ExplorerDirectionStep[] = [
@@ -173,7 +184,7 @@ export function decideExplorerMove(input: {
     };
   }
 
-  let bestCandidate: { score: number; pathKey: string; path: Direction[] } | null = null;
+  const candidates: FrontierCandidate[] = [];
   for (const [tileKey, tile] of input.memory.knownTiles) {
     if (!isWalkableKnownTile(tile)) {
       continue;
@@ -218,18 +229,33 @@ export function decideExplorerMove(input: {
         seed: input.seed ?? 0
       });
     const pathKey = path.join(",");
-    if (
-      !bestCandidate ||
-      score < bestCandidate.score ||
-      (score === bestCandidate.score && pathKey < bestCandidate.pathKey)
-    ) {
-      bestCandidate = {
-        score,
-        pathKey,
-        path
-      };
-    }
+    candidates.push({
+      isEntryApproach: isEntryApproachPosition(input.map, candidate),
+      path,
+      pathKey,
+      score
+    });
   }
+
+  if (candidates.length === 0) {
+    return null;
+  }
+
+  const preferredCandidates =
+    !isEntryApproachPosition(input.map, input.position) && candidates.some((candidate) => !candidate.isEntryApproach)
+      ? candidates.filter((candidate) => !candidate.isEntryApproach)
+      : candidates;
+  const bestCandidate = preferredCandidates.reduce<FrontierCandidate | null>((best, candidate) => {
+    if (
+      !best ||
+      candidate.score < best.score ||
+      (candidate.score === best.score && candidate.pathKey < best.pathKey)
+    ) {
+      return candidate;
+    }
+
+    return best;
+  }, null);
 
   if (!bestCandidate) {
     return null;
@@ -382,11 +408,16 @@ function planStartZoneMove(input: {
 
   const connectorX = input.map.startZone.maxX + 1;
   const preferredRows = getPreferredEntryRows(input.map, input.seed);
+  const knownOpenRow = preferredRows.find((row) =>
+    isWalkableKnownTile(input.memory.knownTiles.get(`${connectorX + 1},${row}`))
+  );
   const targetRow =
+    knownOpenRow ??
     preferredRows.find((row) => {
       const entranceTile = input.memory.knownTiles.get(`${connectorX + 1},${row}`);
       return entranceTile !== "#" && entranceTile !== " ";
-    }) ?? preferredRows[0];
+    }) ??
+    preferredRows[0];
 
   if (typeof targetRow !== "number") {
     return null;
@@ -465,6 +496,18 @@ function calculateFrontierBias(input: {
     Math.abs(input.candidate.y - preferredEntryRow) * 5 +
     Math.abs(input.candidate.y - preferredGlobalRow) +
     Math.abs(input.candidate.x - preferredGlobalColumn)
+  );
+}
+
+function isEntryApproachPosition(map: MapView, position: GridPosition) {
+  return (
+    isInsideZone(map.startZone, position) ||
+    isConnectorTile(map, position) ||
+    (
+      position.x <= map.startZone.maxX + 3 &&
+      position.y >= map.startZone.minY &&
+      position.y <= map.startZone.maxY
+    )
   );
 }
 

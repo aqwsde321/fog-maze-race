@@ -170,6 +170,20 @@ describe("RoomService", () => {
     expect(snapshot.match?.resultsDurationMs).toBe(4_500);
   });
 
+  it("starts new rooms with a 5x5 visibility window by default", () => {
+    const service = new RoomService(new RevisionSync(), new MapRegistry());
+    const created = service.createRoom({
+      session: new PlayerSession({
+        playerId: "host",
+        nickname: "호스트"
+      }),
+      name: "Alpha"
+    });
+
+    expect(created.snapshot.room.visibilitySize).toBe(5);
+    expect(created.snapshot.previewMap?.visibilityRadius).toBe(2);
+  });
+
   it("lets only the host change the room visibility size while waiting", () => {
     const service = new RoomService(new RevisionSync(), new MapRegistry());
     const created = service.createRoom({

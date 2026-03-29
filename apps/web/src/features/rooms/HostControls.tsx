@@ -147,22 +147,26 @@ export function HostControls({
   return (
     <div style={panelStyle}>
       <div style={cardStyle}>
-        <strong style={sectionTitleStyle}>시야 크기</strong>
-        <label htmlFor="visibility-size" style={hiddenLabelStyle}>
-          시야 크기
-        </label>
-        <select
-          id="visibility-size"
-          name="visibility-size"
-          value={visibilitySize}
-          disabled={!canEditVisibility}
-          onChange={(event) => onSetVisibilitySize(Number(event.target.value) as 3 | 5 | 7)}
-          style={selectStyle}
-        >
-          <option value={7}>7x7</option>
-          <option value={5}>5x5</option>
-          <option value={3}>3x3</option>
-        </select>
+        <div data-testid="visibility-control-row" style={visibilityControlRowStyle}>
+          <label htmlFor="visibility-size" style={visibilityLabelStyle}>
+            시야
+          </label>
+          <div style={selectFieldShellStyle}>
+            <select
+              id="visibility-size"
+              name="visibility-size"
+              value={visibilitySize}
+              disabled={!canEditVisibility}
+              onChange={(event) => onSetVisibilitySize(Number(event.target.value) as 3 | 5 | 7)}
+              style={selectStyle}
+            >
+              <option value={7}>7x7</option>
+              <option value={5}>5x5</option>
+              <option value={3}>3x3</option>
+            </select>
+            <span aria-hidden="true" style={selectChevronStyle}>⌄</span>
+          </div>
+        </div>
       </div>
 
       <div style={botToggleWrapStyle}>
@@ -190,10 +194,7 @@ export function HostControls({
               >
                 <div style={botHeaderRowStyle}>
                   <div style={botHeaderStyle}>
-                    <div>
-                      <p style={botLabelStyle}>Bots</p>
-                      <strong style={botTitleStyle}>{botActionLabel}</strong>
-                    </div>
+                    <strong style={botTitleStyle}>{botActionLabel}</strong>
                   </div>
                   <span style={slotBadgeStyle}>남은 봇 슬롯 {availableBotSlots}명</span>
                   <button
@@ -208,55 +209,86 @@ export function HostControls({
 
                 {availableBotSlots > 0 ? (
                   <>
-                    <div style={botConfigRowStyle}>
-                      <label htmlFor="bot-kind" style={hiddenLabelStyle}>
-                        봇 종류
-                      </label>
-                      <select
-                        id="bot-kind"
-                        name="bot-kind"
-                        value={botKind}
-                        disabled={!canManageBots}
-                        onChange={(event) => setBotKind(event.target.value as RoomBotKind)}
-                        style={selectStyle}
-                      >
-                        <option value="explore">탐험형</option>
-                        <option value="join">최단 경로형</option>
-                      </select>
+                    <section data-testid="bot-config-section" style={botConfigSectionStyle}>
+                      <div style={botConfigRowStyle}>
+                        <div data-testid="bot-kind-field" style={botControlFieldStyle}>
+                          <label htmlFor="bot-kind" style={botFieldLabelStyle}>
+                            종류
+                          </label>
+                          <div style={selectFieldShellStyle}>
+                            <select
+                              id="bot-kind"
+                              name="bot-kind"
+                              value={botKind}
+                              disabled={!canManageBots}
+                              onChange={(event) => setBotKind(event.target.value as RoomBotKind)}
+                              style={selectStyle}
+                            >
+                              <option value="explore">탐험형</option>
+                              <option value="join">최단 경로형</option>
+                            </select>
+                            <span aria-hidden="true" style={selectChevronStyle}>⌄</span>
+                          </div>
+                        </div>
 
-                      <label htmlFor="bot-count" style={hiddenLabelStyle}>
-                        봇 수
-                      </label>
-                      <select
-                        id="bot-count"
-                        name="bot-count"
-                        value={botCount}
-                        disabled={!canManageBots}
-                        onChange={(event) => setBotCount(Number(event.target.value))}
-                        style={selectStyle}
-                      >
-                        {botCountOptions.map((count) => (
-                          <option key={count} value={count}>
-                            {count}명
-                          </option>
-                        ))}
-                      </select>
-                    </div>
+                        <div data-testid="bot-count-field" style={botControlFieldStyle}>
+                          <label htmlFor="bot-count" style={botFieldLabelStyle}>
+                            수량
+                          </label>
+                          <div style={selectFieldShellStyle}>
+                            <select
+                              id="bot-count"
+                              name="bot-count"
+                              value={botCount}
+                              disabled={!canManageBots}
+                              onChange={(event) => setBotCount(Number(event.target.value))}
+                              style={selectStyle}
+                            >
+                              {botCountOptions.map((count) => (
+                                <option key={count} value={count}>
+                                  {count}명
+                                </option>
+                              ))}
+                            </select>
+                            <span aria-hidden="true" style={selectChevronStyle}>⌄</span>
+                          </div>
+                        </div>
+                      </div>
+                    </section>
 
-                    <div style={botInputsStyle}>
+                    <section data-testid="bot-names-section" style={botSectionCardStyle}>
+                      <div style={botSectionHeaderStyle}>
+                        <strong style={botSectionTitleStyle}>봇 이름</strong>
+                        <span style={botSectionMetaStyle}>기본 이름을 수정해서 바로 추가할 수 있습니다.</span>
+                      </div>
+
+                      <div data-testid="bot-name-list" style={botInputsStyle}>
                       {botNameDrafts.map((draft, index) => (
-                        <input
+                        <div
                           key={`${roomId}-${index}`}
-                          data-testid={`bot-name-input-${index}`}
-                          type="text"
-                          maxLength={5}
-                          value={draft}
-                          disabled={!canManageBots}
-                          onChange={(event) => handleBotNameChange(index, event.target.value)}
-                          style={inputStyle}
-                        />
+                          data-testid={`bot-name-row-${index}`}
+                          style={botNameRowStyle}
+                        >
+                          <span style={botIndexBadgeStyle}>{String(index + 1).padStart(2, "0")}</span>
+                          <div style={botInputWrapStyle}>
+                            <label htmlFor={`bot-name-input-${index}`} style={hiddenLabelStyle}>
+                              {index + 1}번째 봇 이름
+                            </label>
+                            <input
+                              id={`bot-name-input-${index}`}
+                              data-testid={`bot-name-input-${index}`}
+                              type="text"
+                              maxLength={5}
+                              value={draft}
+                              disabled={!canManageBots}
+                              onChange={(event) => handleBotNameChange(index, event.target.value)}
+                              style={inputStyle}
+                            />
+                          </div>
+                        </div>
                       ))}
                     </div>
+                    </section>
 
                     <button
                       data-testid="add-bots-button"
@@ -418,10 +450,17 @@ const cardStyle: CSSProperties = {
   border: "1px solid rgba(148, 163, 184, 0.08)"
 };
 
-const sectionTitleStyle: CSSProperties = {
-  display: "block",
-  color: "#f8fafc",
-  fontSize: "0.88rem"
+const visibilityControlRowStyle: CSSProperties = {
+  display: "grid",
+  gridTemplateColumns: "auto minmax(0, 1fr)",
+  alignItems: "center",
+  gap: "8px"
+};
+
+const visibilityLabelStyle: CSSProperties = {
+  color: "#e2e8f0",
+  fontSize: "0.78rem",
+  whiteSpace: "nowrap"
 };
 
 const slotBadgeStyle: CSSProperties = {
@@ -472,17 +511,10 @@ const botHeaderStyle: CSSProperties = {
   display: "grid"
 };
 
-const botLabelStyle: CSSProperties = {
-  margin: 0,
-  color: "#7dd3fc",
-  fontSize: "0.7rem",
-  letterSpacing: "0.16em",
-  textTransform: "uppercase"
-};
-
 const botTitleStyle: CSSProperties = {
   color: "#f8fafc",
-  fontSize: "0.92rem"
+  fontSize: "0.95rem",
+  letterSpacing: "-0.01em"
 };
 
 const botCloseButtonStyle: CSSProperties = {
@@ -503,10 +535,89 @@ const botConfigRowStyle: CSSProperties = {
   gap: "8px"
 };
 
+const botConfigSectionStyle: CSSProperties = {
+  display: "grid",
+  gap: "8px"
+};
+
 const botInputsStyle: CSSProperties = {
   display: "grid",
-  gridTemplateColumns: "repeat(auto-fit, minmax(96px, 1fr))",
-  gap: "8px"
+  gap: "10px",
+  maxHeight: "220px",
+  overflowY: "auto",
+  paddingRight: "4px"
+};
+
+const botSectionCardStyle: CSSProperties = {
+  display: "grid",
+  gap: "10px",
+  padding: "11px",
+  borderRadius: "14px",
+  background: "rgba(15, 23, 42, 0.54)",
+  border: "1px solid rgba(148, 163, 184, 0.12)"
+};
+
+const botSectionHeaderStyle: CSSProperties = {
+  display: "grid",
+  gap: "3px"
+};
+
+const botSectionTitleStyle: CSSProperties = {
+  color: "#f8fafc",
+  fontSize: "0.8rem"
+};
+
+const botSectionMetaStyle: CSSProperties = {
+  color: "#94a3b8",
+  fontSize: "0.72rem",
+  lineHeight: 1.4
+};
+
+const botControlFieldStyle: CSSProperties = {
+  display: "grid",
+  gap: "5px",
+  padding: "9px",
+  borderRadius: "12px",
+  background: "linear-gradient(180deg, rgba(30, 41, 59, 0.92), rgba(15, 23, 42, 0.84))",
+  border: "1px solid rgba(125, 211, 252, 0.12)",
+  boxShadow: "inset 0 1px 0 rgba(148, 163, 184, 0.06)"
+};
+
+const botFieldLabelStyle: CSSProperties = {
+  color: "#94a3b8",
+  fontSize: "0.7rem",
+  letterSpacing: "0.02em"
+};
+
+const botNameRowStyle: CSSProperties = {
+  display: "grid",
+  gridTemplateColumns: "auto minmax(0, 1fr)",
+  gap: "8px",
+  alignItems: "center"
+};
+
+const botIndexBadgeStyle: CSSProperties = {
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  minWidth: "34px",
+  minHeight: "34px",
+  padding: "0 8px",
+  borderRadius: "10px",
+  background: "rgba(30, 41, 59, 0.92)",
+  border: "1px solid rgba(125, 211, 252, 0.16)",
+  color: "#7dd3fc",
+  fontSize: "0.72rem",
+  fontVariantNumeric: "tabular-nums"
+};
+
+const botInputWrapStyle: CSSProperties = {
+  minWidth: 0,
+  padding: "2px",
+  borderRadius: "12px",
+  background: "rgba(8, 15, 30, 0.92)",
+  border: "1px solid rgba(56, 189, 248, 0.12)",
+  boxShadow: "inset 0 1px 0 rgba(148, 163, 184, 0.05)"
 };
 
 const botManageSectionStyle: CSSProperties = {
@@ -578,34 +689,43 @@ const fullBotRoomMetaStyle: CSSProperties = {
 };
 
 const selectStyle: CSSProperties = {
-  minHeight: "32px",
-  padding: "6px 8px",
+  width: "100%",
+  minHeight: "34px",
+  padding: "6px 34px 6px 10px",
   borderRadius: "10px",
-  border: "1px solid rgba(148, 163, 184, 0.24)",
-  background: "rgba(15, 23, 42, 0.7)",
+  border: "1px solid rgba(15, 23, 42, 0.16)",
+  background: "linear-gradient(180deg, rgba(15, 23, 42, 0.96), rgba(30, 41, 59, 0.92))",
   color: "#f8fafc",
-  fontSize: "0.78rem"
+  fontSize: "0.78rem",
+  fontWeight: 600,
+  appearance: "none",
+  WebkitAppearance: "none",
+  MozAppearance: "none",
+  boxSizing: "border-box"
 };
 
 const inputStyle: CSSProperties = {
+  width: "100%",
   minHeight: "36px",
   padding: "8px 10px",
-  borderRadius: "12px",
-  border: "1px solid rgba(148, 163, 184, 0.24)",
-  background: "rgba(15, 23, 42, 0.7)",
+  borderRadius: "10px",
+  border: "1px solid rgba(15, 23, 42, 0.2)",
+  background: "rgba(15, 23, 42, 0.96)",
   color: "#f8fafc",
-  fontSize: "0.85rem"
+  fontSize: "0.85rem",
+  boxSizing: "border-box"
 };
 
 const addBotsButtonStyle: CSSProperties = {
-  minHeight: "36px",
-  padding: "8px 11px",
+  minHeight: "38px",
+  padding: "9px 12px",
   borderRadius: "12px",
   border: "1px solid rgba(56, 189, 248, 0.24)",
-  background: "rgba(56, 189, 248, 0.12)",
-  color: "#bae6fd",
+  background: "linear-gradient(180deg, rgba(56, 189, 248, 0.22), rgba(14, 165, 233, 0.16))",
+  color: "#e0f2fe",
   cursor: "pointer",
   fontSize: "0.82rem",
+  fontWeight: 600,
   whiteSpace: "nowrap"
 };
 
@@ -648,4 +768,26 @@ const toggleButtonStyle: CSSProperties = {
 
 const botToggleWrapStyle: CSSProperties = {
   display: "grid"
+};
+
+const selectFieldShellStyle: CSSProperties = {
+  position: "relative",
+  minWidth: 0
+};
+
+const selectChevronStyle: CSSProperties = {
+  position: "absolute",
+  right: "10px",
+  top: "50%",
+  transform: "translateY(-50%)",
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  width: "18px",
+  height: "18px",
+  borderRadius: "999px",
+  background: "rgba(56, 189, 248, 0.16)",
+  color: "#7dd3fc",
+  fontSize: "0.72rem",
+  pointerEvents: "none"
 };

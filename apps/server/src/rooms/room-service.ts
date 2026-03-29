@@ -97,7 +97,7 @@ export class RoomService {
       room,
       match: null,
       previewMapId,
-      visibilitySize: 7,
+      visibilitySize: 5,
       shapeDeck,
       shapeCursor: 1
     });

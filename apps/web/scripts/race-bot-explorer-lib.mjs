@@ -1,4 +1,5 @@
 import { movePosition } from "@fog-maze-race/shared/domain/grid-position";
+import { isConnectorTile, isInsideZone } from "@fog-maze-race/shared/maps/map-definitions";
 import { createVisibilityProjection, toTileKey } from "@fog-maze-race/shared/visibility/apply-visibility";
 
 const DIRECTION_STEPS = [
@@ -198,7 +199,7 @@ export function decideExplorerMove({
     };
   }
 
-  let bestCandidate = null;
+  const candidates = [];
   for (const [tileKey, tile] of memory.knownTiles) {
     if (!isWalkableKnownTile(tile)) {
       continue;
@@ -243,18 +244,33 @@ export function decideExplorerMove({
         seed
       });
     const pathKey = path.join(",");
-    if (
-      !bestCandidate ||
-      score < bestCandidate.score ||
-      (score === bestCandidate.score && pathKey < bestCandidate.pathKey)
-    ) {
-      bestCandidate = {
-        score,
-        pathKey,
-        path
-      };
-    }
+    candidates.push({
+      isEntryApproach: isEntryApproachPosition(map, candidate),
+      path,
+      pathKey,
+      score
+    });
   }
+
+  if (candidates.length === 0) {
+    return null;
+  }
+
+  const preferredCandidates =
+    !isEntryApproachPosition(map, position) && candidates.some((candidate) => !candidate.isEntryApproach)
+      ? candidates.filter((candidate) => !candidate.isEntryApproach)
+      : candidates;
+  const bestCandidate = preferredCandidates.reduce((best, candidate) => {
+    if (
+      !best ||
+      candidate.score < best.score ||
+      (candidate.score === best.score && candidate.pathKey < best.pathKey)
+    ) {
+      return candidate;
+    }
+
+    return best;
+  }, null);
 
   if (!bestCandidate) {
     return null;
@@ -407,11 +423,16 @@ function planStartZoneMove({
 
   const connectorX = map.startZone.maxX + 1;
   const preferredRows = getPreferredEntryRows(map, seed);
+  const knownOpenRow = preferredRows.find((row) =>
+    isWalkableKnownTile(memory.knownTiles.get(`${connectorX + 1},${row}`))
+  );
   const targetRow =
+    knownOpenRow ??
     preferredRows.find((row) => {
       const entranceTile = memory.knownTiles.get(`${connectorX + 1},${row}`);
       return entranceTile !== "#" && entranceTile !== " ";
-    }) ?? preferredRows[0];
+    }) ??
+    preferredRows[0];
 
   if (typeof targetRow !== "number") {
     return null;
@@ -493,6 +514,18 @@ function calculateFrontierBias({
     Math.abs(candidate.y - preferredEntryRow) * 5 +
     Math.abs(candidate.y - preferredGlobalRow) +
     Math.abs(candidate.x - preferredGlobalColumn)
+  );
+}
+
+function isEntryApproachPosition(map, position) {
+  return (
+    isInsideZone(map.startZone, position) ||
+    isConnectorTile(map, position) ||
+    (
+      position.x <= map.startZone.maxX + 3 &&
+      position.y >= map.startZone.minY &&
+      position.y <= map.startZone.maxY
+    )
   );
 }
 
