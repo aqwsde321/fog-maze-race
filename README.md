@@ -31,6 +31,7 @@ pnpm test:e2e
 pnpm typecheck
 pnpm build
 pnpm start
+pnpm race:join
 ```
 
 ## 개발 모드
@@ -48,6 +49,42 @@ pnpm dev
 - 관리자 맵 URL: `http://127.0.0.1:4173/admin/maps`
 
 개발 모드에서 웹은 Vite 프록시를 통해 `3000` 포트 서버와 통신합니다.
+
+## Codex 레이스 봇
+
+게임 방에 자동으로 참가시켜 함께 테스트하거나 플레이할 수 있는 CLI 봇을 제공합니다.
+
+기본 실행:
+
+```bash
+pnpm race:join
+```
+
+자주 쓰는 예시:
+
+```bash
+RACE_BOT_COUNT=2 pnpm race:join
+RACE_BOT_ROOM=Alpha pnpm race:join
+RACE_BOT_JOIN_MESSAGE="들어왔다." RACE_BOT_FINISH_MESSAGE="도착했다." pnpm race:join
+RACE_BOT_URL=https://<your-ngrok-host> pnpm race:join
+RACE_BOT_AUTOPILOT=false pnpm race:join
+```
+
+동작 요약:
+
+- 기본 닉네임은 `Codex`이며 서버 규칙에 맞춰 최대 5자로 사용
+- `RACE_BOT_COUNT` 또는 `--count`로 여러 봇을 동시에 띄울 수 있음
+- 지정한 방 이름이 있으면 해당 `waiting` 방만 기다렸다가 입장
+- 방 이름을 지정하지 않으면 첫 번째 `waiting` 방에 입장
+- 기본적으로 방 입장 시 `들어왔다.`, 완주 시 `도착했다.` 채팅을 자동 전송
+- `playing` 상태가 되면 기본적으로 목표 지점까지 자동 주행
+- 표준 입력으로 `status`, `chat <메시지>`, `auto on`, `auto off`, `leave`, `quit` 명령 사용 가능
+
+닉네임 참고:
+
+- 서버 닉네임 제한이 5자라서 기본 멀티 봇일 때는 `bot1`, `bot2`, `bot3`처럼 생성됩니다.
+
+자세한 사용법은 [Codex 레이스 봇 가이드](./docs/race-bot.md) 참고.
 
 ## Docker / Compose
 
@@ -124,6 +161,14 @@ specs            기능 명세와 상세 설계 문서
 | `VITE_PORT` | 개발용 웹 포트 | `4173` |
 | `VITE_PROXY_TARGET` | 개발용 API/WebSocket 프록시 대상 | `http://127.0.0.1:3000` |
 | `APP_PORT` | Docker Compose 호스트 공개 포트 | `3300` |
+| `RACE_BOT_URL` | `pnpm race:join` 대상 서버 URL | `https://nonmaturely-unloaning-merilyn.ngrok-free.dev` |
+| `RACE_BOT_NICKNAME` | 봇 닉네임 | `Codex` |
+| `RACE_BOT_COUNT` | 동시에 띄울 봇 수 | `1` |
+| `RACE_BOT_ROOM` | 참가를 기다릴 방 이름 | 없음 |
+| `RACE_BOT_JOIN_MESSAGE` | 입장 직후 보낼 채팅 메시지 | `들어왔다.` |
+| `RACE_BOT_FINISH_MESSAGE` | 완주 시 보낼 채팅 메시지 | `도착했다.` |
+| `RACE_BOT_GREETING` | 구버전 입장 메시지 별칭 | `RACE_BOT_JOIN_MESSAGE` 참조 |
+| `RACE_BOT_AUTOPILOT` | 자동 주행 사용 여부 (`false`면 비활성화) | `true` |
 
 추가 서버 조정 변수:
 
@@ -151,6 +196,7 @@ pnpm typecheck
 ## 상세 문서
 
 - [Render 배포 가이드](./docs/deploy-render.md)
+- [Codex 레이스 봇 가이드](./docs/race-bot.md)
 - [빠른 시작](./specs/001-fog-maze-race/quickstart.md)
 - [기능 명세](./specs/001-fog-maze-race/spec.md)
 - [실시간 이벤트 계약](./specs/001-fog-maze-race/contracts/realtime-events.md)

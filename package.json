@@ -7,6 +7,7 @@
     "dev": "pnpm --parallel --filter @fog-maze-race/shared --filter @fog-maze-race/server --filter @fog-maze-race/web dev",
     "build": "pnpm --filter @fog-maze-race/shared build && pnpm --filter @fog-maze-race/server build && pnpm --filter @fog-maze-race/web build",
     "start": "pnpm --filter @fog-maze-race/server start",
+    "race:join": "pnpm --filter @fog-maze-race/web race:join",
     "docker:build": "docker compose build",
     "docker:up": "bash ./scripts/docker/start.sh",
     "docker:stop": "bash ./scripts/docker/stop.sh",
@@ -15,7 +16,7 @@
     "docker:logs": "bash ./scripts/docker/logs.sh",
     "docker:ps": "bash ./scripts/docker/status.sh",
     "test": "pnpm --filter @fog-maze-race/shared test && pnpm --filter @fog-maze-race/server test && pnpm --filter @fog-maze-race/web test && pnpm test:scripts",
-    "test:scripts": "node --test tests/scripts/docker-scripts.test.mjs",
+    "test:scripts": "node --test tests/scripts/docker-scripts.test.mjs tests/scripts/race-bot.test.mjs",
     "typecheck": "pnpm --filter @fog-maze-race/shared typecheck && pnpm --filter @fog-maze-race/server typecheck && pnpm --filter @fog-maze-race/web typecheck",
     "test:e2e": "playwright test"
   },
