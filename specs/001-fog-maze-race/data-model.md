@@ -29,6 +29,7 @@ authoritative 상태는 서버에 존재하며, 클라이언트에는 전체 방
 |-------|------|-------|
 | `roomId` | string | 고유 방 식별자 |
 | `name` | string | 현재 방장이 수정 가능 |
+| `mode` | enum | `normal`, `bot_race` |
 | `hostPlayerId` | UUID | 방이 존재하는 동안 현재 멤버 중 하나여야 함 |
 | `status` | enum | `waiting`, `countdown`, `playing`, `ended` |
 | `maxPlayers` | integer | MVP에서는 15로 고정 |
@@ -45,8 +46,10 @@ authoritative 상태는 서버에 존재하며, 클라이언트에는 전체 방
 | `playerId` | UUID | `PlayerSession.playerId` 참조 |
 | `roomId` | string | `Room.roomId` 참조 |
 | `nickname` | string | 방 입장 시점 세션 값 복사 |
+| `kind` | enum | `human`, `bot` |
 | `color` | string | 입장 시 할당 |
 | `shape` | enum | 입장 시 서버가 고정 배정하는 마커 모양 |
+| `role` | enum | `racer`, `spectator` |
 | `joinOrder` | integer | 방장 위임 순서 결정 |
 | `state` | enum | `waiting`, `playing`, `finished`, `disconnected`, `left` |
 | `position` | `GridPosition` | authoritative 타일 위치 |
@@ -68,7 +71,7 @@ authoritative 상태는 서버에 존재하며, 클라이언트에는 전체 방
 | `startedAt` | timestamp \| null | 실제 플레이 시작 시 설정 |
 | `endedAt` | timestamp \| null | 라운드 종료 시 설정 |
 | `resultsDurationMs` | integer \| null | 결과 화면 자동 닫힘 타이머 |
-| `activePlayerIds` | UUID[] | 종료 계산에 포함되는 플레이어 |
+| `activePlayerIds` | UUID[] | 종료 계산에 포함되는 레이서 |
 | `finishOrder` | UUID[] | 완주 순서 |
 | `results` | `ResultEntry[]` | 결과 화면용 스냅샷 |
 
@@ -86,9 +89,9 @@ authoritative 상태는 서버에 존재하며, 클라이언트에는 전체 방
 | `startZone` | `ZoneBounds` | `3x5` 고정 시작 영역 |
 | `mazeZone` | `ZoneBounds` | `25x25` 고정 미로 영역 |
 | `goalZone` | `ZoneBounds` | 미로 내부 단일 골 타일 |
-| `startSlots` | `GridPosition[]` | 시작 영역의 15개 고정 슬롯 |
+| `startSlots` | `GridPosition[]` | 시작 영역의 15개 정의 슬롯. 현재 라운드 시작 시에는 첫 슬롯을 공용 시작점으로 사용 |
 | `connectorTiles` | `GridPosition[]` | 시작 구역과 미로를 잇는 `1x5` 세로 통로 |
-| `visibilityRadius` | integer | 기본 3칸으로, 실제 시야는 7x7 |
+| `visibilityRadius` | integer | 기본 2칸으로, 실제 시야는 5x5 |
 
 ### `ResultEntry`
 
@@ -123,13 +126,15 @@ authoritative 상태는 서버에 존재하며, 클라이언트에는 전체 방
 
 - 닉네임 길이는 항상 1~5자를 유지해야 한다.
 - `waiting` 상태의 방만 새 멤버를 받을 수 있다.
-- 방 멤버 수는 절대 15명을 넘지 않는다.
-- 현재 방장만 방 이름 변경, 경기 시작, 강제 종료를 할 수 있다.
+- `normal` 방의 참가 슬롯은 15명을 넘지 않는다.
+- `bot_race`에서는 레이서 슬롯이 15명을 넘지 않아야 하며, 사람 관전자는 레이서 슬롯을 차지하지 않는다.
+- 현재 방장만 방 이름 변경, 경기 시작, 시야 크기 변경, 강제 종료, 봇 추가/제거를 할 수 있다.
 - `waiting` 상태 클라이언트 프리뷰에서는 시작 영역과 시작 슬롯만 렌더링한다.
 - 이동 명령은 한 번에 하나의 상하좌우 방향만 받는다.
 - 서버는 벽이나 맵 바깥으로의 이동을 거절한다.
 - 플레이어끼리 서로를 막지 않는다. 같은 타일을 동시에 점유할 수 있다.
 - 골인 순위는 서버가 처리한 authoritative 순서대로 부여한다.
+- `bot_race`의 사람 관전자는 채팅할 수 있지만 경기 종료 계산에는 포함되지 않는다.
 - 시야 밖 미로 타일은 벽과 통로가 구분되지 않도록 완전히 가린다.
 - 현재 시야에서 벗어났지만 한 번이라도 본 미로 타일은 기억 타일로 남기고, 현재 시야보다
   더 어둡고 벽/통로 구분이 어렵게 표시한다.
