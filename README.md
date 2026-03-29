@@ -32,6 +32,7 @@ pnpm typecheck
 pnpm build
 pnpm start
 pnpm race:join
+pnpm race:explore
 ```
 
 ## 개발 모드
@@ -60,14 +61,21 @@ pnpm dev
 pnpm race:join
 ```
 
+탐험형 봇 실행:
+
+```bash
+pnpm race:explore
+```
+
 자주 쓰는 예시:
 
 ```bash
 RACE_BOT_COUNT=2 pnpm race:join
 RACE_BOT_ROOM=Alpha pnpm race:join
 RACE_BOT_JOIN_MESSAGE="들어왔다." RACE_BOT_FINISH_MESSAGE="도착했다." pnpm race:join
-RACE_BOT_URL=https://<your-ngrok-host> pnpm race:join
+RACE_BOT_URL=http://127.0.0.1:3000 pnpm race:join
 RACE_BOT_AUTOPILOT=false pnpm race:join
+RACE_BOT_ROOM=Alpha pnpm race:explore
 ```
 
 동작 요약:
@@ -161,7 +169,7 @@ specs            기능 명세와 상세 설계 문서
 | `VITE_PORT` | 개발용 웹 포트 | `4173` |
 | `VITE_PROXY_TARGET` | 개발용 API/WebSocket 프록시 대상 | `http://127.0.0.1:3000` |
 | `APP_PORT` | Docker Compose 호스트 공개 포트 | `3300` |
-| `RACE_BOT_URL` | `pnpm race:join` 대상 서버 URL | `https://nonmaturely-unloaning-merilyn.ngrok-free.dev` |
+| `RACE_BOT_URL` | `pnpm race:join`, `pnpm race:explore` 대상 서버 URL | `http://127.0.0.1:3000` |
 | `RACE_BOT_NICKNAME` | 봇 닉네임 | `Codex` |
 | `RACE_BOT_COUNT` | 동시에 띄울 봇 수 | `1` |
 | `RACE_BOT_ROOM` | 참가를 기다릴 방 이름 | 없음 |
