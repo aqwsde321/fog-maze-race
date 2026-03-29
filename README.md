@@ -33,6 +33,7 @@ pnpm build
 pnpm start
 pnpm race:join
 pnpm race:explore
+pnpm race:fill
 ```
 
 ## 개발 모드
@@ -67,6 +68,12 @@ pnpm race:join
 pnpm race:explore
 ```
 
+내가 만든 봇 전용 방 자동 채우기:
+
+```bash
+pnpm race:fill -- --room Alpha --count 3 --names red,blue,green
+```
+
 자주 쓰는 예시:
 
 ```bash
@@ -76,6 +83,10 @@ RACE_BOT_JOIN_MESSAGE="들어왔다." RACE_BOT_FINISH_MESSAGE="도착했다." pn
 RACE_BOT_URL=http://127.0.0.1:3000 pnpm race:join
 RACE_BOT_AUTOPILOT=false pnpm race:join
 RACE_BOT_ROOM=Alpha pnpm race:explore
+pnpm race:fill -- --room Alpha --count 3
+pnpm race:fill -- --room Alpha --names red,blue,green
+pnpm race:fill -- --room Alpha --bot join --count 2
+pnpm race:fill -- --room Alpha --create --count 3
 ```
 
 동작 요약:
@@ -87,6 +98,14 @@ RACE_BOT_ROOM=Alpha pnpm race:explore
 - 기본적으로 방 입장 시 `들어왔다.`, 완주 시 `도착했다.` 채팅을 자동 전송
 - `playing` 상태가 되면 기본적으로 목표 지점까지 자동 주행
 - 표준 입력으로 `status`, `chat <메시지>`, `auto on`, `auto off`, `leave`, `quit` 명령 사용 가능
+- `pnpm race:fill`의 기본 동작은 내가 UI에서 만든 `waiting` 방을 기다렸다가 봇만 자동으로 채우는 것임
+- `--create`는 보조 옵션이며, 이 경우 봇 매니저가 직접 `bot_race` 방을 만들고 호스트를 가져감
+- `--names`를 주면 그 이름들을 우선 사용하고, 이름 수가 `--count`보다 많으면 이름 수에 맞춰 자동으로 인원 수가 늘어남
+- `pnpm race:fill` 실행 중 표준 입력으로 `status`, `start`, `chat <메시지>`, `leave`, `quit` 명령 사용 가능
+- 방 안에서는 방장이 UI로 봇 종류와 이름을 편집해 직접 추가하고, 현재 봇을 개별/일괄 제거할 수 있음
+- 일반 방에서는 사람과 같이 뛰는 봇을 추가하고, 봇 전용 방에서는 관전 상태를 유지한 채 봇만 채울 수 있음
+- 탐험형 봇은 보이는 타일만 기억한 뒤 BFS + frontier 탐색으로 움직이고, 최근 경로 패널티로 3x3 시야에서 왕복 루프를 줄임
+- 마지막 사람 플레이어가 방을 떠나면 남아 있는 봇은 서버에서 함께 정리됨
 
 닉네임 참고:
 
@@ -173,10 +192,15 @@ specs            기능 명세와 상세 설계 문서
 | `RACE_BOT_NICKNAME` | 봇 닉네임 | `Codex` |
 | `RACE_BOT_COUNT` | 동시에 띄울 봇 수 | `1` |
 | `RACE_BOT_ROOM` | 참가를 기다릴 방 이름 | 없음 |
+| `RACE_BOT_NAMES` | `race:fill`에서 우선 사용할 봇 이름 목록 (`쉼표 구분`) | 없음 |
 | `RACE_BOT_JOIN_MESSAGE` | 입장 직후 보낼 채팅 메시지 | `들어왔다.` |
 | `RACE_BOT_FINISH_MESSAGE` | 완주 시 보낼 채팅 메시지 | `도착했다.` |
 | `RACE_BOT_GREETING` | 구버전 입장 메시지 별칭 | `RACE_BOT_JOIN_MESSAGE` 참조 |
 | `RACE_BOT_AUTOPILOT` | 자동 주행 사용 여부 (`false`면 비활성화) | `true` |
+| `RACE_FILL_CREATE` | `race:fill`에서 봇 전용 방을 직접 생성할지 여부 | `false` |
+| `RACE_FILL_BOT_KIND` | `race:fill`이 띄울 봇 종류 (`explore` 또는 `join`) | `explore` |
+| `RACE_FILL_HOST_NICKNAME` | `race:fill` 컨트롤러 닉네임 | `host` |
+| `RACE_FILL_TIMEOUT_MS` | `race:fill` 대기 제한 시간 | `30000` |
 
 추가 서버 조정 변수:
 

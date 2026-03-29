@@ -390,7 +390,7 @@ function runSingleBot(singleConfig) {
     }
 
     joinRequested = true;
-    socket.emit("JOIN_ROOM", { roomId: targetRoom.roomId });
+    socket.emit("JOIN_ROOM", { roomId: targetRoom.roomId, role: "racer" });
     log(`joining ${targetRoom.name}`);
   });
 

@@ -1,10 +1,12 @@
 import { useEffect, useRef, useState, type CSSProperties } from "react";
 
 import type { Direction } from "@fog-maze-race/shared/domain/grid-position";
+import type { RoomMode } from "@fog-maze-race/shared/domain/status";
 import type {
   ConnectedPayload,
   CountdownPayload,
   ErrorPayload,
+  RoomBotKind,
   RoomLeftPayload,
   RoomJoinedPayload,
   RoomListItem,
@@ -40,6 +42,7 @@ export function App() {
   const clearRoom = useRoomStore((state) => state.clearRoom);
 
   const [roomName, setRoomName] = useState("Alpha");
+  const [roomMode, setRoomMode] = useState<RoomMode>("normal");
   const [rooms, setRooms] = useState<RoomListItem[]>([]);
   const [selfPlayerId, setSelfPlayerId] = useState<string | null>(playerId);
   const [countdownValue, setCountdownValue] = useState<number | null>(null);
@@ -222,7 +225,10 @@ export function App() {
   }
 
   function handleCreateRoom() {
-    socketRef.current.emit("CREATE_ROOM", { name: roomName.trim() || "Alpha" });
+    socketRef.current.emit("CREATE_ROOM", {
+      name: roomName.trim() || "Alpha",
+      mode: roomMode
+    });
   }
 
   function handleJoinRoom(roomId: string) {
@@ -256,6 +262,29 @@ export function App() {
     socketRef.current.emit("SET_VISIBILITY_SIZE", {
       roomId: snapshot.room.roomId,
       visibilitySize
+    });
+  }
+
+  function handleAddBots(input: { kind: RoomBotKind; nicknames: string[] }) {
+    if (!snapshot) {
+      return;
+    }
+
+    socketRef.current.emit("ADD_ROOM_BOTS", {
+      roomId: snapshot.room.roomId,
+      kind: input.kind,
+      nicknames: input.nicknames
+    });
+  }
+
+  function handleRemoveBots(playerIds?: string[]) {
+    if (!snapshot) {
+      return;
+    }
+
+    socketRef.current.emit("REMOVE_ROOM_BOTS", {
+      roomId: snapshot.room.roomId,
+      playerIds
     });
   }
 
@@ -329,10 +358,12 @@ export function App() {
                 <RoomListPanel
                   rooms={rooms}
                   roomName={roomName}
+                  roomMode={roomMode}
                   nickname={nickname}
                   connectionState={connectionState}
                   onNicknameSubmit={handleUpdateNickname}
                   onRoomNameChange={setRoomName}
+                  onRoomModeChange={setRoomMode}
                   onCreateRoom={handleCreateRoom}
                   onJoinRoom={handleJoinRoom}
                 />
@@ -345,16 +376,18 @@ export function App() {
                 />
               )
             ) : (
-              <GameScreen
-                snapshot={snapshot}
-                selfPlayerId={selfPlayerId}
-                countdownValue={countdownValue}
-                onStartGame={handleStartGame}
-                onRenameRoom={handleRenameRoom}
-                onSetVisibilitySize={handleSetVisibilitySize}
-                onForceEndRoom={handleForceEndRoom}
-                onResetToWaiting={handleResetToWaiting}
-                onLeaveRoom={handleLeaveRoom}
+        <GameScreen
+          snapshot={snapshot}
+          selfPlayerId={selfPlayerId}
+          countdownValue={countdownValue}
+          onStartGame={handleStartGame}
+          onRenameRoom={handleRenameRoom}
+          onSetVisibilitySize={handleSetVisibilitySize}
+          onAddBots={handleAddBots}
+          onRemoveBots={handleRemoveBots}
+          onForceEndRoom={handleForceEndRoom}
+          onResetToWaiting={handleResetToWaiting}
+          onLeaveRoom={handleLeaveRoom}
                 onMove={handleMove}
                 onSendChatMessage={handleSendChatMessage}
               />

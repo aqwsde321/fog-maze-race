@@ -1,6 +1,7 @@
 import type { Server } from "socket.io";
 
 import type { ServerLoadMonitor } from "../app/server-load-monitor.js";
+import { BotManager } from "../bots/bot-manager.js";
 import { PlayerSession } from "../core/player-session.js";
 import { MapRegistry } from "../maps/map-registry.js";
 import { MatchService, type MatchServiceOptions } from "../matches/match-service.js";
@@ -28,8 +29,12 @@ export async function buildRaceGateway(
     forcedPreviewMapId: options.forcedMapId && mapRegistry.get(options.forcedMapId) ? options.forcedMapId : null
   });
   const matchService = new MatchService(roomService, options);
+  const botManager = new BotManager(io, roomService, matchService, sessions, options.loadMonitor);
   const recoveryService = new RecoveryService(roomService, matchService, disconnectGrace, sessions, {
-    graceWindowMs: options.recoveryGraceMs ?? 30_000
+    graceWindowMs: options.recoveryGraceMs ?? 30_000,
+    cleanupBotsIfNoHumansRemain: (roomId) => {
+      botManager.removeBotsIfNoHumansRemain(roomId);
+    }
   });
 
   io.on("connection", (socket) => {
@@ -56,6 +61,7 @@ export async function buildRaceGateway(
       sessions,
       roomService,
       matchService,
+      botManager,
       loadMonitor: options.loadMonitor
     });
     registerChatHandlers({
@@ -94,6 +100,7 @@ export async function buildRaceGateway(
     recoveryService,
     dispose() {
       recoveryService.dispose();
+      botManager.dispose();
       matchService.dispose();
       roomService.dispose();
     }

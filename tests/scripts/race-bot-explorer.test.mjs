@@ -106,6 +106,25 @@ test("decideExplorerMove walks toward the nearest reachable frontier before prob
   });
 });
 
+test("decideExplorerMove avoids immediately backtracking to a recent frontier when another frontier is available", () => {
+  const map = createMap({
+    tiles: ["....."],
+    goalZone: bounds(4, 0, 4, 0)
+  });
+  const memory = createMemoryFromRows(["?...?"], [], ["1,0", "2,0"]);
+
+  const decision = decideExplorerMove({
+    map,
+    memory,
+    position: { x: 2, y: 0 }
+  });
+
+  assert.deepEqual(decision, {
+    direction: "right",
+    reason: "frontier"
+  });
+});
+
 test("rememberBlockedMove learns an unknown target as a wall and replans away from it", () => {
   const map = createMap({
     tiles: ["...#"],
@@ -265,7 +284,7 @@ test("explorer bot reaches the goal on every shipped map", () => {
   assert.deepEqual(failures, []);
 });
 
-function createMemoryFromRows(rows, visitEntries = []) {
+function createMemoryFromRows(rows, visitEntries = [], recentTileKeys = []) {
   const memory = createExplorerMemory();
 
   for (let y = 0; y < rows.length; y += 1) {
@@ -281,6 +300,8 @@ function createMemoryFromRows(rows, visitEntries = []) {
   for (const [tileKey, count] of visitEntries) {
     memory.visitCounts.set(tileKey, count);
   }
+
+  memory.recentTileKeys = [...recentTileKeys];
 
   return memory;
 }

@@ -1,16 +1,18 @@
-import type { PlayerConnectionState } from "@fog-maze-race/shared/domain/status";
+import type { PlayerConnectionState, RoomMemberKind } from "@fog-maze-race/shared/domain/status";
 
 export class PlayerSession {
   readonly playerId: string;
   nickname: string;
+  kind: RoomMemberKind;
   currentRoomId: string | null;
   connectionState: PlayerConnectionState;
   reconnectDeadlineAt: number | null;
   lastSeenAt: number;
 
-  constructor(input: { playerId: string; nickname: string; currentRoomId?: string | null }) {
+  constructor(input: { playerId: string; nickname: string; kind?: RoomMemberKind; currentRoomId?: string | null }) {
     this.playerId = input.playerId;
     this.nickname = input.nickname;
+    this.kind = input.kind ?? "human";
     this.currentRoomId = input.currentRoomId ?? null;
     this.connectionState = "connected";
     this.reconnectDeadlineAt = null;

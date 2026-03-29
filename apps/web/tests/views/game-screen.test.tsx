@@ -655,6 +655,7 @@ function buildSnapshot(
     room: {
       roomId: "room-1",
       name: "Alpha",
+      mode: "normal",
       status,
       hostPlayerId,
       maxPlayers: 15,
@@ -664,8 +665,10 @@ function buildSnapshot(
       {
         playerId: selfPlayerId,
         nickname: "호1",
+        kind: "human",
         color: "#38bdf8",
         shape: "circle",
+        role: "racer",
         state: status === "playing" ? "playing" : status === "ended" ? "finished" : "waiting",
         position: { x: 0, y: 1 },
         finishRank: status === "ended" ? 1 : null,

@@ -76,7 +76,8 @@ export function registerSessionHandlers({
       const session = requireSession(socket, sessions);
       const joined = roomService.createRoom({
         session,
-        name: payload.name
+        name: payload.name,
+        mode: payload.mode
       });
 
       socket.join(joined.roomId);
@@ -92,7 +93,8 @@ export function registerSessionHandlers({
       const session = requireSession(socket, sessions);
       const joined = roomService.joinRoom({
         roomId: payload.roomId,
-        session
+        session,
+        role: payload.role
       });
 
       socket.join(joined.roomId);

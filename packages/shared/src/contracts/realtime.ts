@@ -1,6 +1,6 @@
 import type { Direction, GridPosition } from "../domain/grid-position.js";
 import type { ResultEntry } from "../domain/result-entry.js";
-import type { RoomMemberState, RoomStatus } from "../domain/status.js";
+import type { RoomMemberRole, RoomMode, RoomMemberState, RoomStatus } from "../domain/status.js";
 import type { RoomSnapshot } from "./snapshots.js";
 
 export type ConnectPayload = {
@@ -11,10 +11,26 @@ export type ConnectPayload = {
 
 export type CreateRoomPayload = {
   name: string;
+  mode?: RoomMode;
 };
 
 export type JoinRoomPayload = {
   roomId: string;
+  role?: RoomMemberRole;
+};
+
+export const ROOM_BOT_KINDS = ["join", "explore"] as const;
+export type RoomBotKind = (typeof ROOM_BOT_KINDS)[number];
+
+export type AddRoomBotsPayload = {
+  roomId: string;
+  kind?: RoomBotKind;
+  nicknames: string[];
+};
+
+export type RemoveRoomBotsPayload = {
+  roomId: string;
+  playerIds?: string[];
 };
 
 export type LeaveRoomPayload = {
@@ -75,6 +91,7 @@ export type RoomListItem = {
   hostNickname: string;
   playerCount: number;
   status: RoomStatus;
+  mode: RoomMode;
 };
 
 export type RoomListUpdatePayload = {

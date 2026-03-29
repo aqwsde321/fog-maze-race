@@ -55,7 +55,9 @@ export function PlayerSidebar({ snapshot, selfPlayerId }: PlayerSidebarProps) {
                   {member.nickname}
                   {member.playerId === selfPlayerId ? " (나)" : ""}
                 </strong>
-                <p style={metaStyle}>{member.isHost ? "방장" : "참가자"}</p>
+                <p style={metaStyle}>
+                  {member.isHost ? "방장" : "참가자"} · {member.kind === "bot" ? "봇" : "사람"}
+                </p>
               </div>
             </div>
             <span style={rankStyle}>

@@ -1,6 +1,9 @@
 import type { GridPosition } from "@fog-maze-race/shared/domain/grid-position";
 import type { PlayerMarkerShape } from "@fog-maze-race/shared/domain/player-marker-shape";
 import type {
+  RoomMemberKind,
+  RoomMemberRole,
+  RoomMode,
   RoomMemberState,
   RoomStatus
 } from "@fog-maze-race/shared/domain/status";
@@ -8,8 +11,10 @@ import type {
 export type RoomMemberRecord = {
   playerId: string;
   nickname: string;
+  kind: RoomMemberKind;
   color: string;
   shape: PlayerMarkerShape;
+  role: RoomMemberRole;
   joinOrder: number;
   state: RoomMemberState;
   position: GridPosition | null;
@@ -33,6 +38,7 @@ export class RoomAggregate {
   readonly roomId: string;
   name: string;
   hostPlayerId: string;
+  readonly mode: RoomMode;
   readonly maxPlayers: number;
   status: RoomStatus;
   revision: number;
@@ -41,10 +47,11 @@ export class RoomAggregate {
   private readonly chatMessages: RoomChatMessageRecord[] = [];
   private nextJoinOrder = 1;
 
-  constructor(input: { roomId: string; name: string; hostPlayerId: string; maxPlayers?: number }) {
+  constructor(input: { roomId: string; name: string; hostPlayerId: string; mode?: RoomMode; maxPlayers?: number }) {
     this.roomId = input.roomId;
     this.name = input.name;
     this.hostPlayerId = input.hostPlayerId;
+    this.mode = input.mode ?? "normal";
     this.maxPlayers = input.maxPlayers ?? 15;
     this.status = "waiting";
     this.revision = 0;
@@ -83,7 +90,7 @@ export class RoomAggregate {
     this.members.delete(playerId);
 
     if (this.hostPlayerId === playerId) {
-      const nextHost = [...this.members.values()].sort((left, right) => left.joinOrder - right.joinOrder)[0];
+      const nextHost = this.listMembers().find((candidate) => candidate.kind === "human") ?? this.listMembers()[0];
       this.hostPlayerId = nextHost?.playerId ?? this.hostPlayerId;
     }
 
@@ -148,9 +155,15 @@ export class RoomAggregate {
 
   seedMatchPositions(startSlots: GridPosition[]) {
     const members = this.listMembers();
+    let racerIndex = 0;
 
-    members.forEach((member, index) => {
-      member.position = member.position ?? startSlots[index] ?? startSlots[startSlots.length - 1] ?? null;
+    members.forEach((member) => {
+      if (member.role === "racer") {
+        member.position = member.position ?? startSlots[racerIndex] ?? startSlots[startSlots.length - 1] ?? null;
+        racerIndex += 1;
+      } else {
+        member.position = null;
+      }
       member.state = "waiting";
       member.finishRank = null;
       member.finishedAt = null;
@@ -161,8 +174,13 @@ export class RoomAggregate {
 
   markMembersPlaying() {
     for (const member of this.members.values()) {
-      if (member.state !== "left") {
+      if (member.role === "racer" && member.state !== "left") {
         member.state = "playing";
+        continue;
+      }
+
+      if (member.role === "spectator" && member.state !== "left" && member.state !== "disconnected") {
+        member.state = "waiting";
       }
     }
 
@@ -194,8 +212,8 @@ export class RoomAggregate {
   }
 
   allMembersFinished() {
-    const members = this.listMembers();
-    return members.length > 0 && members.every((member) => member.state === "finished");
+    const racers = this.listMembers().filter((member) => member.role === "racer");
+    return racers.length > 0 && racers.every((member) => member.state === "finished");
   }
 
   endRound() {
@@ -224,6 +242,14 @@ export class RoomAggregate {
 
   hasMembers() {
     return this.members.size > 0;
+  }
+
+  hasHumanMembers() {
+    return this.listMembers().some((member) => member.kind === "human");
+  }
+
+  listBotMembers() {
+    return this.listMembers().filter((member) => member.kind === "bot");
   }
 
   addChatMessage(input: {

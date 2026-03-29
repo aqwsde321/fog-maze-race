@@ -9,8 +9,10 @@ describe("getPlayerRenderOrder", () => {
         {
           playerId: "self",
           nickname: "나",
+          kind: "human",
           color: "#ff5c7a",
           shape: "circle",
+          role: "racer",
           state: "playing",
           position: { x: 1, y: 1 },
           finishRank: null,
@@ -19,8 +21,10 @@ describe("getPlayerRenderOrder", () => {
         {
           playerId: "guest",
           nickname: "상대",
+          kind: "human",
           color: "#ff8a5b",
           shape: "square",
+          role: "racer",
           state: "playing",
           position: { x: 1, y: 1 },
           finishRank: null,

@@ -9,7 +9,7 @@ import {
   PLAYER_MARKER_SHAPES,
   type PlayerMarkerShape
 } from "@fog-maze-race/shared/domain/player-marker-shape";
-import type { MatchStatus, RoomMemberState } from "@fog-maze-race/shared/domain/status";
+import type { MatchStatus, RoomMemberRole, RoomMode, RoomMemberState } from "@fog-maze-race/shared/domain/status";
 import type { MapDefinition } from "@fog-maze-race/shared/maps/map-definitions";
 
 import { MatchAggregate } from "../core/match.js";
@@ -67,25 +67,30 @@ export class RoomService {
     this.random = options?.random ?? Math.random;
   }
 
-  createRoom(input: { session: PlayerSession; name: string }): RoomJoinedPayload {
+  createRoom(input: { session: PlayerSession; name: string; mode?: RoomMode }): RoomJoinedPayload {
     const roomId = randomUUID();
     const name = normalizeRoomName(input.name);
+    const mode = input.mode ?? "normal";
     const previewMapId = this.forcedPreviewMapId ?? this.mapRegistry.getRandomPlayable()?.mapId ?? "training-lap";
     const previewMap = this.mapRegistry.get(previewMapId);
     const room = new RoomAggregate({
       roomId,
       name,
-      hostPlayerId: input.session.playerId
+      hostPlayerId: input.session.playerId,
+      mode
     });
     const shapeDeck = createShapeDeck(room.maxPlayers, this.random);
+    const creatorRole = resolveJoinRole(mode, undefined);
 
     room.join({
       playerId: input.session.playerId,
       nickname: input.session.nickname,
+      kind: input.session.kind,
       color: PLAYER_COLORS[0],
       shape: shapeDeck[0] ?? nextShape(0),
+      role: creatorRole,
       state: "waiting",
-      position: previewMap?.startSlots[0] ?? null
+      position: creatorRole === "racer" ? previewMap?.startSlots[0] ?? null : null
     });
 
     this.rooms.set(roomId, {
@@ -106,20 +111,24 @@ export class RoomService {
     };
   }
 
-  joinRoom(input: { roomId: string; session: PlayerSession }): RoomJoinedPayload {
+  joinRoom(input: { roomId: string; session: PlayerSession; role?: RoomMemberRole }): RoomJoinedPayload {
     const runtime = this.requireRuntime(input.roomId);
     const nextColor = nextAvailableColor(runtime.room.listMembers());
     const previewMap = this.mapRegistry.get(runtime.previewMapId);
     const nextAssignedShape =
       runtime.shapeDeck[runtime.shapeCursor] ?? nextShape(runtime.shapeCursor);
+    const role = resolveJoinRole(runtime.room.mode, input.role);
+    const racerIndex = runtime.room.listMembers().filter((member) => member.role === "racer").length;
 
     runtime.room.join({
       playerId: input.session.playerId,
       nickname: input.session.nickname,
+      kind: input.session.kind,
       color: nextColor,
       shape: nextAssignedShape,
+      role,
       state: "waiting",
-      position: previewMap?.startSlots[runtime.room.listMembers().length] ?? previewMap?.startSlots.at(-1) ?? null
+      position: role === "racer" ? previewMap?.startSlots[racerIndex] ?? previewMap?.startSlots.at(-1) ?? null : null
     });
     runtime.shapeCursor += 1;
 
@@ -252,6 +261,14 @@ export class RoomService {
     };
   }
 
+  hasHumanMembers(roomId: string) {
+    return this.requireRuntime(roomId).room.hasHumanMembers();
+  }
+
+  listBotPlayerIds(roomId: string) {
+    return this.requireRuntime(roomId).room.listBotMembers().map((member) => member.playerId);
+  }
+
   listRooms(): RoomListItem[] {
     return [...this.rooms.values()]
       .map(({ room }) => ({
@@ -259,7 +276,8 @@ export class RoomService {
         name: room.name,
         hostNickname: room.getMember(room.hostPlayerId)?.nickname ?? "Unknown",
         playerCount: room.listMembers().length,
-        status: room.status
+        status: room.status,
+        mode: room.mode
       }))
       .sort((left, right) => left.name.localeCompare(right.name, "ko-KR"));
   }
@@ -292,6 +310,7 @@ export class RoomService {
       room: {
         roomId: runtime.room.roomId,
         name: runtime.room.name,
+        mode: runtime.room.mode,
         status: runtime.room.status,
         hostPlayerId: runtime.room.hostPlayerId,
         maxPlayers: runtime.room.maxPlayers,
@@ -300,8 +319,10 @@ export class RoomService {
       members: runtime.room.listMembers().map((member) => ({
         playerId: member.playerId,
         nickname: member.nickname,
+        kind: member.kind,
         color: member.color,
         shape: member.shape,
+        role: member.role,
         state: member.state,
         position: member.position,
         finishRank: member.finishRank,
@@ -373,6 +394,14 @@ function nextAvailableColor(members: Array<{ color: string }>) {
   const usedColors = new Set(members.map((member) => member.color));
   const available = PLAYER_COLORS.find((color) => !usedColors.has(color));
   return available ?? PLAYER_COLORS[members.length % PLAYER_COLORS.length]!;
+}
+
+function resolveJoinRole(mode: RoomMode, requestedRole?: RoomMemberRole) {
+  if (mode === "bot_race") {
+    return requestedRole ?? "spectator";
+  }
+
+  return "racer";
 }
 
 function createShapeDeck(maxPlayers: number, random: () => number) {

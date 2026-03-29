@@ -1,4 +1,5 @@
 import type {
+  AddRoomBotsPayload,
   ConnectPayload,
   ConnectedPayload,
   CountdownPayload,
@@ -13,6 +14,7 @@ import type {
   GameEndedPayload,
   JoinRoomPayload,
   MovePayload,
+  RemoveRoomBotsPayload,
   PlayerMovedPayload,
   ResetRoomPayload,
   RenameRoomPayload,
@@ -44,6 +46,8 @@ export type RaceSocketCommands = {
   CONNECT: (payload: ConnectPayload) => void;
   CREATE_ROOM: (payload: CreateRoomPayload) => void;
   JOIN_ROOM: (payload: JoinRoomPayload) => void;
+  ADD_ROOM_BOTS: (payload: AddRoomBotsPayload) => void;
+  REMOVE_ROOM_BOTS: (payload: RemoveRoomBotsPayload) => void;
   LEAVE_ROOM: (payload: LeaveRoomPayload) => void;
   RENAME_ROOM: (payload: RenameRoomPayload) => void;
   SET_VISIBILITY_SIZE: (payload: SetVisibilitySizePayload) => void;

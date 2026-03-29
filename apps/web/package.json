@@ -9,6 +9,7 @@
     "preview": "vite preview",
     "race:join": "node ./scripts/race-bot.mjs",
     "race:explore": "node ./scripts/race-bot-explorer.mjs",
+    "race:fill": "node ./scripts/race-bot-fill.mjs",
     "test": "vitest run --config vitest.config.ts",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },

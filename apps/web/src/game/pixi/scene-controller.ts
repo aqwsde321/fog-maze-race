@@ -75,8 +75,9 @@ export async function createSceneController(container: HTMLDivElement): Promise<
               position: member.position ?? snapshot.previewMap?.startSlots[index] ?? null
             }))
           : snapshot.members;
+      const selfMember = renderMembers.find((member) => member.playerId === selfPlayerId) ?? null;
 
-      const projection = match && selfPlayerId
+      const projection = match && selfPlayerId && selfMember?.role !== "spectator"
         ? createVisibilityProjection({
             map: toVisibilityMap(map),
             selfPlayerId,

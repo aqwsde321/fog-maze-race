@@ -66,6 +66,7 @@ function buildSnapshot(): RoomSnapshot {
     room: {
       roomId: "room-1",
       name: "Alpha",
+      mode: "normal",
       status: "waiting",
       hostPlayerId: "player-1",
       maxPlayers: 15,
@@ -75,8 +76,10 @@ function buildSnapshot(): RoomSnapshot {
       {
         playerId: "player-1",
         nickname: "만두",
+        kind: "human",
         color: "#ff8c42",
         shape: "circle",
+        role: "racer",
         state: "waiting",
         position: { x: 0, y: 1 },
         finishRank: null,
@@ -85,8 +88,10 @@ function buildSnapshot(): RoomSnapshot {
       {
         playerId: "player-2",
         nickname: "아르민",
+        kind: "human",
         color: "#3b82f6",
         shape: "square",
+        role: "racer",
         state: "waiting",
         position: { x: 1, y: 1 },
         finishRank: null,

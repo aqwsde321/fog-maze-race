@@ -1,7 +1,9 @@
 import type { Server, Socket } from "socket.io";
 import type {
+  AddRoomBotsPayload,
   ForceEndRoomPayload,
   LeaveRoomPayload,
+  RemoveRoomBotsPayload,
   ResetRoomPayload,
   RenameRoomPayload,
   SetVisibilitySizePayload
@@ -10,6 +12,7 @@ import type {
 import type { ServerLoadMonitor } from "../../app/server-load-monitor.js";
 import { PlayerSession } from "../../core/player-session.js";
 import { MatchService } from "../../matches/match-service.js";
+import { BotManager } from "../../bots/bot-manager.js";
 import { RoomService } from "../../rooms/room-service.js";
 import { emitError, emitRoomListAsync, emitRoomState, requireSession } from "./handler-support.js";
 import { createRoomEventSink } from "./recovery-handlers.js";
@@ -20,6 +23,7 @@ type AdminHandlerDeps = {
   sessions: Map<string, PlayerSession>;
   roomService: RoomService;
   matchService: MatchService;
+  botManager: BotManager;
   loadMonitor?: ServerLoadMonitor;
 };
 
@@ -29,6 +33,7 @@ export function registerAdminHandlers({
   sessions,
   roomService,
   matchService,
+  botManager,
   loadMonitor
 }: AdminHandlerDeps) {
   socket.on("LEAVE_ROOM", (payload: LeaveRoomPayload) => {
@@ -44,6 +49,7 @@ export function registerAdminHandlers({
         playerId: session.playerId,
         reason: "manual"
       });
+      botManager.removeBotsIfNoHumansRemain(payload.roomId);
 
       matchService.handlePlayerLeft(payload.roomId, removal.removedMember, sink);
     } catch (error) {
@@ -101,6 +107,33 @@ export function registerAdminHandlers({
         session.playerId,
         createRoomEventSink(io, roomService, payload.roomId, loadMonitor)
       );
+    } catch (error) {
+      emitError(socket, error);
+    }
+  });
+
+  socket.on("ADD_ROOM_BOTS", (payload: AddRoomBotsPayload) => {
+    try {
+      const session = requireSession(socket, sessions);
+      botManager.addRoomBots({
+        roomId: payload.roomId,
+        requestedBy: session.playerId,
+        kind: payload.kind,
+        nicknames: payload.nicknames
+      });
+    } catch (error) {
+      emitError(socket, error);
+    }
+  });
+
+  socket.on("REMOVE_ROOM_BOTS", (payload: RemoveRoomBotsPayload) => {
+    try {
+      const session = requireSession(socket, sessions);
+      botManager.removeRoomBots({
+        roomId: payload.roomId,
+        requestedBy: session.playerId,
+        playerIds: payload.playerIds
+      });
     } catch (error) {
       emitError(socket, error);
     }

@@ -1,14 +1,16 @@
 import type { GridPosition } from "../domain/grid-position.js";
 import type { PlayerMarkerShape } from "../domain/player-marker-shape.js";
 import type { ResultEntry } from "../domain/result-entry.js";
-import type { MatchStatus, RoomMemberState, RoomStatus } from "../domain/status.js";
+import type { MatchStatus, RoomMemberKind, RoomMemberRole, RoomMode, RoomMemberState, RoomStatus } from "../domain/status.js";
 import type { ZoneBounds } from "../maps/map-definitions.js";
 
 export type RoomMemberView = {
   playerId: string;
   nickname: string;
+  kind: RoomMemberKind;
   color: string;
   shape: PlayerMarkerShape;
+  role: RoomMemberRole;
   state: RoomMemberState;
   position: GridPosition | null;
   finishRank: number | null;
@@ -55,6 +57,7 @@ export type RoomSnapshot = {
   room: {
     roomId: string;
     name: string;
+    mode: RoomMode;
     status: RoomStatus;
     hostPlayerId: string;
     maxPlayers: number;

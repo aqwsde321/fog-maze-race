@@ -31,10 +31,12 @@ describe("RoomListPanel", () => {
         <RoomListPanel
           rooms={[]}
           roomName="Alpha"
+          roomMode="normal"
           nickname="아르민"
           connectionState="connected"
           onNicknameSubmit={onUpdateNickname}
           onRoomNameChange={vi.fn()}
+          onRoomModeChange={vi.fn()}
           onCreateRoom={vi.fn()}
           onJoinRoom={vi.fn()}
         />

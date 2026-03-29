@@ -70,9 +70,14 @@ export function createExplorerMemory() {
   return {
     matchKey: null,
     knownTiles: new Map(),
-    visitCounts: new Map()
+    visitCounts: new Map(),
+    recentTileKeys: []
   };
 }
+
+const MAX_RECENT_TILE_KEYS = 8;
+const RECENT_PATH_TILE_PENALTY = 700;
+const IMMEDIATE_BACKTRACK_PENALTY = 12_000;
 
 export function updateExplorerMemory({
   previous,
@@ -92,14 +97,19 @@ export function updateExplorerMemory({
     previous.matchKey === nextMatchKey
       ? new Map(previous.visitCounts)
       : new Map();
+  const recentTileKeys =
+    previous.matchKey === nextMatchKey
+      ? [...previous.recentTileKeys]
+      : [];
 
   const selfMember = snapshot.members.find((member) => member.playerId === selfPlayerId);
   if (!snapshot.match || !selfMember?.position) {
-    return {
-      matchKey: nextMatchKey,
-      knownTiles,
-      visitCounts
-    };
+      return {
+        matchKey: nextMatchKey,
+        knownTiles,
+        visitCounts,
+        recentTileKeys
+      };
   }
 
   const projection = createVisibilityProjection({
@@ -122,11 +132,18 @@ export function updateExplorerMemory({
 
   const selfTileKey = toTileKey(selfMember.position);
   visitCounts.set(selfTileKey, (visitCounts.get(selfTileKey) ?? 0) + 1);
+  if (recentTileKeys[recentTileKeys.length - 1] !== selfTileKey) {
+    recentTileKeys.push(selfTileKey);
+    if (recentTileKeys.length > MAX_RECENT_TILE_KEYS) {
+      recentTileKeys.splice(0, recentTileKeys.length - MAX_RECENT_TILE_KEYS);
+    }
+  }
 
   return {
     matchKey: nextMatchKey,
     knownTiles,
-    visitCounts
+    visitCounts,
+    recentTileKeys
   };
 }
 
@@ -215,6 +232,11 @@ export function decideExplorerMove({
     const score =
       path.length * 1_000 +
       (memory.visitCounts.get(tileKey) ?? 0) * 10 +
+      calculateRecentPathPenalty({
+        start: position,
+        path,
+        recentTileKeys: memory.recentTileKeys
+      }) +
       calculateFrontierBias({
         map,
         candidate,
@@ -422,6 +444,39 @@ function isWalkableKnownTile(tile) {
 function getDirectionSteps(seed) {
   const rotation = normalizeSeed(seed) % DIRECTION_STEPS.length;
   return DIRECTION_STEPS.slice(rotation).concat(DIRECTION_STEPS.slice(0, rotation));
+}
+
+function calculateRecentPathPenalty({
+  start,
+  path,
+  recentTileKeys
+}) {
+  if (path.length === 0 || recentTileKeys.length === 0) {
+    return 0;
+  }
+
+  let penalty = 0;
+  let position = start;
+  const previousTileKey =
+    recentTileKeys.length >= 2
+      ? recentTileKeys[recentTileKeys.length - 2] ?? null
+      : null;
+
+  for (let index = 0; index < path.length; index += 1) {
+    position = movePosition(position, path[index]);
+    const tileKey = toTileKey(position);
+    const recentHits = recentTileKeys.reduce((count, recentTileKey) => {
+      return recentTileKey === tileKey ? count + 1 : count;
+    }, 0);
+
+    penalty += recentHits * RECENT_PATH_TILE_PENALTY;
+
+    if (index === 0 && previousTileKey === tileKey) {
+      penalty += IMMEDIATE_BACKTRACK_PENALTY;
+    }
+  }
+
+  return penalty;
 }
 
 function calculateFrontierBias({

@@ -1,14 +1,17 @@
 import { useEffect, useState, type CSSProperties } from "react";
 
 import type { RoomListItem } from "@fog-maze-race/shared/contracts/realtime";
+import type { RoomMode } from "@fog-maze-race/shared/domain/status";
 
 type RoomListPanelProps = {
   rooms: RoomListItem[];
   roomName: string;
+  roomMode: RoomMode;
   nickname: string;
   connectionState: "idle" | "connecting" | "connected" | "disconnected";
   onNicknameSubmit: (value: string) => void;
   onRoomNameChange: (value: string) => void;
+  onRoomModeChange: (value: RoomMode) => void;
   onCreateRoom: () => void;
   onJoinRoom: (roomId: string) => void;
 };
@@ -16,10 +19,12 @@ type RoomListPanelProps = {
 export function RoomListPanel({
   rooms,
   roomName,
+  roomMode,
   nickname,
   connectionState,
   onNicknameSubmit,
   onRoomNameChange,
+  onRoomModeChange,
   onCreateRoom,
   onJoinRoom
 }: RoomListPanelProps) {
@@ -78,6 +83,15 @@ export function RoomListPanel({
             onChange={(event) => onRoomNameChange(event.target.value)}
             style={fieldStyle}
           />
+          <select
+            aria-label="방 모드"
+            value={roomMode}
+            onChange={(event) => onRoomModeChange(event.target.value as RoomMode)}
+            style={modeSelectStyle}
+          >
+            <option value="normal">일반 방</option>
+            <option value="bot_race">봇 전용 방</option>
+          </select>
           <button type="button" onClick={onCreateRoom} style={createButtonStyle}>
             방 만들기
           </button>
@@ -98,7 +112,7 @@ export function RoomListPanel({
                 <div>
                   <strong style={roomNameStyle}>{room.name}</strong>
                   <p style={roomMetaStyle}>
-                    방장 {room.hostNickname} · {room.playerCount}명 · {room.status}
+                    방장 {room.hostNickname} · {room.playerCount}명 · {room.mode === "bot_race" ? "봇 전용" : "일반"} · {room.status}
                   </p>
                 </div>
                 <button
@@ -202,7 +216,7 @@ const fieldLabelStyle: CSSProperties = {
 
 const createRowStyle: CSSProperties = {
   display: "grid",
-  gridTemplateColumns: "1fr auto",
+  gridTemplateColumns: "1fr auto auto",
   gap: "10px"
 };
 
@@ -223,6 +237,15 @@ const createButtonStyle: CSSProperties = {
   color: "#0f172a",
   fontWeight: 700,
   cursor: "pointer"
+};
+
+const modeSelectStyle: CSSProperties = {
+  padding: "13px 15px",
+  borderRadius: "13px",
+  border: "1px solid rgba(148, 163, 184, 0.35)",
+  background: "rgba(15, 23, 42, 0.88)",
+  color: "#f8fafc",
+  fontSize: "0.95rem"
 };
 
 const listCardStyle: CSSProperties = {

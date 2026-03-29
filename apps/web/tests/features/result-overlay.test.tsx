@@ -123,6 +123,7 @@ function buildEndedSnapshot(
     room: {
       roomId: "room-1",
       name: "Alpha",
+      mode: "normal",
       status: "ended",
       hostPlayerId: "player-1",
       maxPlayers: 15,
@@ -132,8 +133,10 @@ function buildEndedSnapshot(
       {
         playerId: "player-1",
         nickname: "호1",
+        kind: "human",
         color: "#38bdf8",
         shape: "circle",
+        role: "racer",
         state: "finished",
         position: { x: 8, y: 1 },
         finishRank: 1,

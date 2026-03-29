@@ -127,6 +127,7 @@ function buildWaitingSnapshot(): RoomSnapshot {
     room: {
       roomId: "room-1",
       name: "Alpha",
+      mode: "normal",
       status: "waiting",
       hostPlayerId: "player-1",
       maxPlayers: 15,
@@ -136,8 +137,10 @@ function buildWaitingSnapshot(): RoomSnapshot {
       {
         playerId: "player-1",
         nickname: "아르민",
+        kind: "human",
         color: "#fb7185",
         shape: "circle",
+        role: "racer",
         state: "waiting",
         position: map.startSlots[0] ?? { x: 0, y: 1 },
         finishRank: null,
@@ -172,6 +175,7 @@ function buildPlayingSnapshot(): RoomSnapshot {
     room: {
       roomId: "room-1",
       name: "Alpha",
+      mode: "normal",
       status: "playing",
       hostPlayerId: "player-1",
       maxPlayers: 15,
@@ -181,8 +185,10 @@ function buildPlayingSnapshot(): RoomSnapshot {
       {
         playerId: "player-1",
         nickname: "아르민",
+        kind: "human",
         color: "#fb7185",
         shape: "circle",
+        role: "racer",
         state: "playing",
         position: { x: 0, y: 1 },
         finishRank: null,

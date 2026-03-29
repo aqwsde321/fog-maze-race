@@ -6,6 +6,7 @@ import { RoomService } from "./room-service.js";
 
 export type RecoveryServiceOptions = {
   graceWindowMs: number;
+  cleanupBotsIfNoHumansRemain?: (roomId: string) => void;
 };
 
 export class RecoveryService {
@@ -107,6 +108,7 @@ export class RecoveryService {
 
     const removal = this.roomService.removePlayer(record.roomId, playerId);
     session.leave();
+    this.options.cleanupBotsIfNoHumansRemain?.(record.roomId);
 
     this.matchService.handlePlayerLeft(record.roomId, removal.removedMember, sink);
   }

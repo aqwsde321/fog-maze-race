@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { createPortal } from "react-dom";
 
 import type { ServerHealthSnapshot } from "@fog-maze-race/shared/contracts/server-health";
+import type { RoomBotKind } from "@fog-maze-race/shared/contracts/realtime";
 import type { Direction } from "@fog-maze-race/shared/domain/grid-position";
 import type { RoomSnapshot } from "@fog-maze-race/shared/contracts/snapshots";
 
@@ -19,6 +20,8 @@ type GameScreenProps = {
   onStartGame: () => void;
   onRenameRoom: (name: string) => void;
   onSetVisibilitySize: (visibilitySize: 3 | 5 | 7) => void;
+  onAddBots?: (input: { kind: RoomBotKind; nicknames: string[] }) => void;
+  onRemoveBots?: (playerIds?: string[]) => void;
   onForceEndRoom: () => void;
   onResetToWaiting: () => void;
   onLeaveRoom: () => void;
@@ -56,6 +59,8 @@ export function GameScreen({
   onStartGame,
   onRenameRoom,
   onSetVisibilitySize,
+  onAddBots,
+  onRemoveBots,
   onForceEndRoom,
   onResetToWaiting,
   onLeaveRoom,
@@ -77,6 +82,13 @@ export function GameScreen({
   const canStart = snapshot.room.status === "waiting" && isHost;
   const canMove = snapshot.room.status === "waiting" || snapshot.room.status === "countdown" || snapshot.room.status === "playing";
   const displayStatus = snapshot.room.status === "countdown" ? "playing" : snapshot.room.status;
+  const availableBotSlots = Math.max(snapshot.room.maxPlayers - snapshot.members.length, 0);
+  const currentBots = snapshot.members
+    .filter((member) => member.kind === "bot")
+    .map((member) => ({
+      playerId: member.playerId,
+      nickname: member.nickname
+    }));
   const serverMetrics = serverHealth ? buildServerMetrics(serverHealth, snapshot.members.length, pingMetric, metricHistory) : [];
 
   useEffect(() => {
@@ -333,11 +345,19 @@ export function GameScreen({
           {isHost ? (
             <div style={hostControlsWrapStyle}>
               <HostControls
+                roomId={snapshot.room.roomId}
                 roomName={snapshot.room.name}
+                roomMode={snapshot.room.mode}
                 visibilitySize={snapshot.room.visibilitySize}
                 canEditVisibility={snapshot.room.status === "waiting"}
+                canManageBots={snapshot.room.status === "waiting"}
+                availableBotSlots={availableBotSlots}
+                memberNicknames={snapshot.members.map((member) => member.nickname)}
+                currentBots={currentBots}
                 onRenameRoom={onRenameRoom}
                 onSetVisibilitySize={onSetVisibilitySize}
+                onAddBots={onAddBots ?? (() => undefined)}
+                onRemoveBots={onRemoveBots ?? (() => undefined)}
               />
             </div>
           ) : null}
