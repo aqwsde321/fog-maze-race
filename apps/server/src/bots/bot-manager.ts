@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto";
 
 import type { Server } from "socket.io";
 
-import type { RoomBotKind } from "@fog-maze-race/shared/contracts/realtime";
+import type { RoomBotKind, RoomBotRequest, RoomExploreStrategy } from "@fog-maze-race/shared/contracts/realtime";
 import type { MapView } from "@fog-maze-race/shared/contracts/snapshots";
 import { samePosition, type Direction, type GridPosition } from "@fog-maze-race/shared/domain/grid-position";
 
@@ -20,6 +20,7 @@ import {
 } from "./explorer-policy.js";
 
 const DEFAULT_BOT_KIND: RoomBotKind = "explore";
+const DEFAULT_EXPLORE_STRATEGY: RoomExploreStrategy = "frontier";
 const DEFAULT_BOT_JOIN_MESSAGE = "들어왔다.";
 const DEFAULT_BOT_FINISH_MESSAGE = "도착했다.";
 const BOT_LOOP_INTERVAL_MS = 30;
@@ -29,6 +30,7 @@ const BOT_EXPLORE_MOVE_INTERVAL_MS = 180;
 type BotRuntime = {
   playerId: string;
   kind: RoomBotKind;
+  strategy: RoomExploreStrategy | null;
   inputSeq: number;
   lastActionAt: number;
   finishAnnouncedMatchId: string | null;
@@ -58,7 +60,9 @@ export class BotManager {
     roomId: string;
     requestedBy: string;
     kind?: RoomBotKind;
-    nicknames: string[];
+    strategy?: RoomExploreStrategy;
+    nicknames?: string[];
+    bots?: RoomBotRequest[];
   }) {
     const runtime = this.roomService.requireRuntime(input.roomId);
     if (runtime.room.hostPlayerId !== input.requestedBy) {
@@ -69,18 +73,22 @@ export class BotManager {
       throw new Error("ROOM_NOT_JOINABLE");
     }
 
-    const normalizedNicknames = normalizeRequestedBotNicknames({
+    const normalizedBots = normalizeRequestedBots({
+      requestedBots: input.bots,
       requestedNicknames: input.nicknames,
+      kind: input.kind,
+      strategy: input.strategy,
       existingNicknames: runtime.room.listMembers().map((member) => member.nickname)
     });
-    if (normalizedNicknames.length === 0) {
+    if (normalizedBots.length === 0) {
       throw new Error("INVALID_NICKNAME");
     }
 
     const sink = this.createSink(input.roomId);
-    const kind = input.kind ?? DEFAULT_BOT_KIND;
 
-    for (const nickname of normalizedNicknames) {
+    for (const requestedBot of normalizedBots) {
+      const kind = requestedBot.kind ?? DEFAULT_BOT_KIND;
+      const nickname = requestedBot.nickname;
       const playerId = randomUUID();
       const session = new PlayerSession({
         playerId,
@@ -97,6 +105,7 @@ export class BotManager {
       this.bots.set(playerId, {
         playerId,
         kind,
+        strategy: kind === "explore" ? requestedBot.strategy ?? DEFAULT_EXPLORE_STRATEGY : null,
         inputSeq: 0,
         lastActionAt: 0,
         finishAnnouncedMatchId: null,
@@ -281,7 +290,8 @@ export class BotManager {
       map,
       memory: bot.explorerMemory,
       position,
-      seed: bot.explorerSeed
+      seed: bot.explorerSeed,
+      strategy: bot.strategy ?? DEFAULT_EXPLORE_STRATEGY
     })?.direction ?? null;
   }
 
@@ -400,27 +410,50 @@ function tileAt(map: MapView, x: number, y: number) {
   return row[x] ?? "#";
 }
 
-function normalizeRequestedBotNicknames(input: {
-  requestedNicknames: string[];
+function normalizeRequestedBots(input: {
+  requestedBots?: RoomBotRequest[];
+  requestedNicknames?: string[];
+  kind?: RoomBotKind;
+  strategy?: RoomExploreStrategy;
   existingNicknames: string[];
 }) {
   const used = new Set(input.existingNicknames.map((nickname) => nickname.trim().slice(0, 5)).filter(Boolean));
-  const resolved: string[] = [];
+  const resolved: Array<{ nickname: string; kind: RoomBotKind; strategy?: RoomExploreStrategy }> = [];
   let fallbackIndex = 1;
+  const requestedBots =
+    input.requestedBots && input.requestedBots.length > 0
+      ? input.requestedBots
+      : (input.requestedNicknames ?? []).map((nickname) => ({
+          nickname,
+          kind: input.kind,
+          strategy: input.strategy
+        }));
 
-  for (const requestedNickname of input.requestedNicknames) {
-    const normalized = requestedNickname.trim().slice(0, 5);
+  for (const requestedBot of requestedBots) {
+    const kind = requestedBot.kind ?? input.kind ?? DEFAULT_BOT_KIND;
+    const strategy = kind === "explore"
+      ? requestedBot.strategy ?? input.strategy ?? DEFAULT_EXPLORE_STRATEGY
+      : undefined;
+    const normalized = requestedBot.nickname.trim().slice(0, 5);
     if (normalized) {
       const unique = uniquifyNickname(normalized, used);
       used.add(unique);
-      resolved.push(unique);
+      resolved.push({
+        nickname: unique,
+        kind,
+        strategy
+      });
       continue;
     }
 
     const fallback = createNextDefaultNickname(used, fallbackIndex);
     fallbackIndex = extractBotSuffix(fallback) + 1;
     used.add(fallback);
-    resolved.push(fallback);
+    resolved.push({
+      nickname: fallback,
+      kind,
+      strategy
+    });
   }
 
   return resolved;

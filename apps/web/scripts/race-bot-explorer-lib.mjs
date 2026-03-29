@@ -72,6 +72,7 @@ export function createExplorerMemory() {
     matchKey: null,
     knownTiles: new Map(),
     visitCounts: new Map(),
+    edgeVisitCounts: new Map(),
     recentTileKeys: []
   };
 }
@@ -98,6 +99,10 @@ export function updateExplorerMemory({
     previous.matchKey === nextMatchKey
       ? new Map(previous.visitCounts)
       : new Map();
+  const edgeVisitCounts =
+    previous.matchKey === nextMatchKey
+      ? new Map(previous.edgeVisitCounts)
+      : new Map();
   const recentTileKeys =
     previous.matchKey === nextMatchKey
       ? [...previous.recentTileKeys]
@@ -109,6 +114,7 @@ export function updateExplorerMemory({
         matchKey: nextMatchKey,
         knownTiles,
         visitCounts,
+        edgeVisitCounts,
         recentTileKeys
       };
   }
@@ -133,6 +139,11 @@ export function updateExplorerMemory({
   }
 
   const selfTileKey = toTileKey(selfMember.position);
+  const previousTileKey = recentTileKeys[recentTileKeys.length - 1] ?? null;
+  if (previousTileKey && previousTileKey !== selfTileKey) {
+    const edgeKey = toEdgeKey(previousTileKey, selfTileKey);
+    edgeVisitCounts.set(edgeKey, (edgeVisitCounts.get(edgeKey) ?? 0) + 1);
+  }
   visitCounts.set(selfTileKey, (visitCounts.get(selfTileKey) ?? 0) + 1);
   if (recentTileKeys[recentTileKeys.length - 1] !== selfTileKey) {
     recentTileKeys.push(selfTileKey);
@@ -145,6 +156,7 @@ export function updateExplorerMemory({
     matchKey: nextMatchKey,
     knownTiles,
     visitCounts,
+    edgeVisitCounts,
     recentTileKeys
   };
 }
@@ -153,7 +165,8 @@ export function decideExplorerMove({
   map,
   memory,
   position,
-  seed = 0
+  seed = 0,
+  strategy = "frontier"
 }) {
   if (!map || !position) {
     return null;
@@ -173,14 +186,23 @@ export function decideExplorerMove({
     };
   }
 
-  const goalMove = decideSeededGoalMove({
-    map,
-    knownTiles: memory.knownTiles,
-    recentTileKeys: memory.recentTileKeys,
-    position,
-    seed,
-    directionSteps
-  });
+  const goalMove =
+    strategy === "tremaux"
+      ? decideTremauxGoalMove({
+          map,
+          memory,
+          position,
+          seed,
+          directionSteps
+        })
+      : decideSeededGoalMove({
+          map,
+          knownTiles: memory.knownTiles,
+          recentTileKeys: memory.recentTileKeys,
+          position,
+          seed,
+          directionSteps
+        });
   if (goalMove) {
     return {
       direction: goalMove,
@@ -201,98 +223,28 @@ export function decideExplorerMove({
     };
   }
 
-  const candidates = [];
-  for (const [tileKey, tile] of memory.knownTiles) {
-    if (!isWalkableKnownTile(tile)) {
-      continue;
-    }
-
-    const candidate = parseTileKey(tileKey);
-    if (!candidate) {
-      continue;
-    }
-
-    if (!hasUnknownNeighbor({
+  if (strategy === "tremaux") {
+    const tremauxMove = decideTremauxFrontierMove({
       map,
-      knownTiles: memory.knownTiles,
-      position: candidate,
-      directionSteps
-    })) {
-      continue;
-    }
-
-    const path = findPath({
-      map,
-      knownTiles: memory.knownTiles,
-      start: position,
-      isTarget: (current) => current.x === candidate.x && current.y === candidate.y,
-      directionSteps
+      memory,
+      position,
+      seed
     });
-    if (!path || path.length === 0) {
-      continue;
+    if (tremauxMove) {
+      return {
+        direction: tremauxMove,
+        reason: "frontier"
+      };
     }
-
-    const score =
-      path.length * 1_000 +
-      (memory.visitCounts.get(tileKey) ?? 0) * 10 +
-      calculateRecentPathPenalty({
-        start: position,
-        path,
-        recentTileKeys: memory.recentTileKeys
-      }) +
-      calculateFrontierBias({
-        map,
-        candidate,
-        seed
-      });
-    const pathKey = path.join(",");
-    candidates.push({
-      isEntryApproach: isEntryApproachPosition(map, candidate),
-      path,
-      pathKey,
-      score
-    });
   }
 
-  if (candidates.length === 0) {
-    return null;
-  }
-
-  const preferredCandidates =
-    !isEntryApproachPosition(map, position) && candidates.some((candidate) => !candidate.isEntryApproach)
-      ? candidates.filter((candidate) => !candidate.isEntryApproach)
-      : candidates;
-  const bestCandidate = preferredCandidates.reduce((best, candidate) => {
-    if (!best || candidate.score < best.score) {
-      return candidate;
-    }
-
-    return best;
-  }, null);
-
-  if (!bestCandidate) {
-    return null;
-  }
-
-  const candidateSlack = getSeedCandidateSlack(map);
-  const closeCandidates = preferredCandidates
-    .filter((candidate) => candidate.score <= bestCandidate.score + candidateSlack)
-    .sort((left, right) => {
-      if (left.score !== right.score) {
-        return left.score - right.score;
-      }
-
-      return left.pathKey.localeCompare(right.pathKey);
-    });
-  const diversityPool = closeCandidates.slice(0, getSeedCandidatePoolSize(map, closeCandidates.length));
-  const selectedCandidate =
-    pickSeededCandidate(diversityPool, seed, position, map.visibilityRadius > 1) ??
-    bestCandidate;
-
-  return {
-    direction: selectedCandidate.path[0],
-    reason: "frontier"
-  };
+  return decideFrontierMove({
+    map,
+    memory,
+    position,
+    seed,
+    directionSteps
+  });
 }
 
 export function rememberBlockedMove({
@@ -378,6 +330,254 @@ function decideSeededGoalMove({
     rankedCandidates[0];
 
   return selectedCandidate?.path[0] ?? null;
+}
+
+function decideTremauxGoalMove({
+  map,
+  memory,
+  position,
+  seed,
+  directionSteps
+}) {
+  const candidates = [];
+
+  for (const step of directionSteps) {
+    const next = {
+      x: position.x + step.x,
+      y: position.y + step.y
+    };
+    if (!isInsideMap(map, next) || !isKnownWalkable(memory.knownTiles, next)) {
+      continue;
+    }
+
+    const pathTail = findPath({
+      map,
+      knownTiles: memory.knownTiles,
+      start: next,
+      isTarget: (candidate) => isKnownGoalTile(map, memory.knownTiles, candidate.x, candidate.y),
+      directionSteps
+    });
+    if (!pathTail) {
+      continue;
+    }
+
+    const path = [step.direction, ...pathTail];
+    candidates.push({
+      path,
+      pathKey: path.join(","),
+      recentPenalty:
+        calculateRecentPathPenalty({
+          start: position,
+          path,
+          recentTileKeys: memory.recentTileKeys
+        }) +
+        calculateEdgeVisitPenalty({
+          edgeVisitCounts: memory.edgeVisitCounts,
+          start: position,
+          path,
+          strong: true
+        })
+    });
+  }
+
+  if (candidates.length === 0) {
+    return null;
+  }
+
+  const shortestLength = Math.min(...candidates.map((candidate) => candidate.path.length));
+  const shortestCandidates = candidates.filter((candidate) => candidate.path.length === shortestLength);
+  const bestPenalty = Math.min(...shortestCandidates.map((candidate) => candidate.recentPenalty));
+  const rankedCandidates = shortestCandidates
+    .filter((candidate) => candidate.recentPenalty === bestPenalty)
+    .sort((left, right) => left.pathKey.localeCompare(right.pathKey));
+  const selectedCandidate =
+    pickSeededCandidate(rankedCandidates, seed, position, map.visibilityRadius > 1) ??
+    rankedCandidates[0];
+
+  return selectedCandidate?.path[0] ?? null;
+}
+
+function decideFrontierMove({
+  map,
+  memory,
+  position,
+  seed,
+  directionSteps
+}) {
+  const candidates = collectFrontierCandidates({
+    map,
+    memory,
+    position,
+    directionSteps,
+    scorePath: ({ tileKey, candidate, path }) =>
+      path.length * 1_000 +
+      (memory.visitCounts.get(tileKey) ?? 0) * 10 +
+      calculateRecentPathPenalty({
+        start: position,
+        path,
+        recentTileKeys: memory.recentTileKeys
+      }) +
+      calculateFrontierBias({
+        map,
+        candidate,
+        seed
+      })
+  });
+
+  if (candidates.length === 0) {
+    return null;
+  }
+
+  const preferredCandidates =
+    !isEntryApproachPosition(map, position) && candidates.some((candidate) => !candidate.isEntryApproach)
+      ? candidates.filter((candidate) => !candidate.isEntryApproach)
+      : candidates;
+  const bestCandidate = preferredCandidates.reduce((best, candidate) => {
+    if (!best || candidate.score < best.score) {
+      return candidate;
+    }
+
+    return best;
+  }, null);
+
+  if (!bestCandidate) {
+    return null;
+  }
+
+  const candidateSlack = getSeedCandidateSlack(map);
+  const closeCandidates = preferredCandidates
+    .filter((candidate) => candidate.score <= bestCandidate.score + candidateSlack)
+    .sort((left, right) => {
+      if (left.score !== right.score) {
+        return left.score - right.score;
+      }
+
+      return left.pathKey.localeCompare(right.pathKey);
+    });
+  const diversityPool = closeCandidates.slice(0, getSeedCandidatePoolSize(map, closeCandidates.length));
+  const selectedCandidate =
+    pickSeededCandidate(diversityPool, seed, position, map.visibilityRadius > 1) ??
+    bestCandidate;
+
+  return {
+    direction: selectedCandidate.path[0],
+    reason: "frontier"
+  };
+}
+
+function decideTremauxFrontierMove({
+  map,
+  memory,
+  position,
+  seed
+}) {
+  const directionSteps = getDirectionSteps(seed);
+  const candidates = collectFrontierCandidates({
+    map,
+    memory,
+    position,
+    directionSteps,
+    scorePath: ({ tileKey, candidate, path }) =>
+      path.length * 900 +
+      (memory.visitCounts.get(tileKey) ?? 0) * 25 +
+      calculateRecentPathPenalty({
+        start: position,
+        path,
+        recentTileKeys: memory.recentTileKeys
+      }) +
+      calculateEdgeVisitPenalty({
+        edgeVisitCounts: memory.edgeVisitCounts,
+        start: position,
+        path,
+        strong: true
+      }) +
+      calculateFrontierBias({
+        map,
+        candidate,
+        seed
+      })
+  });
+
+  if (candidates.length === 0) {
+    return null;
+  }
+
+  const preferredCandidates =
+    !isEntryApproachPosition(map, position) && candidates.some((candidate) => !candidate.isEntryApproach)
+      ? candidates.filter((candidate) => !candidate.isEntryApproach)
+      : candidates;
+  const rankedCandidates = [...preferredCandidates].sort((left, right) => {
+    if (left.score !== right.score) {
+      return left.score - right.score;
+    }
+
+    return left.pathKey.localeCompare(right.pathKey);
+  });
+  const bestScore = rankedCandidates[0]?.score;
+  if (typeof bestScore !== "number") {
+    return null;
+  }
+
+  const closeCandidates = rankedCandidates.filter((candidate) => candidate.score <= bestScore + getTremauxCandidateSlack(map));
+  const selectedCandidate =
+    pickSeededCandidate(closeCandidates, seed, position, map.visibilityRadius > 1) ??
+    rankedCandidates[0];
+
+  return selectedCandidate?.path[0] ?? null;
+}
+
+function collectFrontierCandidates({
+  map,
+  memory,
+  position,
+  directionSteps,
+  scorePath
+}) {
+  const candidates = [];
+
+  for (const [tileKey, tile] of memory.knownTiles) {
+    if (!isWalkableKnownTile(tile)) {
+      continue;
+    }
+
+    const candidate = parseTileKey(tileKey);
+    if (!candidate) {
+      continue;
+    }
+
+    if (!hasUnknownNeighbor({
+      map,
+      knownTiles: memory.knownTiles,
+      position: candidate,
+      directionSteps
+    })) {
+      continue;
+    }
+
+    const path = findPath({
+      map,
+      knownTiles: memory.knownTiles,
+      start: position,
+      isTarget: (current) => current.x === candidate.x && current.y === candidate.y,
+      directionSteps
+    });
+    if (!path || path.length === 0) {
+      continue;
+    }
+
+    candidates.push({
+      isEntryApproach: isEntryApproachPosition(map, candidate),
+      path,
+      pathKey: path.join(","),
+      score: scorePath({
+        tileKey,
+        candidate,
+        path
+      })
+    });
+  }
+
+  return candidates;
 }
 
 function findPath({
@@ -572,6 +772,28 @@ function calculateRecentPathPenalty({
   return penalty;
 }
 
+function calculateEdgeVisitPenalty({
+  edgeVisitCounts,
+  start,
+  path,
+  strong
+}) {
+  let penalty = 0;
+  let position = start;
+
+  for (const direction of path) {
+    const next = movePosition(position, direction);
+    const edgeKey = toEdgeKey(toTileKey(position), toTileKey(next));
+    const visits = edgeVisitCounts.get(edgeKey) ?? 0;
+    if (visits > 0) {
+      penalty += visits * (strong ? 1800 : 600);
+    }
+    position = next;
+  }
+
+  return penalty;
+}
+
 function calculateFrontierBias({
   map,
   candidate,
@@ -596,6 +818,10 @@ function getSeedCandidatePoolSize(map, candidateCount) {
   }
 
   return map.visibilityRadius > 1 ? Math.min(3, candidateCount) : Math.min(2, candidateCount);
+}
+
+function getTremauxCandidateSlack(map) {
+  return map.visibilityRadius > 1 ? 1400 : 0;
 }
 
 function pickSeededCandidate(candidates, seed, position, strongDiversity = false) {
@@ -657,6 +883,10 @@ function getExplorerMatchKey(snapshot, selfPlayerId) {
   }
 
   return `${snapshot.room.roomId}:${snapshot.match.matchId}:${selfPlayerId}`;
+}
+
+function toEdgeKey(leftTileKey, rightTileKey) {
+  return leftTileKey < rightTileKey ? `${leftTileKey}|${rightTileKey}` : `${rightTileKey}|${leftTileKey}`;
 }
 
 function parseTileKey(tileKey) {

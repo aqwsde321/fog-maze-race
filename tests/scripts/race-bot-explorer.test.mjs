@@ -460,6 +460,70 @@ test("explorer seeds split equal-length goal paths even when they share the same
   assert.notEqual(bot1Decision?.direction, bot5Decision?.direction);
 });
 
+test("tremaux prefers the frontier reached through less-marked passages", () => {
+  const map = createMap({
+    tiles: ["....."],
+    visibilityRadius: 2,
+    startZone: bounds(2, 0, 2, 0),
+    goalZone: bounds(4, 0, 4, 0)
+  });
+  const memory = createMemoryFromRows(
+    ["?...?"],
+    [],
+    [],
+    [["1,0|2,0", 2]]
+  );
+
+  const decision = decideExplorerMove({
+    map,
+    memory,
+    position: { x: 2, y: 0 },
+    seed: 0,
+    strategy: "tremaux"
+  });
+
+  assert.deepEqual(decision, {
+    direction: "right",
+    reason: "frontier"
+  });
+});
+
+test("tremaux prefers the less-marked shortest goal route", () => {
+  const map = createMap({
+    tiles: [
+      "...",
+      ".#G",
+      "..."
+    ],
+    visibilityRadius: 2,
+    startZone: bounds(0, 1, 0, 1),
+    goalZone: bounds(2, 1, 2, 1)
+  });
+  const memory = createMemoryFromRows(
+    [
+      "...",
+      ".#G",
+      "..."
+    ],
+    [],
+    [],
+    [["0,0|0,1", 2]]
+  );
+
+  const decision = decideExplorerMove({
+    map,
+    memory,
+    position: { x: 0, y: 1 },
+    seed: 0,
+    strategy: "tremaux"
+  });
+
+  assert.deepEqual(decision, {
+    direction: "down",
+    reason: "goal"
+  });
+});
+
 test("explorer bot reaches the goal on every shipped map", () => {
   const failures = [];
 
@@ -499,7 +563,7 @@ test("explorer bot clears the eta-gauntlet 3x3 regression for the problematic se
   }
 });
 
-function createMemoryFromRows(rows, visitEntries = [], recentTileKeys = []) {
+function createMemoryFromRows(rows, visitEntries = [], recentTileKeys = [], edgeEntries = []) {
   const memory = createExplorerMemory();
 
   for (let y = 0; y < rows.length; y += 1) {
@@ -517,6 +581,10 @@ function createMemoryFromRows(rows, visitEntries = [], recentTileKeys = []) {
   }
 
   memory.recentTileKeys = [...recentTileKeys];
+
+  for (const [edgeKey, count] of edgeEntries) {
+    memory.edgeVisitCounts.set(edgeKey, count);
+  }
 
   return memory;
 }

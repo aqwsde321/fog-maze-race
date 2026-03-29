@@ -83,7 +83,7 @@ describe("HostControls", () => {
     expect(container.querySelector("select")?.disabled).toBe(true);
   });
 
-  it("prefills editable bot names and submits the edited list for the host", async () => {
+  it("prefills editable bot rows and submits per-bot strategies for the host", async () => {
     const onAddBots = vi.fn();
 
     await act(async () => {
@@ -129,11 +129,20 @@ describe("HostControls", () => {
     expect(nameInputs[1]?.value).toBe("bot2");
     expect(document.body.querySelector('[data-testid="bot-name-row-0"]')?.textContent).toContain("01");
     expect(document.body.querySelector('[data-testid="bot-name-row-1"]')?.textContent).toContain("02");
+    const strategySelects = document.body.querySelectorAll<HTMLSelectElement>('select[data-testid^="bot-strategy-select-"]');
+    expect(strategySelects).toHaveLength(2);
+    expect(strategySelects[0]?.value).toBe("frontier");
+    expect(strategySelects[1]?.value).toBe("frontier");
 
     await act(async () => {
       const setValue = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")?.set;
       setValue?.call(nameInputs[0], "red");
       nameInputs[0]!.dispatchEvent(new Event("input", { bubbles: true }));
+    });
+
+    await act(async () => {
+      strategySelects[1]!.value = "tremaux";
+      strategySelects[1]!.dispatchEvent(new Event("change", { bubbles: true }));
     });
 
     const submitButton = document.body.querySelector<HTMLButtonElement>('[data-testid="add-bots-button"]');
@@ -145,7 +154,10 @@ describe("HostControls", () => {
 
     expect(onAddBots).toHaveBeenCalledWith({
       kind: "explore",
-      nicknames: ["red", "bot2"]
+      bots: [
+        { nickname: "red", kind: "explore", strategy: "frontier" },
+        { nickname: "bot2", kind: "explore", strategy: "tremaux" }
+      ]
     });
     expect(document.body.querySelector('[data-testid="bot-panel-overlay"]')).toBeNull();
   });

@@ -119,7 +119,9 @@ export function registerAdminHandlers({
         roomId: payload.roomId,
         requestedBy: session.playerId,
         kind: payload.kind,
-        nicknames: payload.nicknames
+        strategy: payload.strategy,
+        nicknames: payload.nicknames,
+        bots: payload.bots
       });
     } catch (error) {
       emitError(socket, error);

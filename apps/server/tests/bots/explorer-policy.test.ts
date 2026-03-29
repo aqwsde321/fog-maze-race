@@ -237,9 +237,78 @@ describe("explorer-policy", () => {
     });
     expect(bot1Decision?.direction).not.toBe(bot5Decision?.direction);
   });
+
+  it("tremaux prefers the frontier reached through less-marked passages", () => {
+    const map = createMap({
+      tiles: ["....."],
+      visibilityRadius: 2,
+      startZone: bounds(2, 0, 2, 0),
+      goalZone: bounds(4, 0, 4, 0)
+    });
+    const memory = createMemoryFromRows(
+      ["?...?"],
+      [],
+      [],
+      [["1,0|2,0", 2]]
+    );
+
+    const decision = decideExplorerMove({
+      map,
+      memory,
+      position: { x: 2, y: 0 },
+      seed: 0,
+      strategy: "tremaux"
+    });
+
+    expect(decision).toEqual({
+      direction: "right",
+      reason: "frontier"
+    });
+  });
+
+  it("tremaux prefers the less-marked shortest goal route", () => {
+    const map = createMap({
+      tiles: [
+        "...",
+        ".#G",
+        "..."
+      ],
+      visibilityRadius: 2,
+      startZone: bounds(0, 1, 0, 1),
+      goalZone: bounds(2, 1, 2, 1)
+    });
+    const memory = createMemoryFromRows(
+      [
+        "...",
+        ".#G",
+        "..."
+      ],
+      [],
+      [],
+      [["0,0|0,1", 2]]
+    );
+
+    const decision = decideExplorerMove({
+      map,
+      memory,
+      position: { x: 0, y: 1 },
+      seed: 0,
+      strategy: "tremaux"
+    });
+
+    expect(decision).toEqual({
+      direction: "down",
+      reason: "goal"
+    });
+  });
 });
 
-function createMemoryFromRows(rows: string[]) {
+function createMemoryFromRows(
+  rows: string[],
+  visitEntries: Array<[string, number]> = [],
+  recentTileKeys: string[] = [],
+  edgeEntries: Array<[string, number]> = []
+) {
   const memory = createExplorerMemory();
 
   for (let y = 0; y < rows.length; y += 1) {
@@ -251,6 +320,16 @@ function createMemoryFromRows(rows: string[]) {
 
       memory.knownTiles.set(`${x},${y}`, tile);
     }
+  }
+
+  for (const [tileKey, count] of visitEntries) {
+    memory.visitCounts.set(tileKey, count);
+  }
+
+  memory.recentTileKeys = [...recentTileKeys];
+
+  for (const [edgeKey, count] of edgeEntries) {
+    memory.edgeVisitCounts.set(edgeKey, count);
   }
 
   return memory;

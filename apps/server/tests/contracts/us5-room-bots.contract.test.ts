@@ -51,7 +51,7 @@ describe("US5 room bots contract", () => {
     await app.close();
   });
 
-  it("lets the host add named bots to a normal room and rejects guest bot requests", async () => {
+  it("lets the host add named bots with per-bot explore strategies to a normal room and rejects guest bot requests", async () => {
     const host = createRaceSocket();
     const guest = createRaceSocket();
 
@@ -72,16 +72,17 @@ describe("US5 room bots contract", () => {
 
     guest.emit("ADD_ROOM_BOTS", {
       roomId: hostJoined.roomId,
-      kind: "explore",
-      nicknames: ["red"]
+      bots: [{ nickname: "red", kind: "explore", strategy: "frontier" }]
     });
     const denied = await once(guest, "ERROR");
     expect(denied.code).toBe("HOST_ONLY");
 
     host.emit("ADD_ROOM_BOTS", {
       roomId: hostJoined.roomId,
-      kind: "explore",
-      nicknames: ["red", "blue"]
+      bots: [
+        { nickname: "red", kind: "explore", strategy: "frontier" },
+        { nickname: "blue", kind: "explore", strategy: "tremaux" }
+      ]
     });
 
     const updated = await waitForSnapshot(

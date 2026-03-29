@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState, type CSSProperties } from "react";
 import { createPortal } from "react-dom";
 
-import type { RoomBotKind } from "@fog-maze-race/shared/contracts/realtime";
+import type { RoomBotKind, RoomBotRequest, RoomExploreStrategy } from "@fog-maze-race/shared/contracts/realtime";
 import type { RoomMode } from "@fog-maze-race/shared/domain/status";
 
 type HostControlsProps = {
@@ -16,11 +16,12 @@ type HostControlsProps = {
   currentBots: Array<{ playerId: string; nickname: string }>;
   onRenameRoom: (name: string) => void;
   onSetVisibilitySize: (visibilitySize: 3 | 5 | 7) => void;
-  onAddBots: (input: { kind: RoomBotKind; nicknames: string[] }) => void;
+  onAddBots: (input: { kind: RoomBotKind; bots: RoomBotRequest[] }) => void;
   onRemoveBots: (playerIds?: string[]) => void;
 };
 
 const DEFAULT_BOT_COUNT = 2;
+const DEFAULT_EXPLORE_STRATEGY: RoomExploreStrategy = "frontier";
 const SCROLLABLE_PANEL_CLASS = "host-controls-scrollable";
 
 export function HostControls({
@@ -48,6 +49,9 @@ export function HostControls({
       count: resolveBotCount(DEFAULT_BOT_COUNT, availableBotSlots),
       usedNicknames: memberNicknames
     })
+  );
+  const [botStrategyDrafts, setBotStrategyDrafts] = useState<RoomExploreStrategy[]>(() =>
+    createBotStrategyDrafts([], resolveBotCount(DEFAULT_BOT_COUNT, availableBotSlots))
   );
   const memberNicknamesKey = useMemo(() => memberNicknames.join("|"), [memberNicknames]);
   const botCountOptions = useMemo(
@@ -100,6 +104,12 @@ export function HostControls({
     );
   }, [availableBotSlots, botCount, memberNicknamesKey, roomId]);
 
+  useEffect(() => {
+    setBotStrategyDrafts((previous) =>
+      createBotStrategyDrafts(previous, resolveBotCount(botCount, availableBotSlots))
+    );
+  }, [availableBotSlots, botCount, roomId]);
+
   void draftName;
   void onRenameRoom;
 
@@ -115,25 +125,44 @@ export function HostControls({
     });
   }
 
+  function handleBotStrategyChange(index: number, value: RoomExploreStrategy) {
+    setBotStrategyDrafts((previous) => {
+      const next = [...previous];
+      next[index] = value;
+      return next;
+    });
+  }
+
   function handleAddBotsClick() {
-    const nicknames = botNameDrafts
-      .map((nickname) => normalizeNickname(nickname))
-      .filter((nickname): nickname is string => Boolean(nickname));
-    if (nicknames.length === 0) {
+    const bots: RoomBotRequest[] = [];
+    for (const [index, nickname] of botNameDrafts.entries()) {
+      const normalized = normalizeNickname(nickname);
+      if (!normalized) {
+        continue;
+      }
+
+      bots.push({
+        nickname: normalized,
+        kind: botKind,
+        strategy: botKind === "explore" ? (botStrategyDrafts[index] ?? DEFAULT_EXPLORE_STRATEGY) : undefined
+      });
+    }
+    if (bots.length === 0) {
       return;
     }
 
     onAddBots({
       kind: botKind,
-      nicknames
+      bots
     });
     setBotNameDrafts(
       createBotNameDrafts({
         previous: [],
         count: botCount,
-        usedNicknames: [...memberNicknames, ...nicknames]
+        usedNicknames: [...memberNicknames, ...bots.map((bot) => bot.nickname)]
       })
     );
+    setBotStrategyDrafts(createBotStrategyDrafts([], botCount));
     setIsBotPanelOpen(false);
   }
 
@@ -314,6 +343,27 @@ export function HostControls({
                               style={inputStyle}
                             />
                           </div>
+                          {botKind === "explore" ? (
+                            <div style={botStrategyWrapStyle}>
+                              <label htmlFor={`bot-strategy-select-${index}`} style={hiddenLabelStyle}>
+                                {index + 1}번째 탐험 전략
+                              </label>
+                              <div style={miniSelectShellStyle}>
+                                <select
+                                  id={`bot-strategy-select-${index}`}
+                                  data-testid={`bot-strategy-select-${index}`}
+                                  value={botStrategyDrafts[index] ?? DEFAULT_EXPLORE_STRATEGY}
+                                  disabled={!canManageBots}
+                                  onChange={(event) => handleBotStrategyChange(index, event.target.value as RoomExploreStrategy)}
+                                  style={miniSelectStyle}
+                                >
+                                  <option value="frontier">Frontier</option>
+                                  <option value="tremaux">Tremaux</option>
+                                </select>
+                                <span aria-hidden="true" style={miniSelectChevronStyle}>⌄</span>
+                              </div>
+                            </div>
+                          ) : null}
                         </div>
                       ))}
                     </div>
@@ -418,6 +468,10 @@ function createBotNameDrafts(input: {
   }
 
   return drafts;
+}
+
+function createBotStrategyDrafts(previous: RoomExploreStrategy[], count: number) {
+  return Array.from({ length: Math.max(0, count) }, (_, index) => previous[index] ?? DEFAULT_EXPLORE_STRATEGY);
 }
 
 function createNextDefaultNickname(used: Set<string>, drafts: string[], initialIndex: number) {
@@ -620,7 +674,7 @@ const botFieldLabelStyle: CSSProperties = {
 
 const botNameRowStyle: CSSProperties = {
   display: "grid",
-  gridTemplateColumns: "auto minmax(0, 1fr)",
+  gridTemplateColumns: "auto minmax(0, 1fr) auto",
   gap: "8px",
   alignItems: "center"
 };
@@ -647,6 +701,10 @@ const botInputWrapStyle: CSSProperties = {
   background: "rgba(8, 15, 30, 0.92)",
   border: "1px solid rgba(56, 189, 248, 0.12)",
   boxShadow: "inset 0 1px 0 rgba(148, 163, 184, 0.05)"
+};
+
+const botStrategyWrapStyle: CSSProperties = {
+  minWidth: "112px"
 };
 
 const botManageSectionStyle: CSSProperties = {
@@ -734,6 +792,44 @@ const selectStyle: CSSProperties = {
   WebkitAppearance: "none",
   MozAppearance: "none",
   boxSizing: "border-box"
+};
+
+const miniSelectShellStyle: CSSProperties = {
+  position: "relative",
+  minWidth: 0
+};
+
+const miniSelectStyle: CSSProperties = {
+  width: "100%",
+  minHeight: "36px",
+  padding: "8px 30px 8px 10px",
+  borderRadius: "10px",
+  border: "1px solid rgba(15, 23, 42, 0.16)",
+  background: "linear-gradient(180deg, rgba(15, 23, 42, 0.88), rgba(30, 41, 59, 0.82))",
+  color: "#cbd5e1",
+  fontSize: "0.74rem",
+  fontWeight: 600,
+  appearance: "none",
+  WebkitAppearance: "none",
+  MozAppearance: "none",
+  boxSizing: "border-box"
+};
+
+const miniSelectChevronStyle: CSSProperties = {
+  position: "absolute",
+  right: "8px",
+  top: "50%",
+  transform: "translateY(-50%)",
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  width: "16px",
+  height: "16px",
+  borderRadius: "999px",
+  background: "rgba(56, 189, 248, 0.14)",
+  color: "#7dd3fc",
+  fontSize: "0.68rem",
+  pointerEvents: "none"
 };
 
 const inputStyle: CSSProperties = {

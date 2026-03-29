@@ -7,6 +7,7 @@ import type {
   CountdownPayload,
   ErrorPayload,
   RoomBotKind,
+  RoomBotRequest,
   RoomLeftPayload,
   RoomJoinedPayload,
   RoomListItem,
@@ -265,7 +266,7 @@ export function App() {
     });
   }
 
-  function handleAddBots(input: { kind: RoomBotKind; nicknames: string[] }) {
+  function handleAddBots(input: { kind: RoomBotKind; bots: RoomBotRequest[] }) {
     if (!snapshot) {
       return;
     }
@@ -273,7 +274,7 @@ export function App() {
     socketRef.current.emit("ADD_ROOM_BOTS", {
       roomId: snapshot.room.roomId,
       kind: input.kind,
-      nicknames: input.nicknames
+      bots: input.bots
     });
   }
 
