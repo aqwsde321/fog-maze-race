@@ -62,7 +62,12 @@ export class RoomAggregate {
       throw new Error("ROOM_NOT_JOINABLE");
     }
 
-    if (this.members.size >= this.maxPlayers) {
+    const currentRacerCount = this.listMembers().filter((member) => member.role === "racer").length;
+    const reachedCapacity =
+      this.mode === "bot_race"
+        ? input.role === "racer" && currentRacerCount >= this.maxPlayers
+        : this.members.size >= this.maxPlayers;
+    if (reachedCapacity) {
       throw new Error("ROOM_FULL");
     }
 

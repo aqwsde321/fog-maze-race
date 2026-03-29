@@ -261,4 +261,71 @@ describe("RoomAggregate", () => {
 
     expect(room.allMembersFinished()).toBe(true);
   });
+
+  it("lets bot race spectators join without consuming racer slots", () => {
+    const room = new RoomAggregate({
+      roomId: "room-1",
+      name: "Bot Race",
+      hostPlayerId: "host",
+      mode: "bot_race",
+      maxPlayers: 2
+    });
+
+    room.join({
+      playerId: "host",
+      nickname: "Host",
+      kind: "human",
+      color: "#f97316",
+      shape: "circle",
+      role: "spectator",
+      state: "waiting",
+      position: null
+    });
+    room.join({
+      playerId: "bot-1",
+      nickname: "bot1",
+      kind: "bot",
+      color: "#38bdf8",
+      shape: "square",
+      role: "racer",
+      state: "waiting",
+      position: null
+    });
+    room.join({
+      playerId: "bot-2",
+      nickname: "bot2",
+      kind: "bot",
+      color: "#22c55e",
+      shape: "diamond",
+      role: "racer",
+      state: "waiting",
+      position: null
+    });
+
+    expect(() =>
+      room.join({
+        playerId: "viewer",
+        nickname: "Viewr",
+        kind: "human",
+        color: "#f472b6",
+        shape: "triangle",
+        role: "spectator",
+        state: "waiting",
+        position: null
+      })
+    ).not.toThrow();
+
+    expect(() =>
+      room.join({
+        playerId: "bot-3",
+        nickname: "bot3",
+        kind: "bot",
+        color: "#fde047",
+        shape: "star",
+        role: "racer",
+        state: "waiting",
+        position: null
+      })
+    ).toThrowError("ROOM_FULL");
+  });
 });

@@ -234,6 +234,56 @@ describe("US5 room bots contract", () => {
     }, 2_000);
   }, 15_000);
 
+  it("allows 15 bots plus human spectators in a bot race room and spectators can chat", async () => {
+    const host = createRaceSocket();
+    const viewer = createRaceSocket();
+
+    host.connect();
+    viewer.connect();
+    host.emit("CONNECT", { nickname: "호1" });
+    viewer.emit("CONNECT", { nickname: "관전1" });
+
+    await once(host, "CONNECTED");
+    const viewerConnected = await once(viewer, "CONNECTED");
+
+    host.emit("CREATE_ROOM", { name: "Bot Only", mode: "bot_race" });
+    const joined = await once(host, "ROOM_JOINED");
+
+    host.emit("ADD_ROOM_BOTS", {
+      roomId: joined.roomId,
+      kind: "explore",
+      nicknames: Array.from({ length: 15 }, (_, index) => `b${index + 1}`)
+    });
+
+    const filled = await waitForSnapshot(
+      host,
+      (snapshot) => snapshot.members.filter((member) => member.role === "racer").length === 15,
+      4_000
+    );
+    expect(filled.members.filter((member) => member.role === "racer")).toHaveLength(15);
+
+    viewer.emit("JOIN_ROOM", { roomId: joined.roomId });
+    const viewerJoined = await once(viewer, "ROOM_JOINED");
+    expect(viewerJoined.snapshot.members.find((member) => member.playerId === viewerConnected.playerId)).toMatchObject({
+      role: "spectator",
+      kind: "human"
+    });
+
+    viewer.emit("SEND_CHAT_MESSAGE", {
+      roomId: joined.roomId,
+      content: "관전자도 채팅"
+    });
+
+    const chatted = await waitForSnapshot(
+      host,
+      (snapshot) => snapshot.chat.some((message) => message.content === "관전자도 채팅"),
+      2_000
+    );
+    expect(chatted.chat.at(-1)).toMatchObject({
+      content: "관전자도 채팅"
+    });
+  }, 15_000);
+
   function createRaceSocket() {
     const socket = createClient(`http://127.0.0.1:${port}`, {
       transports: ["websocket"],
