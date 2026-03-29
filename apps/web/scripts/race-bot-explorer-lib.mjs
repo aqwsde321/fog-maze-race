@@ -80,6 +80,9 @@ export function createExplorerMemory() {
 const MAX_RECENT_TILE_KEYS = 8;
 const RECENT_PATH_TILE_PENALTY = 700;
 const IMMEDIATE_BACKTRACK_PENALTY = 12_000;
+const FRONTIER_EDGE_VISIT_PENALTY = 600;
+const TREMAUX_EDGE_VISIT_PENALTY = 2600;
+const TREMAUX_FIRST_DIRECTION_ORDER = ["down", "left", "up", "right"];
 
 export function updateExplorerMemory({
   previous,
@@ -326,7 +329,7 @@ function decideSeededGoalMove({
     .filter((candidate) => candidate.recentPenalty === bestPenalty)
     .sort((left, right) => left.pathKey.localeCompare(right.pathKey));
   const selectedCandidate =
-    pickSeededCandidate(rankedCandidates, seed, position, map.visibilityRadius > 1) ??
+    pickSeededGoalCandidate(rankedCandidates, seed, position, map.visibilityRadius > 1) ??
     rankedCandidates[0];
 
   return selectedCandidate?.path[0] ?? null;
@@ -391,7 +394,7 @@ function decideTremauxGoalMove({
     .filter((candidate) => candidate.recentPenalty === bestPenalty)
     .sort((left, right) => left.pathKey.localeCompare(right.pathKey));
   const selectedCandidate =
-    pickSeededCandidate(rankedCandidates, seed, position, map.visibilityRadius > 1) ??
+    pickSeededGoalCandidate(rankedCandidates, seed, position, map.visibilityRadius > 1) ??
     rankedCandidates[0];
 
   return selectedCandidate?.path[0] ?? null;
@@ -519,9 +522,7 @@ function decideTremauxFrontierMove({
   }
 
   const closeCandidates = rankedCandidates.filter((candidate) => candidate.score <= bestScore + getTremauxCandidateSlack(map));
-  const selectedCandidate =
-    pickSeededCandidate(closeCandidates, seed, position, map.visibilityRadius > 1) ??
-    rankedCandidates[0];
+  const selectedCandidate = pickTremauxCandidate(closeCandidates) ?? rankedCandidates[0];
 
   return selectedCandidate?.path[0] ?? null;
 }
@@ -786,7 +787,7 @@ function calculateEdgeVisitPenalty({
     const edgeKey = toEdgeKey(toTileKey(position), toTileKey(next));
     const visits = edgeVisitCounts.get(edgeKey) ?? 0;
     if (visits > 0) {
-      penalty += visits * (strong ? 1800 : 600);
+      penalty += visits * (strong ? TREMAUX_EDGE_VISIT_PENALTY : FRONTIER_EDGE_VISIT_PENALTY);
     }
     position = next;
   }
@@ -821,7 +822,7 @@ function getSeedCandidatePoolSize(map, candidateCount) {
 }
 
 function getTremauxCandidateSlack(map) {
-  return map.visibilityRadius > 1 ? 1400 : 0;
+  return map.visibilityRadius > 1 ? 700 : 0;
 }
 
 function pickSeededCandidate(candidates, seed, position, strongDiversity = false) {
@@ -838,15 +839,58 @@ function pickSeededCandidate(candidates, seed, position, strongDiversity = false
     return candidates[mixedSeed % candidates.length];
   }
 
+  const sortedCandidates = [...candidates].sort((left, right) => left.pathKey.localeCompare(right.pathKey));
+  const mixedSeed = hashText(`${normalizeSeed(seed)}:${position.x},${position.y}:${sortedCandidates.length}`);
+  const index = (((mixedSeed >>> 2) ^ mixedSeed) >>> 0) % sortedCandidates.length;
+  return sortedCandidates[index] ?? null;
+}
+
+function pickSeededGoalCandidate(candidates, seed, position, strongDiversity = false) {
+  if (candidates.length === 0) {
+    return null;
+  }
+
+  if (candidates.length === 1) {
+    return candidates[0];
+  }
+
+  if (!strongDiversity) {
+    return pickSeededCandidate(candidates, seed, position, false);
+  }
+
+  const sortedCandidates = [...candidates].sort((left, right) => left.pathKey.localeCompare(right.pathKey));
+  const normalizedSeed = normalizeSeed(seed);
+  const mixedSeed = hashText(`${normalizedSeed}:${position.x},${position.y}:goal:${sortedCandidates.length}`);
+  const index =
+    ((((normalizedSeed >>> 2) + normalizedSeed + position.x * 3 + position.y * 5 + (mixedSeed >>> 5)) >>> 0) %
+      sortedCandidates.length);
+  return sortedCandidates[index] ?? null;
+}
+
+function pickTremauxCandidate(candidates) {
+  if (candidates.length === 0) {
+    return null;
+  }
+
   return candidates.reduce((best, candidate) => {
     if (!best) {
       return candidate;
     }
 
-    const bestRank = rankSeededCandidate(best, seed, position);
-    const candidateRank = rankSeededCandidate(candidate, seed, position);
-    if (candidateRank !== bestRank) {
-      return candidateRank < bestRank ? candidate : best;
+    const bestTurnCount = countPathTurns(best.path);
+    const candidateTurnCount = countPathTurns(candidate.path);
+    if (candidateTurnCount !== bestTurnCount) {
+      return candidateTurnCount < bestTurnCount ? candidate : best;
+    }
+
+    const bestFirstDirectionRank = rankTremauxFirstDirection(best.path[0]);
+    const candidateFirstDirectionRank = rankTremauxFirstDirection(candidate.path[0]);
+    if (candidateFirstDirectionRank !== bestFirstDirectionRank) {
+      return candidateFirstDirectionRank < bestFirstDirectionRank ? candidate : best;
+    }
+
+    if (candidate.path.length !== best.path.length) {
+      return candidate.path.length < best.path.length ? candidate : best;
     }
 
     return candidate.pathKey.localeCompare(best.pathKey) < 0 ? candidate : best;
@@ -923,8 +967,21 @@ function normalizeSeed(seed) {
   return Math.abs(Number(seed) || 0);
 }
 
-function rankSeededCandidate(candidate, seed, position) {
-  return hashText(`${normalizeSeed(seed)}:${position.x},${position.y}:${candidate.pathKey}`);
+function countPathTurns(path) {
+  let turns = 0;
+
+  for (let index = 1; index < path.length; index += 1) {
+    if (path[index] !== path[index - 1]) {
+      turns += 1;
+    }
+  }
+
+  return turns;
+}
+
+function rankTremauxFirstDirection(direction) {
+  const rank = direction ? TREMAUX_FIRST_DIRECTION_ORDER.indexOf(direction) : -1;
+  return rank >= 0 ? rank : TREMAUX_FIRST_DIRECTION_ORDER.length;
 }
 
 function hashText(text) {

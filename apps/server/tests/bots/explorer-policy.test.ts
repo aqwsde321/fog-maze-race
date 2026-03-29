@@ -156,6 +156,30 @@ describe("explorer-policy", () => {
     expect(bot1Trace).not.toEqual(bot6Trace);
   });
 
+  it("diverges frontier and tremaux traces on eta-gauntlet before the midgame", () => {
+    const map = MAP_DEFINITIONS.find((entry) => entry.mapId === "eta-gauntlet");
+    expect(map).toBeDefined();
+
+    const runtimeMap = {
+      ...map!,
+      visibilityRadius: 2
+    };
+    const frontierTrace = collectTrace({
+      map: runtimeMap,
+      seed: createExplorerSeed("bot2"),
+      strategy: "frontier",
+      steps: 20
+    });
+    const tremauxTrace = collectTrace({
+      map: runtimeMap,
+      seed: createExplorerSeed("bot2"),
+      strategy: "tremaux",
+      steps: 20
+    });
+
+    expect(frontierTrace).not.toEqual(tremauxTrace);
+  });
+
   it("splits symmetric frontier choices even when explorer seeds share the same rotation bucket", () => {
     const map = createMap({
       tiles: [
@@ -261,6 +285,53 @@ describe("explorer-policy", () => {
     });
 
     expect(decision).toEqual({
+      direction: "right",
+      reason: "frontier"
+    });
+  });
+
+  it("makes tremaux diverge from frontier when a short branch is already overused", () => {
+    const map = createMap({
+      tiles: [
+        ".#####",
+        "......",
+        "######"
+      ],
+      visibilityRadius: 2,
+      startZone: bounds(1, 1, 1, 1),
+      goalZone: bounds(5, 1, 5, 1)
+    });
+    const memory = createMemoryFromRows(
+      [
+        "?#####",
+        ".....?",
+        "######"
+      ],
+      [],
+      [],
+      [["0,1|1,1", 1]]
+    );
+
+    const frontierDecision = decideExplorerMove({
+      map,
+      memory,
+      position: { x: 1, y: 1 },
+      seed: 0,
+      strategy: "frontier"
+    });
+    const tremauxDecision = decideExplorerMove({
+      map,
+      memory,
+      position: { x: 1, y: 1 },
+      seed: 0,
+      strategy: "tremaux"
+    });
+
+    expect(frontierDecision).toEqual({
+      direction: "left",
+      reason: "frontier"
+    });
+    expect(tremauxDecision).toEqual({
       direction: "right",
       reason: "frontier"
     });
@@ -430,6 +501,7 @@ function simulateExplorer(input: {
 function collectTrace(input: {
   map: (typeof MAP_DEFINITIONS)[number];
   seed: number;
+  strategy?: "frontier" | "tremaux";
   steps: number;
 }) {
   let position = { ...input.map.startSlots[0]! };
@@ -451,7 +523,8 @@ function collectTrace(input: {
       map: input.map,
       memory,
       position,
-      seed: input.seed
+      seed: input.seed,
+      strategy: input.strategy
     });
     trace.push(decision?.direction ?? "stop");
 

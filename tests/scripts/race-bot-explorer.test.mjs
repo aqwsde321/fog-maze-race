@@ -390,6 +390,30 @@ test("shared-start explorer seeds still diverge beyond repeated rotation buckets
   assert.notDeepEqual(bot1Trace, bot6Trace);
 });
 
+test("frontier and tremaux diverge on eta-gauntlet before the midgame", () => {
+  const map = MAP_DEFINITIONS.find((entry) => entry.mapId === "eta-gauntlet");
+  assert.ok(map);
+
+  const runtimeMap = {
+    ...map,
+    visibilityRadius: 2
+  };
+  const frontierTrace = collectTrace({
+    map: runtimeMap,
+    seed: createExplorerSeed("bot2"),
+    strategy: "frontier",
+    steps: 20
+  });
+  const tremauxTrace = collectTrace({
+    map: runtimeMap,
+    seed: createExplorerSeed("bot2"),
+    strategy: "tremaux",
+    steps: 20
+  });
+
+  assert.notDeepEqual(frontierTrace, tremauxTrace);
+});
+
 test("explorer seeds split symmetric frontier choices even when they share the same rotation bucket", () => {
   const map = createMap({
     tiles: [
@@ -483,6 +507,53 @@ test("tremaux prefers the frontier reached through less-marked passages", () => 
   });
 
   assert.deepEqual(decision, {
+    direction: "right",
+    reason: "frontier"
+  });
+});
+
+test("tremaux diverges from frontier when a short branch is already overused", () => {
+  const map = createMap({
+    tiles: [
+      ".#####",
+      "......",
+      "######"
+    ],
+    visibilityRadius: 2,
+    startZone: bounds(1, 1, 1, 1),
+    goalZone: bounds(5, 1, 5, 1)
+  });
+  const memory = createMemoryFromRows(
+    [
+      "?#####",
+      ".....?",
+      "######"
+    ],
+    [],
+    [],
+    [["0,1|1,1", 1]]
+  );
+
+  const frontierDecision = decideExplorerMove({
+    map,
+    memory,
+    position: { x: 1, y: 1 },
+    seed: 0,
+    strategy: "frontier"
+  });
+  const tremauxDecision = decideExplorerMove({
+    map,
+    memory,
+    position: { x: 1, y: 1 },
+    seed: 0,
+    strategy: "tremaux"
+  });
+
+  assert.deepEqual(frontierDecision, {
+    direction: "left",
+    reason: "frontier"
+  });
+  assert.deepEqual(tremauxDecision, {
     direction: "right",
     reason: "frontier"
   });
@@ -744,6 +815,7 @@ function move(position, direction) {
 function collectTrace({
   map,
   seed,
+  strategy = "frontier",
   steps
 }) {
   let position = { ...map.startSlots[0] };
@@ -765,7 +837,8 @@ function collectTrace({
       map,
       memory,
       position,
-      seed
+      seed,
+      strategy
     });
     trace.push(decision?.direction ?? "stop");
     if (!decision) {

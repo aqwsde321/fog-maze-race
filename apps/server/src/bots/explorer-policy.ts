@@ -44,6 +44,9 @@ const DIRECTION_STEPS: ExplorerDirectionStep[] = [
 const MAX_RECENT_TILE_KEYS = 8;
 const RECENT_PATH_TILE_PENALTY = 700;
 const IMMEDIATE_BACKTRACK_PENALTY = 12_000;
+const FRONTIER_EDGE_VISIT_PENALTY = 600;
+const TREMAUX_EDGE_VISIT_PENALTY = 2_600;
+const TREMAUX_FIRST_DIRECTION_ORDER: Direction[] = ["down", "left", "up", "right"];
 
 export type ExplorerMoveDecision = {
   direction: Direction;
@@ -320,7 +323,7 @@ function decideSeededGoalMove(input: {
     .filter((candidate) => candidate.recentPenalty === bestPenalty)
     .sort((left, right) => left.pathKey.localeCompare(right.pathKey));
   const selectedCandidate =
-    pickSeededCandidate(rankedCandidates, input.seed, input.position, input.map.visibilityRadius > 1) ??
+    pickSeededGoalCandidate(rankedCandidates, input.seed, input.position, input.map.visibilityRadius > 1) ??
     rankedCandidates[0];
 
   return selectedCandidate?.path[0] ?? null;
@@ -385,7 +388,7 @@ function decideTremauxGoalMove(input: {
     .filter((candidate) => candidate.recentPenalty === bestPenalty)
     .sort((left, right) => left.pathKey.localeCompare(right.pathKey));
   const selectedCandidate =
-    pickSeededCandidate(rankedCandidates, input.seed, input.position, input.map.visibilityRadius > 1) ??
+    pickSeededGoalCandidate(rankedCandidates, input.seed, input.position, input.map.visibilityRadius > 1) ??
     rankedCandidates[0];
 
   return selectedCandidate?.path[0] ?? null;
@@ -515,9 +518,7 @@ function decideTremauxFrontierMove(input: {
   }
 
   const closeCandidates = rankedCandidates.filter((candidate) => candidate.score <= bestScore + getTremauxCandidateSlack(input.map));
-  const selectedCandidate =
-    pickSeededCandidate(closeCandidates, input.seed, input.position, input.map.visibilityRadius > 1) ??
-    rankedCandidates[0];
+  const selectedCandidate = pickTremauxCandidate(closeCandidates) ?? rankedCandidates[0];
 
   return selectedCandidate?.path[0] ?? null;
 }
@@ -780,7 +781,7 @@ function calculateEdgeVisitPenalty(input: {
     const edgeKey = toEdgeKey(toTileKey(position), toTileKey(next));
     const visits = input.edgeVisitCounts.get(edgeKey) ?? 0;
     if (visits > 0) {
-      penalty += visits * (input.strong ? 1_800 : 600);
+      penalty += visits * (input.strong ? TREMAUX_EDGE_VISIT_PENALTY : FRONTIER_EDGE_VISIT_PENALTY);
     }
     position = next;
   }
@@ -815,7 +816,7 @@ function getSeedCandidatePoolSize(map: MapView, candidateCount: number) {
 }
 
 function getTremauxCandidateSlack(map: MapView) {
-  return map.visibilityRadius > 1 ? 1_400 : 0;
+  return map.visibilityRadius > 1 ? 700 : 0;
 }
 
 function pickSeededCandidate<T extends { pathKey: string }>(
@@ -837,15 +838,63 @@ function pickSeededCandidate<T extends { pathKey: string }>(
     return candidates[mixedSeed % candidates.length]!;
   }
 
+  const sortedCandidates = [...candidates].sort((left, right) => left.pathKey.localeCompare(right.pathKey));
+  const mixedSeed = hashText(`${normalizeSeed(seed)}:${position.x},${position.y}:${sortedCandidates.length}`);
+  const index = (((mixedSeed >>> 2) ^ mixedSeed) >>> 0) % sortedCandidates.length;
+  return sortedCandidates[index] ?? null;
+}
+
+function pickSeededGoalCandidate<T extends { pathKey: string }>(
+  candidates: T[],
+  seed: number,
+  position: GridPosition,
+  strongDiversity = false
+) {
+  if (candidates.length === 0) {
+    return null;
+  }
+
+  if (candidates.length === 1) {
+    return candidates[0]!;
+  }
+
+  if (!strongDiversity) {
+    return pickSeededCandidate(candidates, seed, position, false);
+  }
+
+  const sortedCandidates = [...candidates].sort((left, right) => left.pathKey.localeCompare(right.pathKey));
+  const normalizedSeed = normalizeSeed(seed);
+  const mixedSeed = hashText(`${normalizedSeed}:${position.x},${position.y}:goal:${sortedCandidates.length}`);
+  const index =
+    ((((normalizedSeed >>> 2) + normalizedSeed + position.x * 3 + position.y * 5 + (mixedSeed >>> 5)) >>> 0) %
+      sortedCandidates.length);
+  return sortedCandidates[index] ?? null;
+}
+
+function pickTremauxCandidate<T extends { path: Direction[]; pathKey: string }>(candidates: T[]) {
+  if (candidates.length === 0) {
+    return null;
+  }
+
   return candidates.reduce<T | null>((best, candidate) => {
     if (!best) {
       return candidate;
     }
 
-    const bestRank = rankSeededCandidate(best, seed, position);
-    const candidateRank = rankSeededCandidate(candidate, seed, position);
-    if (candidateRank !== bestRank) {
-      return candidateRank < bestRank ? candidate : best;
+    const bestTurnCount = countPathTurns(best.path);
+    const candidateTurnCount = countPathTurns(candidate.path);
+    if (candidateTurnCount !== bestTurnCount) {
+      return candidateTurnCount < bestTurnCount ? candidate : best;
+    }
+
+    const bestFirstDirectionRank = rankTremauxFirstDirection(best.path[0]);
+    const candidateFirstDirectionRank = rankTremauxFirstDirection(candidate.path[0]);
+    if (candidateFirstDirectionRank !== bestFirstDirectionRank) {
+      return candidateFirstDirectionRank < bestFirstDirectionRank ? candidate : best;
+    }
+
+    if (candidate.path.length !== best.path.length) {
+      return candidate.path.length < best.path.length ? candidate : best;
     }
 
     return candidate.pathKey.localeCompare(best.pathKey) < 0 ? candidate : best;
@@ -929,8 +978,21 @@ function normalizeSeed(seed: number) {
   return Math.abs(Number(seed) || 0);
 }
 
-function rankSeededCandidate(candidate: { pathKey: string }, seed: number, position: GridPosition) {
-  return hashText(`${normalizeSeed(seed)}:${position.x},${position.y}:${candidate.pathKey}`);
+function countPathTurns(path: Direction[]) {
+  let turns = 0;
+
+  for (let index = 1; index < path.length; index += 1) {
+    if (path[index] !== path[index - 1]) {
+      turns += 1;
+    }
+  }
+
+  return turns;
+}
+
+function rankTremauxFirstDirection(direction: Direction | undefined) {
+  const rank = direction ? TREMAUX_FIRST_DIRECTION_ORDER.indexOf(direction) : -1;
+  return rank >= 0 ? rank : TREMAUX_FIRST_DIRECTION_ORDER.length;
 }
 
 function hashText(text: string) {
