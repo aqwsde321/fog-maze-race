@@ -26,6 +26,7 @@ export function createVisibilityProjection(input: {
   map: MapDefinition;
   selfPlayerId: string;
   members: VisibilityMember[];
+  revealGoalZone?: boolean;
 }): VisibilityProjection {
   const self = input.members.find((member) => member.playerId === input.selfPlayerId);
 
@@ -38,6 +39,7 @@ export function createVisibilityProjection(input: {
   }
 
   const showFullMap = self.state === "finished";
+  const revealGoalZone = input.revealGoalZone ?? true;
   const visibleTiles = new Set<string>();
   const visiblePlayerIds = new Set<string>();
 
@@ -65,7 +67,7 @@ export function createVisibilityProjection(input: {
       if (
         isInsideZone(input.map.startZone, position) ||
         isConnectorTile(input.map, position) ||
-        isInsideZone(input.map.goalZone, position) ||
+        (revealGoalZone && isInsideZone(input.map.goalZone, position)) ||
         withinVision(self.position, position, input.map.visibilityRadius)
       ) {
         visibleTiles.add(toTileKey(position));
@@ -81,7 +83,7 @@ export function createVisibilityProjection(input: {
     if (
       isInsideZone(input.map.startZone, member.position) ||
       isConnectorTile(input.map, member.position) ||
-      isInsideZone(input.map.goalZone, member.position) ||
+      (revealGoalZone && isInsideZone(input.map.goalZone, member.position)) ||
       withinVision(self.position, member.position, input.map.visibilityRadius)
     ) {
       visiblePlayerIds.add(member.playerId);

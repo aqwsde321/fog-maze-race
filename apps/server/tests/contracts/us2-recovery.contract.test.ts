@@ -62,7 +62,7 @@ describe("US2 recovery contract", () => {
       1_000
     );
     const disconnectedGuest = disconnectedSnapshot.members.find((member) => member.playerId === guestPlayerId);
-    expect(disconnectedGuest?.position).toEqual({ x: 3, y: 1 });
+    expect(disconnectedGuest?.position).toEqual({ x: 2, y: 1 });
 
     const recoveredGuest = createRaceSocket();
     const connectedPromise = once(recoveredGuest, "CONNECTED");
@@ -79,7 +79,7 @@ describe("US2 recovery contract", () => {
       (member) => member.playerId === guestPlayerId
     );
     expect(recoveredMember?.state).toBe("playing");
-    expect(recoveredMember?.position).toEqual({ x: 3, y: 1 });
+    expect(recoveredMember?.position).toEqual({ x: 2, y: 1 });
   });
 
   it("marks the player as left after the grace window and excludes them from completion logic", async () => {

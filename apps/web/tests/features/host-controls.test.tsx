@@ -246,6 +246,8 @@ describe("HostControls", () => {
 
     const removeButton = document.body.querySelector<HTMLButtonElement>('[data-testid="remove-bot-button-bot-1"]');
     expect(removeButton).not.toBeNull();
+    expect(document.body.querySelector<HTMLElement>('[data-testid="current-bot-list"]')?.style.overflowY).toBe("auto");
+    expect(document.body.querySelector<HTMLElement>('[data-testid="current-bot-list"]')?.style.maxHeight).toBe("220px");
 
     await act(async () => {
       removeButton?.click();

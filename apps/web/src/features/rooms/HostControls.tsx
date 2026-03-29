@@ -21,6 +21,7 @@ type HostControlsProps = {
 };
 
 const DEFAULT_BOT_COUNT = 2;
+const SCROLLABLE_PANEL_CLASS = "host-controls-scrollable";
 
 export function HostControls({
   roomId,
@@ -146,6 +147,34 @@ export function HostControls({
 
   return (
     <div style={panelStyle}>
+      <style>
+        {`
+          .${SCROLLABLE_PANEL_CLASS} {
+            scrollbar-width: thin;
+            scrollbar-color: rgba(56, 189, 248, 0.55) rgba(15, 23, 42, 0.28);
+          }
+
+          .${SCROLLABLE_PANEL_CLASS}::-webkit-scrollbar {
+            width: 10px;
+          }
+
+          .${SCROLLABLE_PANEL_CLASS}::-webkit-scrollbar-track {
+            background: rgba(15, 23, 42, 0.22);
+            border-radius: 999px;
+          }
+
+          .${SCROLLABLE_PANEL_CLASS}::-webkit-scrollbar-thumb {
+            background: linear-gradient(180deg, rgba(56, 189, 248, 0.8), rgba(14, 165, 233, 0.52));
+            border: 2px solid rgba(8, 15, 30, 0.92);
+            border-radius: 999px;
+          }
+
+          .${SCROLLABLE_PANEL_CLASS}::-webkit-scrollbar-thumb:hover {
+            background: linear-gradient(180deg, rgba(125, 211, 252, 0.88), rgba(56, 189, 248, 0.62));
+          }
+        `}
+      </style>
+
       <div style={cardStyle}>
         <div data-testid="visibility-control-row" style={visibilityControlRowStyle}>
           <label htmlFor="visibility-size" style={visibilityLabelStyle}>
@@ -262,7 +291,7 @@ export function HostControls({
                         <span style={botSectionMetaStyle}>기본 이름을 수정해서 바로 추가할 수 있습니다.</span>
                       </div>
 
-                      <div data-testid="bot-name-list" style={botInputsStyle}>
+                      <div className={SCROLLABLE_PANEL_CLASS} data-testid="bot-name-list" style={botInputsStyle}>
                       {botNameDrafts.map((draft, index) => (
                         <div
                           key={`${roomId}-${index}`}
@@ -329,7 +358,7 @@ export function HostControls({
                     </button>
                   </div>
                   {currentBots.length > 0 ? (
-                    <div style={botListStyle}>
+                    <div className={SCROLLABLE_PANEL_CLASS} data-testid="current-bot-list" style={botListStyle}>
                       {currentBots.map((bot) => (
                         <div key={bot.playerId} style={botListItemStyle}>
                           <span style={botListNameStyle}>{bot.nickname}</span>
@@ -641,7 +670,10 @@ const botManageTitleStyle: CSSProperties = {
 
 const botListStyle: CSSProperties = {
   display: "grid",
-  gap: "8px"
+  gap: "8px",
+  maxHeight: "220px",
+  overflowY: "auto",
+  paddingRight: "4px"
 };
 
 const botListItemStyle: CSSProperties = {

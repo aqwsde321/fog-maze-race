@@ -85,7 +85,7 @@ describe("US1 race flow contract", () => {
     const guestJoined = await once(guest, "ROOM_JOINED");
     expect(guestJoined.snapshot.members).toHaveLength(2);
     expect(guestJoined.snapshot.previewMap?.mapId).toBe(hostJoined.snapshot.previewMap?.mapId);
-    expect(guestJoined.snapshot.members[1]?.position).toEqual({ x: 1, y: 1 });
+    expect(guestJoined.snapshot.members[1]?.position).toEqual({ x: 0, y: 1 });
 
     host.emit("MOVE", { roomId: hostJoined.roomId, direction: "right", inputSeq: 1 });
     await waitFor(
@@ -112,7 +112,7 @@ describe("US1 race flow contract", () => {
         const hostMember = snapshot.snapshot.members.find((member) => member.playerId === hostConnected.playerId);
         return (
           snapshot.snapshot.room.status === "countdown" &&
-          hostMember?.position?.x === 2 &&
+          hostMember?.position?.x === 1 &&
           hostMember.position.y === 1
         );
       },

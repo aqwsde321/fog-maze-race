@@ -262,6 +262,68 @@ describe("RoomAggregate", () => {
     expect(room.allMembersFinished()).toBe(true);
   });
 
+  it("seeds every racer onto the same first start slot when a round is prepared", () => {
+    const room = new RoomAggregate({
+      roomId: "room-1",
+      name: "Alpha",
+      hostPlayerId: "host"
+    });
+
+    room.join({
+      playerId: "host",
+      nickname: "Host",
+      kind: "human",
+      color: "#f97316",
+      shape: "circle",
+      role: "racer",
+      state: "waiting",
+      position: { x: 2, y: 1 }
+    });
+    room.join({
+      playerId: "guest",
+      nickname: "Guest",
+      kind: "human",
+      color: "#38bdf8",
+      shape: "square",
+      role: "racer",
+      state: "waiting",
+      position: { x: 1, y: 1 }
+    });
+    room.join({
+      playerId: "viewer",
+      nickname: "Viewer",
+      kind: "human",
+      color: "#22c55e",
+      shape: "diamond",
+      role: "spectator",
+      state: "waiting",
+      position: null
+    });
+
+    room.seedMatchPositions([
+      { x: 0, y: 1 },
+      { x: 1, y: 1 }
+    ]);
+
+    expect(room.listMembers()).toEqual([
+      expect.objectContaining({
+        playerId: "host",
+        role: "racer",
+        position: { x: 0, y: 1 }
+      }),
+      expect.objectContaining({
+        playerId: "guest",
+        role: "racer",
+        position: { x: 0, y: 1 }
+      }),
+      expect.objectContaining({
+        playerId: "viewer",
+        role: "spectator",
+        position: null
+      })
+    ]);
+  });
+
   it("lets bot race spectators join without consuming racer slots", () => {
     const room = new RoomAggregate({
       roomId: "room-1",

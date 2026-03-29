@@ -160,12 +160,11 @@ export class RoomAggregate {
 
   seedMatchPositions(startSlots: GridPosition[]) {
     const members = this.listMembers();
-    let racerIndex = 0;
+    const sharedStartSlot = startSlots[0] ?? null;
 
     members.forEach((member) => {
       if (member.role === "racer") {
-        member.position = member.position ?? startSlots[racerIndex] ?? startSlots[startSlots.length - 1] ?? null;
-        racerIndex += 1;
+        member.position = sharedStartSlot;
       } else {
         member.position = null;
       }

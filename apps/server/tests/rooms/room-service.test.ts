@@ -68,6 +68,34 @@ describe("RoomService", () => {
     expect(new Set(colors).size).toBe(15);
   });
 
+  it("assigns the same preview start position to every racer while waiting", () => {
+    const service = new RoomService(new RevisionSync(), new MapRegistry(), {
+      forcedPreviewMapId: getMapById("training-lap")!.mapId
+    });
+    const created = service.createRoom({
+      session: new PlayerSession({
+        playerId: "host",
+        nickname: "호스트"
+      }),
+      name: "Alpha"
+    });
+
+    service.joinRoom({
+      roomId: created.roomId,
+      session: new PlayerSession({
+        playerId: "guest",
+        nickname: "게스트"
+      })
+    });
+
+    const snapshot = service.getSnapshot(created.roomId);
+    const sharedStartPosition = snapshot.previewMap?.startSlots[0];
+
+    expect(sharedStartPosition).toEqual({ x: 0, y: 1 });
+    expect(snapshot.members[0]?.position).toEqual(sharedStartPosition);
+    expect(snapshot.members[1]?.position).toEqual(sharedStartPosition);
+  });
+
   it("reuses only colors that are no longer occupied when a player leaves and rejoins", () => {
     const service = new RoomService(new RevisionSync(), new MapRegistry(), {
       random: () => 0

@@ -7,6 +7,8 @@ import {
   getPlayerMarkerStyle
 } from "../../game/player-marker.js";
 
+const SCROLLABLE_LIST_CLASS = "player-sidebar-scrollable";
+
 type PlayerSidebarProps = {
   snapshot: RoomSnapshot;
   selfPlayerId: string | null;
@@ -24,6 +26,34 @@ export function PlayerSidebar({ snapshot, selfPlayerId }: PlayerSidebarProps) {
 
   return (
     <aside style={sidebarStyle}>
+      <style>
+        {`
+          .${SCROLLABLE_LIST_CLASS} {
+            scrollbar-width: thin;
+            scrollbar-color: rgba(56, 189, 248, 0.55) rgba(15, 23, 42, 0.28);
+          }
+
+          .${SCROLLABLE_LIST_CLASS}::-webkit-scrollbar {
+            width: 10px;
+          }
+
+          .${SCROLLABLE_LIST_CLASS}::-webkit-scrollbar-track {
+            background: rgba(15, 23, 42, 0.22);
+            border-radius: 999px;
+          }
+
+          .${SCROLLABLE_LIST_CLASS}::-webkit-scrollbar-thumb {
+            background: linear-gradient(180deg, rgba(56, 189, 248, 0.8), rgba(14, 165, 233, 0.52));
+            border: 2px solid rgba(8, 15, 30, 0.92);
+            border-radius: 999px;
+          }
+
+          .${SCROLLABLE_LIST_CLASS}::-webkit-scrollbar-thumb:hover {
+            background: linear-gradient(180deg, rgba(125, 211, 252, 0.88), rgba(56, 189, 248, 0.62));
+          }
+        `}
+      </style>
+
       <div style={headerStyle}>
         <div style={titleGroupStyle}>
           <h3 style={titleStyle}>{title}</h3>
@@ -35,7 +65,7 @@ export function PlayerSidebar({ snapshot, selfPlayerId }: PlayerSidebarProps) {
         </div>
         <span style={countStyle}>{visibleMembers.length}</span>
       </div>
-      <div data-testid="player-sidebar-list" style={listStyle}>
+      <div className={SCROLLABLE_LIST_CLASS} data-testid="player-sidebar-list" style={listStyle}>
         {visibleMembers.map((member) => (
           <article key={member.playerId} style={memberCardStyle}>
             <div style={identityStyle}>

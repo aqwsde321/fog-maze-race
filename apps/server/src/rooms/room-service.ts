@@ -90,7 +90,7 @@ export class RoomService {
       shape: shapeDeck[0] ?? nextShape(0),
       role: creatorRole,
       state: "waiting",
-      position: creatorRole === "racer" ? previewMap?.startSlots[0] ?? null : null
+      position: creatorRole === "racer" ? getSharedStartPosition(previewMap) : null
     });
 
     this.rooms.set(roomId, {
@@ -118,7 +118,6 @@ export class RoomService {
     const nextAssignedShape =
       runtime.shapeDeck[runtime.shapeCursor] ?? nextShape(runtime.shapeCursor);
     const role = resolveJoinRole(runtime.room.mode, input.role);
-    const racerIndex = runtime.room.listMembers().filter((member) => member.role === "racer").length;
 
     runtime.room.join({
       playerId: input.session.playerId,
@@ -128,7 +127,7 @@ export class RoomService {
       shape: nextAssignedShape,
       role,
       state: "waiting",
-      position: role === "racer" ? previewMap?.startSlots[racerIndex] ?? previewMap?.startSlots.at(-1) ?? null : null
+      position: role === "racer" ? getSharedStartPosition(previewMap) : null
     });
     runtime.shapeCursor += 1;
 
@@ -384,6 +383,10 @@ function toIso(timestamp: number | null) {
 
 function normalizeRoomName(name: string) {
   return name.trim().slice(0, 24) || "새 방";
+}
+
+function getSharedStartPosition(map: MapDefinition | null | undefined) {
+  return map?.startSlots[0] ?? null;
 }
 
 function nextShape(index: number): PlayerMarkerShape {

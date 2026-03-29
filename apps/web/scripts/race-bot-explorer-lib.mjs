@@ -120,7 +120,8 @@ export function updateExplorerMemory({
       playerId: member.playerId,
       position: member.position,
       state: member.state
-    }))
+    })),
+    revealGoalZone: false
   });
 
   for (const tileKey of projection.visibleTileKeys) {
@@ -172,16 +173,17 @@ export function decideExplorerMove({
     };
   }
 
-  const goalPath = findPath({
+  const goalMove = decideSeededGoalMove({
     map,
     knownTiles: memory.knownTiles,
-    start: position,
-    isTarget: (candidate) => isKnownGoalTile(map, memory.knownTiles, candidate.x, candidate.y),
+    recentTileKeys: memory.recentTileKeys,
+    position,
+    seed,
     directionSteps
   });
-  if (goalPath && goalPath.length > 0) {
+  if (goalMove) {
     return {
-      direction: goalPath[0],
+      direction: goalMove,
       reason: "goal"
     };
   }
@@ -261,11 +263,7 @@ export function decideExplorerMove({
       ? candidates.filter((candidate) => !candidate.isEntryApproach)
       : candidates;
   const bestCandidate = preferredCandidates.reduce((best, candidate) => {
-    if (
-      !best ||
-      candidate.score < best.score ||
-      (candidate.score === best.score && candidate.pathKey < best.pathKey)
-    ) {
+    if (!best || candidate.score < best.score) {
       return candidate;
     }
 
@@ -276,8 +274,23 @@ export function decideExplorerMove({
     return null;
   }
 
+  const candidateSlack = getSeedCandidateSlack(map);
+  const closeCandidates = preferredCandidates
+    .filter((candidate) => candidate.score <= bestCandidate.score + candidateSlack)
+    .sort((left, right) => {
+      if (left.score !== right.score) {
+        return left.score - right.score;
+      }
+
+      return left.pathKey.localeCompare(right.pathKey);
+    });
+  const diversityPool = closeCandidates.slice(0, getSeedCandidatePoolSize(map, closeCandidates.length));
+  const selectedCandidate =
+    pickSeededCandidate(diversityPool, seed, position, map.visibilityRadius > 1) ??
+    bestCandidate;
+
   return {
-    direction: bestCandidate.path[0],
+    direction: selectedCandidate.path[0],
     reason: "frontier"
   };
 }
@@ -306,6 +319,65 @@ export function rememberBlockedMove({
     ...memory,
     knownTiles: new Map(memory.knownTiles).set(tileKey, "#")
   };
+}
+
+function decideSeededGoalMove({
+  map,
+  knownTiles,
+  recentTileKeys,
+  position,
+  seed,
+  directionSteps
+}) {
+  const candidates = [];
+
+  for (const step of directionSteps) {
+    const next = {
+      x: position.x + step.x,
+      y: position.y + step.y
+    };
+    if (!isInsideMap(map, next) || !isKnownWalkable(knownTiles, next)) {
+      continue;
+    }
+
+    const pathTail = findPath({
+      map,
+      knownTiles,
+      start: next,
+      isTarget: (candidate) => isKnownGoalTile(map, knownTiles, candidate.x, candidate.y),
+      directionSteps
+    });
+    if (!pathTail) {
+      continue;
+    }
+
+    const path = [step.direction, ...pathTail];
+    candidates.push({
+      path,
+      pathKey: path.join(","),
+      recentPenalty: calculateRecentPathPenalty({
+        start: position,
+        path,
+        recentTileKeys
+      })
+    });
+  }
+
+  if (candidates.length === 0) {
+    return null;
+  }
+
+  const shortestLength = Math.min(...candidates.map((candidate) => candidate.path.length));
+  const shortestCandidates = candidates.filter((candidate) => candidate.path.length === shortestLength);
+  const bestPenalty = Math.min(...shortestCandidates.map((candidate) => candidate.recentPenalty));
+  const rankedCandidates = shortestCandidates
+    .filter((candidate) => candidate.recentPenalty === bestPenalty)
+    .sort((left, right) => left.pathKey.localeCompare(right.pathKey));
+  const selectedCandidate =
+    pickSeededCandidate(rankedCandidates, seed, position, map.visibilityRadius > 1) ??
+    rankedCandidates[0];
+
+  return selectedCandidate?.path[0] ?? null;
 }
 
 function findPath({
@@ -505,16 +577,54 @@ function calculateFrontierBias({
   candidate,
   seed
 }) {
+  if (!isEntryApproachPosition(map, candidate)) {
+    return 0;
+  }
+
   const normalizedSeed = normalizeSeed(seed);
   const preferredEntryRow = normalizedSeed % Math.min(5, map.height);
-  const preferredGlobalRow = normalizedSeed % Math.max(1, map.height);
-  const preferredGlobalColumn = Math.floor(normalizedSeed / Math.max(1, map.height)) % Math.max(1, map.width);
+  return Math.abs(candidate.y - preferredEntryRow) * 5;
+}
 
-  return (
-    Math.abs(candidate.y - preferredEntryRow) * 5 +
-    Math.abs(candidate.y - preferredGlobalRow) +
-    Math.abs(candidate.x - preferredGlobalColumn)
-  );
+function getSeedCandidateSlack(map) {
+  return map.visibilityRadius > 1 ? 1_050 : 0;
+}
+
+function getSeedCandidatePoolSize(map, candidateCount) {
+  if (candidateCount <= 1) {
+    return candidateCount;
+  }
+
+  return map.visibilityRadius > 1 ? Math.min(3, candidateCount) : Math.min(2, candidateCount);
+}
+
+function pickSeededCandidate(candidates, seed, position, strongDiversity = false) {
+  if (candidates.length === 0) {
+    return null;
+  }
+
+  if (candidates.length === 1) {
+    return candidates[0];
+  }
+
+  if (!strongDiversity) {
+    const mixedSeed = mixSeedLegacy(seed, position);
+    return candidates[mixedSeed % candidates.length];
+  }
+
+  return candidates.reduce((best, candidate) => {
+    if (!best) {
+      return candidate;
+    }
+
+    const bestRank = rankSeededCandidate(best, seed, position);
+    const candidateRank = rankSeededCandidate(candidate, seed, position);
+    if (candidateRank !== bestRank) {
+      return candidateRank < bestRank ? candidate : best;
+    }
+
+    return candidate.pathKey.localeCompare(best.pathKey) < 0 ? candidate : best;
+  }, null);
 }
 
 function isEntryApproachPosition(map, position) {
@@ -581,4 +691,27 @@ function isInsideMap(map, position) {
 
 function normalizeSeed(seed) {
   return Math.abs(Number(seed) || 0);
+}
+
+function rankSeededCandidate(candidate, seed, position) {
+  return hashText(`${normalizeSeed(seed)}:${position.x},${position.y}:${candidate.pathKey}`);
+}
+
+function hashText(text) {
+  let hash = 2166136261;
+  for (const character of text) {
+    hash ^= character.charCodeAt(0);
+    hash = Math.imul(hash, 16777619) >>> 0;
+  }
+
+  return hash >>> 0;
+}
+
+function mixSeedLegacy(seed, position) {
+  const normalizedSeed = normalizeSeed(seed);
+  return (
+    normalizedSeed * 2654435761 +
+    (position.x + 1) * 97 +
+    (position.y + 1) * 193
+  ) >>> 0;
 }

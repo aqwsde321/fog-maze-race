@@ -60,6 +60,38 @@ test("updateExplorerMemory keeps only visible tiles from the current snapshot an
   assert.equal(secondMemory.visitCounts.get("2,1"), 1);
 });
 
+test("updateExplorerMemory does not reveal the goal zone before it enters vision", () => {
+  const map = createMap({
+    tiles: ["....G"],
+    visibilityRadius: 1,
+    startZone: bounds(0, 0, 0, 0),
+    goalZone: bounds(4, 0, 4, 0)
+  });
+
+  const hiddenGoalMemory = updateExplorerMemory({
+    previous: createExplorerMemory(),
+    snapshot: createSnapshot({
+      selfPosition: { x: 0, y: 0 },
+      map
+    }),
+    selfPlayerId: "self"
+  });
+
+  assert.equal(hiddenGoalMemory.knownTiles.has("4,0"), false);
+
+  const revealedGoalMemory = updateExplorerMemory({
+    previous: hiddenGoalMemory,
+    snapshot: createSnapshot({
+      selfPosition: { x: 3, y: 0 },
+      revision: 2,
+      map
+    }),
+    selfPlayerId: "self"
+  });
+
+  assert.equal(revealedGoalMemory.knownTiles.get("4,0"), "G");
+});
+
 test("decideExplorerMove heads to a known goal path when one is available", () => {
   const map = createMap({
     tiles: [
@@ -334,6 +366,100 @@ test("different explorer seeds diverge on the real alpha-run opening", () => {
   assert.notDeepEqual(bot1Trace, bot3Trace);
 });
 
+test("shared-start explorer seeds still diverge beyond repeated rotation buckets", () => {
+  const map = MAP_DEFINITIONS.find((entry) => entry.mapId === "alpha-run");
+  assert.ok(map);
+
+  const bot1Trace = collectTrace({
+    map: {
+      ...map,
+      visibilityRadius: 2
+    },
+    seed: createExplorerSeed("bot1"),
+    steps: 12
+  });
+  const bot6Trace = collectTrace({
+    map: {
+      ...map,
+      visibilityRadius: 2
+    },
+    seed: createExplorerSeed("bot6"),
+    steps: 12
+  });
+
+  assert.notDeepEqual(bot1Trace, bot6Trace);
+});
+
+test("explorer seeds split symmetric frontier choices even when they share the same rotation bucket", () => {
+  const map = createMap({
+    tiles: [
+      "..",
+      ".#",
+      ".."
+    ],
+    visibilityRadius: 2,
+    startZone: bounds(0, 0, 0, 2),
+    goalZone: bounds(1, 0, 1, 2)
+  });
+  const memory = createMemoryFromRows([
+    ".?",
+    ".#",
+    ".?"
+  ]);
+
+  const bot1Decision = decideExplorerMove({
+    map,
+    memory,
+    position: { x: 0, y: 1 },
+    seed: createExplorerSeed("bot1")
+  });
+  const bot5Decision = decideExplorerMove({
+    map,
+    memory,
+    position: { x: 0, y: 1 },
+    seed: createExplorerSeed("bot5")
+  });
+
+  assert.equal(bot1Decision?.reason, "frontier");
+  assert.equal(bot5Decision?.reason, "frontier");
+  assert.notEqual(bot1Decision?.direction, bot5Decision?.direction);
+});
+
+test("explorer seeds split equal-length goal paths even when they share the same rotation bucket", () => {
+  const map = createMap({
+    tiles: [
+      "...",
+      ".#G",
+      "..."
+    ],
+    visibilityRadius: 2,
+    startZone: bounds(0, 1, 0, 1),
+    goalZone: bounds(2, 1, 2, 1)
+  });
+  const memory = createMemoryFromRows([
+    "...",
+    ".#G",
+    "..."
+  ]);
+
+  const bot1Decision = decideExplorerMove({
+    map,
+    memory,
+    position: { x: 0, y: 1 },
+    seed: createExplorerSeed("bot1")
+  });
+  const bot5Decision = decideExplorerMove({
+    map,
+    memory,
+    position: { x: 0, y: 1 },
+    seed: createExplorerSeed("bot5")
+  });
+
+  assert.equal(bot1Decision?.reason, "goal");
+  assert.equal(bot5Decision?.reason, "goal");
+  assert.notEqual(bot1Decision?.direction, bot5Decision?.direction);
+});
+
 test("explorer bot reaches the goal on every shipped map", () => {
   const failures = [];
 
@@ -348,6 +474,29 @@ test("explorer bot reaches the goal on every shipped map", () => {
   }
 
   assert.deepEqual(failures, []);
+});
+
+test("explorer bot clears the eta-gauntlet 3x3 regression for the problematic seed group", () => {
+  const map = MAP_DEFINITIONS.find((entry) => entry.mapId === "eta-gauntlet");
+  assert.ok(map);
+
+  const regressions = [
+    { slotIndex: 2, nickname: "bot5" },
+    { slotIndex: 2, nickname: "bot10" },
+    { slotIndex: 5, nickname: "bot5" },
+    { slotIndex: 5, nickname: "bot10" }
+  ];
+
+  for (const regression of regressions) {
+    const result = simulateExplorer(map, 1_200, {
+      slotIndex: regression.slotIndex,
+      seed: createExplorerSeed(regression.nickname),
+      visibilityRadius: 1
+    });
+
+    assert.equal(result.ok, true, `${regression.nickname} slot ${regression.slotIndex}`);
+    assert.ok(result.steps < 1_200, `${regression.nickname} slot ${regression.slotIndex}`);
+  }
 });
 
 function createMemoryFromRows(rows, visitEntries = [], recentTileKeys = []) {
@@ -445,8 +594,14 @@ function bounds(minX, minY, maxX, maxY) {
   };
 }
 
-function simulateExplorer(map, stepLimit = 8_000) {
-  let position = { ...map.startSlots[0] };
+function simulateExplorer(map, stepLimit = 8_000, options = {}) {
+  map = {
+    ...map,
+    visibilityRadius: options.visibilityRadius ?? map.visibilityRadius
+  };
+  const slotIndex = options.slotIndex ?? 0;
+  const seed = options.seed ?? 0;
+  let position = { ...map.startSlots[slotIndex] };
   let memory = createExplorerMemory();
 
   for (let steps = 0; steps < stepLimit; steps += 1) {
@@ -470,7 +625,8 @@ function simulateExplorer(map, stepLimit = 8_000) {
     const decision = decideExplorerMove({
       map,
       memory,
-      position
+      position,
+      seed
     });
     if (!decision) {
       return {

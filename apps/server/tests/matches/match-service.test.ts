@@ -47,13 +47,13 @@ describe("MatchService start-zone movement", () => {
 
     matchService.startGame(created.roomId, "host", createSink());
     expect(roomService.getSnapshot(created.roomId).room.status).toBe("countdown");
-    expect(roomService.getSnapshot(created.roomId).members[0]?.position).toEqual({ x: 2, y: 1 });
+    expect(roomService.getSnapshot(created.roomId).members[0]?.position).toEqual({ x: 0, y: 1 });
 
     matchService.move(created.roomId, "host", { direction: "left", inputSeq: 4 }, createSink());
-    expect(roomService.getSnapshot(created.roomId).members[0]?.position).toEqual({ x: 1, y: 1 });
+    expect(roomService.getSnapshot(created.roomId).members[0]?.position).toEqual({ x: 0, y: 1 });
 
     matchService.move(created.roomId, "host", { direction: "right", inputSeq: 5 }, createSink());
-    expect(roomService.getSnapshot(created.roomId).members[0]?.position).toEqual({ x: 2, y: 1 });
+    expect(roomService.getSnapshot(created.roomId).members[0]?.position).toEqual({ x: 1, y: 1 });
 
     matchService.move(created.roomId, "host", { direction: "right", inputSeq: 6 }, createSink());
     expect(roomService.getSnapshot(created.roomId).members[0]?.position).toEqual({ x: 2, y: 1 });

@@ -27,6 +27,12 @@ type FrontierCandidate = {
   score: number;
 };
 
+type GoalCandidate = {
+  path: Direction[];
+  pathKey: string;
+  recentPenalty: number;
+};
+
 const DIRECTION_STEPS: ExplorerDirectionStep[] = [
   { direction: "right", x: 1, y: 0 },
   { direction: "left", x: -1, y: 0 },
@@ -104,7 +110,8 @@ export function updateExplorerMemory(input: {
       playerId: member.playerId,
       position: member.position,
       state: member.state
-    }))
+    })),
+    revealGoalZone: false
   });
 
   for (const tileKey of projection.visibleTileKeys) {
@@ -157,16 +164,17 @@ export function decideExplorerMove(input: {
     };
   }
 
-  const goalPath = findPath({
+  const goalMove = decideSeededGoalMove({
     map: input.map,
     knownTiles: input.memory.knownTiles,
-    start: input.position,
-    isTarget: (candidate) => isKnownGoalTile(input.map, input.memory.knownTiles, candidate.x, candidate.y),
+    recentTileKeys: input.memory.recentTileKeys,
+    position: input.position,
+    seed: input.seed ?? 0,
     directionSteps
   });
-  if (goalPath && goalPath.length > 0) {
+  if (goalMove) {
     return {
-      direction: goalPath[0],
+      direction: goalMove,
       reason: "goal"
     };
   }
@@ -246,11 +254,7 @@ export function decideExplorerMove(input: {
       ? candidates.filter((candidate) => !candidate.isEntryApproach)
       : candidates;
   const bestCandidate = preferredCandidates.reduce<FrontierCandidate | null>((best, candidate) => {
-    if (
-      !best ||
-      candidate.score < best.score ||
-      (candidate.score === best.score && candidate.pathKey < best.pathKey)
-    ) {
+    if (!best || candidate.score < best.score) {
       return candidate;
     }
 
@@ -261,8 +265,23 @@ export function decideExplorerMove(input: {
     return null;
   }
 
+  const candidateSlack = getSeedCandidateSlack(input.map);
+  const closeCandidates = preferredCandidates
+    .filter((candidate) => candidate.score <= bestCandidate.score + candidateSlack)
+    .sort((left, right) => {
+      if (left.score !== right.score) {
+        return left.score - right.score;
+      }
+
+      return left.pathKey.localeCompare(right.pathKey);
+    });
+  const diversityPool = closeCandidates.slice(0, getSeedCandidatePoolSize(input.map, closeCandidates.length));
+  const selectedCandidate =
+    pickSeededCandidate(diversityPool, input.seed ?? 0, input.position, input.map.visibilityRadius > 1) ??
+    bestCandidate;
+
   return {
-    direction: bestCandidate.path[0]!,
+    direction: selectedCandidate.path[0]!,
     reason: "frontier"
   };
 }
@@ -291,6 +310,65 @@ export function rememberBlockedMove(input: {
     ...input.memory,
     knownTiles: new Map(input.memory.knownTiles).set(tileKey, "#")
   };
+}
+
+function decideSeededGoalMove(input: {
+  map: MapView;
+  knownTiles: Map<string, string>;
+  recentTileKeys: string[];
+  position: GridPosition;
+  seed: number;
+  directionSteps: ExplorerDirectionStep[];
+}) {
+  const candidates: GoalCandidate[] = [];
+
+  for (const step of input.directionSteps) {
+    const next = {
+      x: input.position.x + step.x,
+      y: input.position.y + step.y
+    };
+    if (!isInsideMap(input.map, next) || !isKnownWalkable(input.knownTiles, next)) {
+      continue;
+    }
+
+    const pathTail = findPath({
+      map: input.map,
+      knownTiles: input.knownTiles,
+      start: next,
+      isTarget: (candidate) => isKnownGoalTile(input.map, input.knownTiles, candidate.x, candidate.y),
+      directionSteps: input.directionSteps
+    });
+    if (!pathTail) {
+      continue;
+    }
+
+    const path = [step.direction, ...pathTail];
+    candidates.push({
+      path,
+      pathKey: path.join(","),
+      recentPenalty: calculateRecentPathPenalty({
+        start: input.position,
+        path,
+        recentTileKeys: input.recentTileKeys
+      })
+    });
+  }
+
+  if (candidates.length === 0) {
+    return null;
+  }
+
+  const shortestLength = Math.min(...candidates.map((candidate) => candidate.path.length));
+  const shortestCandidates = candidates.filter((candidate) => candidate.path.length === shortestLength);
+  const bestPenalty = Math.min(...shortestCandidates.map((candidate) => candidate.recentPenalty));
+  const rankedCandidates = shortestCandidates
+    .filter((candidate) => candidate.recentPenalty === bestPenalty)
+    .sort((left, right) => left.pathKey.localeCompare(right.pathKey));
+  const selectedCandidate =
+    pickSeededCandidate(rankedCandidates, input.seed, input.position, input.map.visibilityRadius > 1) ??
+    rankedCandidates[0];
+
+  return selectedCandidate?.path[0] ?? null;
 }
 
 function findPath(input: {
@@ -487,16 +565,59 @@ function calculateFrontierBias(input: {
   candidate: GridPosition;
   seed: number;
 }) {
+  if (!isEntryApproachPosition(input.map, input.candidate)) {
+    return 0;
+  }
+
   const normalizedSeed = normalizeSeed(input.seed);
   const preferredEntryRow = normalizedSeed % Math.min(5, input.map.height);
-  const preferredGlobalRow = normalizedSeed % Math.max(1, input.map.height);
-  const preferredGlobalColumn = Math.floor(normalizedSeed / Math.max(1, input.map.height)) % Math.max(1, input.map.width);
+  return Math.abs(input.candidate.y - preferredEntryRow) * 5;
+}
 
-  return (
-    Math.abs(input.candidate.y - preferredEntryRow) * 5 +
-    Math.abs(input.candidate.y - preferredGlobalRow) +
-    Math.abs(input.candidate.x - preferredGlobalColumn)
-  );
+function getSeedCandidateSlack(map: MapView) {
+  return map.visibilityRadius > 1 ? 1_050 : 0;
+}
+
+function getSeedCandidatePoolSize(map: MapView, candidateCount: number) {
+  if (candidateCount <= 1) {
+    return candidateCount;
+  }
+
+  return map.visibilityRadius > 1 ? Math.min(3, candidateCount) : Math.min(2, candidateCount);
+}
+
+function pickSeededCandidate<T extends { pathKey: string }>(
+  candidates: T[],
+  seed: number,
+  position: GridPosition,
+  strongDiversity = false
+) {
+  if (candidates.length === 0) {
+    return null;
+  }
+
+  if (candidates.length === 1) {
+    return candidates[0]!;
+  }
+
+  if (!strongDiversity) {
+    const mixedSeed = mixSeedLegacy(seed, position);
+    return candidates[mixedSeed % candidates.length]!;
+  }
+
+  return candidates.reduce<T | null>((best, candidate) => {
+    if (!best) {
+      return candidate;
+    }
+
+    const bestRank = rankSeededCandidate(best, seed, position);
+    const candidateRank = rankSeededCandidate(candidate, seed, position);
+    if (candidateRank !== bestRank) {
+      return candidateRank < bestRank ? candidate : best;
+    }
+
+    return candidate.pathKey.localeCompare(best.pathKey) < 0 ? candidate : best;
+  }, null);
 }
 
 function isEntryApproachPosition(map: MapView, position: GridPosition) {
@@ -570,4 +691,27 @@ function isInsideMap(map: MapView, position: GridPosition) {
 
 function normalizeSeed(seed: number) {
   return Math.abs(Number(seed) || 0);
+}
+
+function rankSeededCandidate(candidate: { pathKey: string }, seed: number, position: GridPosition) {
+  return hashText(`${normalizeSeed(seed)}:${position.x},${position.y}:${candidate.pathKey}`);
+}
+
+function hashText(text: string) {
+  let hash = 2_166_136_261;
+  for (const character of text) {
+    hash ^= character.charCodeAt(0);
+    hash = Math.imul(hash, 16_777_619) >>> 0;
+  }
+
+  return hash >>> 0;
+}
+
+function mixSeedLegacy(seed: number, position: GridPosition) {
+  const normalizedSeed = normalizeSeed(seed);
+  return (
+    normalizedSeed * 2_654_435_761 +
+    (position.x + 1) * 97 +
+    (position.y + 1) * 193
+  ) >>> 0;
 }

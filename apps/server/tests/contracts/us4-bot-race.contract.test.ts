@@ -127,7 +127,7 @@ describe("US4 bot race contract", () => {
     expect(playingSnapshot.members.find((member) => member.playerId === racerTwoConnected.playerId)).toMatchObject({
       role: "racer",
       state: "playing",
-      position: { x: 1, y: 1 }
+      position: { x: 0, y: 1 }
     });
 
     const endedPromise = once(host, "GAME_ENDED");

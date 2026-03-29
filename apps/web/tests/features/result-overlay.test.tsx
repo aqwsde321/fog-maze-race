@@ -63,6 +63,7 @@ describe("ResultOverlay", () => {
     expect(resultList).not.toBeNull();
     expect(resultList?.style.overflowY).toBe("auto");
     expect(resultList?.style.maxHeight).toBe("min(48vh, 420px)");
+    expect(resultList?.className).toContain("result-overlay-scrollable");
   });
 
   it("shows a waiting message to guests while the host prepares the next race", async () => {
