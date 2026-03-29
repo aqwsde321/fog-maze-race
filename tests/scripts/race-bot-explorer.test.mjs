@@ -634,6 +634,34 @@ test("explorer bot clears the eta-gauntlet 3x3 regression for the problematic se
   }
 });
 
+test("explorer bot does not drift back into the entry approach on alpha-run 3x3 tremaux runs", () => {
+  const map = MAP_DEFINITIONS.find((entry) => entry.mapId === "alpha-run");
+  assert.ok(map);
+
+  const result = simulateExplorer(map, 1_200, {
+    seed: createExplorerSeed("bot10"),
+    visibilityRadius: 1,
+    strategy: "tremaux"
+  });
+
+  assert.equal(result.ok, true);
+  assert.equal(result.returnedToApproachAt, null);
+});
+
+test("explorer bot does not drift back into the strict start zone on beta-dash 3x3 tremaux runs", () => {
+  const map = MAP_DEFINITIONS.find((entry) => entry.mapId === "beta-dash");
+  assert.ok(map);
+
+  const result = simulateExplorer(map, 1_200, {
+    seed: createExplorerSeed("bot4"),
+    visibilityRadius: 1,
+    strategy: "tremaux"
+  });
+
+  assert.equal(result.ok, true);
+  assert.equal(result.returnedToStrictEntryAt, null);
+});
+
 function createMemoryFromRows(rows, visitEntries = [], recentTileKeys = [], edgeEntries = []) {
   const memory = createExplorerMemory();
 
@@ -740,8 +768,13 @@ function simulateExplorer(map, stepLimit = 8_000, options = {}) {
   };
   const slotIndex = options.slotIndex ?? 0;
   const seed = options.seed ?? 0;
+  const strategy = options.strategy ?? "frontier";
   let position = { ...map.startSlots[slotIndex] };
   let memory = createExplorerMemory();
+  let leftApproachAt = null;
+  let returnedToApproachAt = null;
+  let leftStrictEntryAt = null;
+  let returnedToStrictEntryAt = null;
 
   for (let steps = 0; steps < stepLimit; steps += 1) {
     memory = updateExplorerMemory({
@@ -754,10 +787,27 @@ function simulateExplorer(map, stepLimit = 8_000, options = {}) {
       selfPlayerId: "self"
     });
 
+    const inApproach = isEntryApproachPosition(map, position);
+    const inStrictEntry = isStrictEntryPosition(map, position);
+    if (!inApproach && leftApproachAt === null) {
+      leftApproachAt = steps;
+    }
+    if (leftApproachAt !== null && inApproach && returnedToApproachAt === null) {
+      returnedToApproachAt = steps;
+    }
+    if (!inStrictEntry && leftStrictEntryAt === null) {
+      leftStrictEntryAt = steps;
+    }
+    if (leftStrictEntryAt !== null && inStrictEntry && returnedToStrictEntryAt === null) {
+      returnedToStrictEntryAt = steps;
+    }
+
     if (isInsideZone(map.goalZone, position)) {
       return {
         ok: true,
-        steps
+        steps,
+        returnedToApproachAt,
+        returnedToStrictEntryAt
       };
     }
 
@@ -765,7 +815,8 @@ function simulateExplorer(map, stepLimit = 8_000, options = {}) {
       map,
       memory,
       position,
-      seed
+      seed,
+      strategy
     });
     if (!decision) {
       return {
@@ -773,7 +824,9 @@ function simulateExplorer(map, stepLimit = 8_000, options = {}) {
         reason: "no-decision",
         steps,
         position,
-        knownTiles: memory.knownTiles.size
+        knownTiles: memory.knownTiles.size,
+        returnedToApproachAt,
+        returnedToStrictEntryAt
       };
     }
 
@@ -795,8 +848,33 @@ function simulateExplorer(map, stepLimit = 8_000, options = {}) {
     ok: false,
     reason: "step-limit",
     steps: stepLimit,
-    position
+    position,
+    returnedToApproachAt,
+    returnedToStrictEntryAt
   };
+}
+
+function isEntryApproachPosition(map, position) {
+  return (
+    isStrictEntryPosition(map, position) ||
+    (
+      position.x <= map.startZone.maxX + 3 &&
+      position.y >= map.startZone.minY &&
+      position.y <= map.startZone.maxY
+    )
+  );
+}
+
+function isStrictEntryPosition(map, position) {
+  const strictConnectorX = map.startZone.maxX + 1;
+  return (
+    isInsideZone(map.startZone, position) ||
+    (
+      position.x === strictConnectorX &&
+      position.y >= map.startZone.minY &&
+      position.y <= map.startZone.maxY
+    )
+  );
 }
 
 function move(position, direction) {

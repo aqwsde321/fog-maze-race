@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { isInsideZone, isWalkableTile, MAP_DEFINITIONS } from "@fog-maze-race/shared/maps/map-definitions";
+import type { RoomExploreStrategy } from "@fog-maze-race/shared/contracts/realtime";
 
 import {
   createExplorerMemory,
@@ -130,6 +131,38 @@ describe("explorer-policy", () => {
       expect(result.ok, `${regression.nickname} slot ${regression.slotIndex}`).toBe(true);
       expect(result.steps, `${regression.nickname} slot ${regression.slotIndex}`).toBeLessThan(1_200);
     }
+  });
+
+  it("does not drift back into the entry approach on alpha-run 3x3 tremaux runs", () => {
+    const map = MAP_DEFINITIONS.find((entry) => entry.mapId === "alpha-run");
+    expect(map).toBeDefined();
+
+    const result = simulateExplorer({
+      map: map!,
+      slotIndex: 0,
+      seed: createExplorerSeed("bot10"),
+      stepLimit: 1_200,
+      strategy: "tremaux"
+    });
+
+    expect(result.ok).toBe(true);
+    expect(result.returnedToApproachAt).toBeNull();
+  });
+
+  it("does not drift back into the strict start zone on beta-dash 3x3 tremaux runs", () => {
+    const map = MAP_DEFINITIONS.find((entry) => entry.mapId === "beta-dash");
+    expect(map).toBeDefined();
+
+    const result = simulateExplorer({
+      map: map!,
+      slotIndex: 0,
+      seed: createExplorerSeed("bot4"),
+      stepLimit: 1_200,
+      strategy: "tremaux"
+    });
+
+    expect(result.ok).toBe(true);
+    expect(result.returnedToStrictEntryAt).toBeNull();
   });
 
   it("keeps shared-start explorer seeds divergent beyond repeated rotation buckets", () => {
@@ -447,6 +480,7 @@ function simulateExplorer(input: {
   slotIndex: number;
   seed: number;
   stepLimit: number;
+  strategy?: RoomExploreStrategy;
 }) {
   const map = {
     ...input.map,
@@ -454,6 +488,10 @@ function simulateExplorer(input: {
   };
   let position = { ...map.startSlots[input.slotIndex]! };
   let memory = createExplorerMemory();
+  let leftApproachAt: number | null = null;
+  let returnedToApproachAt: number | null = null;
+  let leftStrictEntryAt: number | null = null;
+  let returnedToStrictEntryAt: number | null = null;
 
   for (let steps = 0; steps < input.stepLimit; steps += 1) {
     memory = updateExplorerMemory({
@@ -466,19 +504,35 @@ function simulateExplorer(input: {
       selfPlayerId: "self"
     });
 
+    const inApproach = isEntryApproachPosition(map, position);
+    const inStrictEntry = isStrictEntryPosition(map, position);
+    if (!inApproach && leftApproachAt === null) {
+      leftApproachAt = steps;
+    }
+    if (leftApproachAt !== null && inApproach && returnedToApproachAt === null) {
+      returnedToApproachAt = steps;
+    }
+    if (!inStrictEntry && leftStrictEntryAt === null) {
+      leftStrictEntryAt = steps;
+    }
+    if (leftStrictEntryAt !== null && inStrictEntry && returnedToStrictEntryAt === null) {
+      returnedToStrictEntryAt = steps;
+    }
+
     if (isInsideZone(map.goalZone, position)) {
-      return { ok: true as const, steps };
+      return { ok: true as const, steps, returnedToApproachAt, returnedToStrictEntryAt };
     }
 
     const decision = decideExplorerMove({
       map,
       memory,
       position,
-      seed: input.seed
+      seed: input.seed,
+      strategy: input.strategy
     });
 
     if (!decision) {
-      return { ok: false as const, steps };
+      return { ok: false as const, steps, returnedToApproachAt, returnedToStrictEntryAt };
     }
 
     const next = move(position, decision.direction);
@@ -495,7 +549,28 @@ function simulateExplorer(input: {
     position = next;
   }
 
-  return { ok: false as const, steps: input.stepLimit };
+  return { ok: false as const, steps: input.stepLimit, returnedToApproachAt, returnedToStrictEntryAt };
+}
+
+function isEntryApproachPosition(map: (typeof MAP_DEFINITIONS)[number], position: { x: number; y: number }) {
+  return (
+    isStrictEntryPosition(map, position) ||
+    position.x <= map.startZone.maxX + 3 &&
+      position.y >= map.startZone.minY &&
+      position.y <= map.startZone.maxY
+  );
+}
+
+function isStrictEntryPosition(map: (typeof MAP_DEFINITIONS)[number], position: { x: number; y: number }) {
+  const strictConnectorX = map.startZone.maxX + 1;
+  return (
+    isInsideZone(map.startZone, position) ||
+    (
+      position.x === strictConnectorX &&
+      position.y >= map.startZone.minY &&
+      position.y <= map.startZone.maxY
+    )
+  );
 }
 
 function collectTrace(input: {

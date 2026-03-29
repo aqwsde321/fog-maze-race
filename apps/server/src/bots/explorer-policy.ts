@@ -24,12 +24,14 @@ type ExplorerMemory = {
 
 type FrontierCandidate = {
   isEntryApproach: boolean;
+  entersEntryApproach: boolean;
   path: Direction[];
   pathKey: string;
   score: number;
 };
 
 type GoalCandidate = {
+  entersEntryApproach: boolean;
   path: Direction[];
   pathKey: string;
   recentPenalty: number;
@@ -44,6 +46,9 @@ const DIRECTION_STEPS: ExplorerDirectionStep[] = [
 const MAX_RECENT_TILE_KEYS = 8;
 const RECENT_PATH_TILE_PENALTY = 700;
 const IMMEDIATE_BACKTRACK_PENALTY = 12_000;
+const ENTRY_APPROACH_FIRST_STEP_PENALTY = 100_000;
+const ENTRY_APPROACH_REENTRY_PENALTY = 18_000;
+const START_BAND_TILE_PENALTY = 1_200;
 const FRONTIER_EDGE_VISIT_PENALTY = 600;
 const TREMAUX_EDGE_VISIT_PENALTY = 2_600;
 const TREMAUX_FIRST_DIRECTION_ORDER: Direction[] = ["down", "left", "up", "right"];
@@ -183,6 +188,8 @@ export function decideExplorerMove(input: {
   }
 
   const strategy = input.strategy ?? "frontier";
+  const hasExploredBeyondEntryApproach = hasVisitedOutsideEntryApproach(input.map, input.memory);
+  const hasExploredBeyondStrictEntry = hasVisitedOutsideStrictEntry(input.map, input.memory);
   const goalMove =
     strategy === "tremaux"
       ? decideTremauxGoalMove({
@@ -190,7 +197,9 @@ export function decideExplorerMove(input: {
           memory: input.memory,
           position: input.position,
           seed: input.seed ?? 0,
-          directionSteps
+          directionSteps,
+          hasExploredBeyondEntryApproach,
+          hasExploredBeyondStrictEntry
         })
       : decideSeededGoalMove({
           map: input.map,
@@ -198,7 +207,9 @@ export function decideExplorerMove(input: {
           recentTileKeys: input.memory.recentTileKeys,
           position: input.position,
           seed: input.seed ?? 0,
-          directionSteps
+          directionSteps,
+          hasExploredBeyondEntryApproach,
+          hasExploredBeyondStrictEntry
         });
   if (goalMove) {
     return {
@@ -211,7 +222,9 @@ export function decideExplorerMove(input: {
     map: input.map,
     knownTiles: input.memory.knownTiles,
     position: input.position,
-    directionSteps
+    directionSteps,
+    avoidEntryApproachReentry: input.map.visibilityRadius <= 1 && hasExploredBeyondEntryApproach,
+    avoidStrictEntryReentry: input.map.visibilityRadius <= 1 && hasExploredBeyondStrictEntry
   });
   if (immediateProbe) {
     return {
@@ -277,6 +290,8 @@ function decideSeededGoalMove(input: {
   position: GridPosition;
   seed: number;
   directionSteps: ExplorerDirectionStep[];
+  hasExploredBeyondEntryApproach: boolean;
+  hasExploredBeyondStrictEntry: boolean;
 }) {
   const candidates: GoalCandidate[] = [];
 
@@ -294,7 +309,8 @@ function decideSeededGoalMove(input: {
       knownTiles: input.knownTiles,
       start: next,
       isTarget: (candidate) => isKnownGoalTile(input.map, input.knownTiles, candidate.x, candidate.y),
-      directionSteps: input.directionSteps
+      directionSteps: input.directionSteps,
+      avoidStrictEntryReentry: input.map.visibilityRadius <= 1 && input.hasExploredBeyondStrictEntry
     });
     if (!pathTail) {
       continue;
@@ -302,13 +318,27 @@ function decideSeededGoalMove(input: {
 
     const path = [step.direction, ...pathTail];
     candidates.push({
+      entersEntryApproach: pathTouchesEntryApproach(input.map, input.position, path),
       path,
       pathKey: path.join(","),
-      recentPenalty: calculateRecentPathPenalty({
-        start: input.position,
-        path,
-        recentTileKeys: input.recentTileKeys
-      })
+      recentPenalty:
+        calculateRecentPathPenalty({
+          start: input.position,
+          path,
+          recentTileKeys: input.recentTileKeys
+        }) +
+        calculateEntryApproachPenalty({
+          map: input.map,
+          path,
+          start: input.position,
+          hasExploredBeyondEntryApproach: input.hasExploredBeyondEntryApproach
+        }) +
+        calculateStartBandPenalty({
+          map: input.map,
+          path,
+          start: input.position,
+          hasExploredBeyondEntryApproach: input.hasExploredBeyondEntryApproach
+        })
     });
   }
 
@@ -318,8 +348,14 @@ function decideSeededGoalMove(input: {
 
   const shortestLength = Math.min(...candidates.map((candidate) => candidate.path.length));
   const shortestCandidates = candidates.filter((candidate) => candidate.path.length === shortestLength);
-  const bestPenalty = Math.min(...shortestCandidates.map((candidate) => candidate.recentPenalty));
-  const rankedCandidates = shortestCandidates
+  const preferredShortestCandidates =
+    input.hasExploredBeyondEntryApproach &&
+    input.map.visibilityRadius <= 1 &&
+    shortestCandidates.some((candidate) => !candidate.entersEntryApproach)
+      ? shortestCandidates.filter((candidate) => !candidate.entersEntryApproach)
+      : shortestCandidates;
+  const bestPenalty = Math.min(...preferredShortestCandidates.map((candidate) => candidate.recentPenalty));
+  const rankedCandidates = preferredShortestCandidates
     .filter((candidate) => candidate.recentPenalty === bestPenalty)
     .sort((left, right) => left.pathKey.localeCompare(right.pathKey));
   const selectedCandidate =
@@ -335,6 +371,8 @@ function decideTremauxGoalMove(input: {
   position: GridPosition;
   seed: number;
   directionSteps: ExplorerDirectionStep[];
+  hasExploredBeyondEntryApproach: boolean;
+  hasExploredBeyondStrictEntry: boolean;
 }) {
   const candidates: GoalCandidate[] = [];
 
@@ -352,7 +390,8 @@ function decideTremauxGoalMove(input: {
       knownTiles: input.memory.knownTiles,
       start: next,
       isTarget: (candidate) => isKnownGoalTile(input.map, input.memory.knownTiles, candidate.x, candidate.y),
-      directionSteps: input.directionSteps
+      directionSteps: input.directionSteps,
+      avoidStrictEntryReentry: input.map.visibilityRadius <= 1 && input.hasExploredBeyondStrictEntry
     });
     if (!pathTail) {
       continue;
@@ -360,6 +399,7 @@ function decideTremauxGoalMove(input: {
 
     const path = [step.direction, ...pathTail];
     candidates.push({
+      entersEntryApproach: pathTouchesEntryApproach(input.map, input.position, path),
       path,
       pathKey: path.join(","),
       recentPenalty:
@@ -367,6 +407,18 @@ function decideTremauxGoalMove(input: {
           start: input.position,
           path,
           recentTileKeys: input.memory.recentTileKeys
+        }) +
+        calculateEntryApproachPenalty({
+          map: input.map,
+          path,
+          start: input.position,
+          hasExploredBeyondEntryApproach: input.hasExploredBeyondEntryApproach
+        }) +
+        calculateStartBandPenalty({
+          map: input.map,
+          path,
+          start: input.position,
+          hasExploredBeyondEntryApproach: input.hasExploredBeyondEntryApproach
         }) +
         calculateEdgeVisitPenalty({
           edgeVisitCounts: input.memory.edgeVisitCounts,
@@ -383,8 +435,14 @@ function decideTremauxGoalMove(input: {
 
   const shortestLength = Math.min(...candidates.map((candidate) => candidate.path.length));
   const shortestCandidates = candidates.filter((candidate) => candidate.path.length === shortestLength);
-  const bestPenalty = Math.min(...shortestCandidates.map((candidate) => candidate.recentPenalty));
-  const rankedCandidates = shortestCandidates
+  const preferredShortestCandidates =
+    input.hasExploredBeyondEntryApproach &&
+    input.map.visibilityRadius <= 1 &&
+    shortestCandidates.some((candidate) => !candidate.entersEntryApproach)
+      ? shortestCandidates.filter((candidate) => !candidate.entersEntryApproach)
+      : shortestCandidates;
+  const bestPenalty = Math.min(...preferredShortestCandidates.map((candidate) => candidate.recentPenalty));
+  const rankedCandidates = preferredShortestCandidates
     .filter((candidate) => candidate.recentPenalty === bestPenalty)
     .sort((left, right) => left.pathKey.localeCompare(right.pathKey));
   const selectedCandidate =
@@ -407,6 +465,7 @@ function decideFrontierMove(input: {
     position: input.position,
     seed: input.seed,
     directionSteps: input.directionSteps,
+    avoidStrictEntryReentry: input.map.visibilityRadius <= 1 && hasVisitedOutsideStrictEntry(input.map, input.memory),
     scorePath: ({ tileKey, candidate, path }) =>
       path.length * 1_000 +
       (input.memory.visitCounts.get(tileKey) ?? 0) * 10 +
@@ -414,6 +473,18 @@ function decideFrontierMove(input: {
         start: input.position,
         path,
         recentTileKeys: input.memory.recentTileKeys
+      }) +
+      calculateEntryApproachPenalty({
+        map: input.map,
+        path,
+        start: input.position,
+        hasExploredBeyondEntryApproach: hasVisitedOutsideEntryApproach(input.map, input.memory)
+      }) +
+      calculateStartBandPenalty({
+        map: input.map,
+        path,
+        start: input.position,
+        hasExploredBeyondEntryApproach: hasVisitedOutsideEntryApproach(input.map, input.memory)
       }) +
       calculateFrontierBias({
         map: input.map,
@@ -426,10 +497,7 @@ function decideFrontierMove(input: {
     return null;
   }
 
-  const preferredCandidates =
-    !isEntryApproachPosition(input.map, input.position) && candidates.some((candidate) => !candidate.isEntryApproach)
-      ? candidates.filter((candidate) => !candidate.isEntryApproach)
-      : candidates;
+  const preferredCandidates = preferOutsideEntryApproachPaths(input.map, input.position, candidates);
   const bestCandidate = preferredCandidates.reduce<FrontierCandidate | null>((best, candidate) => {
     if (!best || candidate.score < best.score) {
       return candidate;
@@ -476,6 +544,7 @@ function decideTremauxFrontierMove(input: {
     position: input.position,
     seed: input.seed,
     directionSteps,
+    avoidStrictEntryReentry: input.map.visibilityRadius <= 1 && hasVisitedOutsideStrictEntry(input.map, input.memory),
     scorePath: ({ tileKey, candidate, path }) =>
       path.length * 900 +
       (input.memory.visitCounts.get(tileKey) ?? 0) * 25 +
@@ -483,6 +552,18 @@ function decideTremauxFrontierMove(input: {
         start: input.position,
         path,
         recentTileKeys: input.memory.recentTileKeys
+      }) +
+      calculateEntryApproachPenalty({
+        map: input.map,
+        path,
+        start: input.position,
+        hasExploredBeyondEntryApproach: hasVisitedOutsideEntryApproach(input.map, input.memory)
+      }) +
+      calculateStartBandPenalty({
+        map: input.map,
+        path,
+        start: input.position,
+        hasExploredBeyondEntryApproach: hasVisitedOutsideEntryApproach(input.map, input.memory)
       }) +
       calculateEdgeVisitPenalty({
         edgeVisitCounts: input.memory.edgeVisitCounts,
@@ -501,10 +582,7 @@ function decideTremauxFrontierMove(input: {
     return null;
   }
 
-  const preferredCandidates =
-    !isEntryApproachPosition(input.map, input.position) && candidates.some((candidate) => !candidate.isEntryApproach)
-      ? candidates.filter((candidate) => !candidate.isEntryApproach)
-      : candidates;
+  const preferredCandidates = preferOutsideEntryApproachPaths(input.map, input.position, candidates);
   const rankedCandidates = [...preferredCandidates].sort((left, right) => {
     if (left.score !== right.score) {
       return left.score - right.score;
@@ -529,6 +607,7 @@ function collectFrontierCandidates(input: {
   position: GridPosition;
   seed: number;
   directionSteps: ExplorerDirectionStep[];
+  avoidStrictEntryReentry: boolean;
   scorePath: (input: { tileKey: string; candidate: GridPosition; path: Direction[] }) => number;
 }) {
   const candidates: FrontierCandidate[] = [];
@@ -557,7 +636,8 @@ function collectFrontierCandidates(input: {
       knownTiles: input.memory.knownTiles,
       start: input.position,
       isTarget: (current) => current.x === candidate.x && current.y === candidate.y,
-      directionSteps: input.directionSteps
+      directionSteps: input.directionSteps,
+      avoidStrictEntryReentry: input.avoidStrictEntryReentry
     });
     if (!path || path.length === 0) {
       continue;
@@ -565,6 +645,7 @@ function collectFrontierCandidates(input: {
 
     candidates.push({
       isEntryApproach: isEntryApproachPosition(input.map, candidate),
+      entersEntryApproach: pathTouchesEntryApproach(input.map, input.position, path),
       path,
       pathKey: path.join(","),
       score: input.scorePath({
@@ -584,6 +665,7 @@ function findPath(input: {
   start: GridPosition;
   isTarget: (position: GridPosition) => boolean;
   directionSteps: ExplorerDirectionStep[];
+  avoidStrictEntryReentry?: boolean;
 }) {
   if (!isInsideMap(input.map, input.start) || !isKnownWalkable(input.knownTiles, input.start)) {
     return null;
@@ -611,7 +693,12 @@ function findPath(input: {
         y: current.position.y + step.y
       };
       const nextKey = toTileKey(next);
-      if (!isInsideMap(input.map, next) || seen.has(nextKey) || !isKnownWalkable(input.knownTiles, next)) {
+      if (
+        !isInsideMap(input.map, next) ||
+        seen.has(nextKey) ||
+        !isKnownWalkable(input.knownTiles, next) ||
+        (input.avoidStrictEntryReentry && isStrictEntryPosition(input.map, next))
+      ) {
         continue;
       }
 
@@ -640,11 +727,14 @@ function findUnknownNeighborDirection(input: {
   knownTiles: Map<string, string>;
   position: GridPosition;
   directionSteps: ExplorerDirectionStep[];
+  avoidEntryApproachReentry?: boolean;
+  avoidStrictEntryReentry?: boolean;
 }): Direction | null {
   if (!isKnownWalkable(input.knownTiles, input.position)) {
     return null;
   }
 
+  const unknownDirections: Array<{ direction: Direction; position: GridPosition }> = [];
   for (const step of input.directionSteps) {
     const next = {
       x: input.position.x + step.x,
@@ -655,11 +745,32 @@ function findUnknownNeighborDirection(input: {
     }
 
     if (!input.knownTiles.has(toTileKey(next))) {
-      return step.direction;
+      unknownDirections.push({
+        direction: step.direction,
+        position: next
+      });
     }
   }
 
-  return null;
+  if (unknownDirections.length === 0) {
+    return null;
+  }
+
+  if (input.avoidEntryApproachReentry) {
+    const outsideApproach = unknownDirections.find((candidate) => !isEntryApproachPosition(input.map, candidate.position));
+    if (outsideApproach) {
+      return outsideApproach.direction;
+    }
+  }
+
+  if (input.avoidStrictEntryReentry) {
+    const outsideStrictEntry = unknownDirections.find((candidate) => !isStrictEntryPosition(input.map, candidate.position));
+    if (outsideStrictEntry) {
+      return outsideStrictEntry.direction;
+    }
+  }
+
+  return unknownDirections[0]!.direction;
 }
 
 function isKnownGoalTile(map: MapView, knownTiles: Map<string, string>, x: number, y: number) {
@@ -789,6 +900,82 @@ function calculateEdgeVisitPenalty(input: {
   return penalty;
 }
 
+function calculateEntryApproachPenalty(input: {
+  map: MapView;
+  start: GridPosition;
+  path: Direction[];
+  hasExploredBeyondEntryApproach: boolean;
+}) {
+  if (!input.hasExploredBeyondEntryApproach || input.map.visibilityRadius > 1 || input.path.length === 0) {
+    return 0;
+  }
+
+  let penalty = 0;
+  let position = input.start;
+
+  for (const direction of input.path) {
+    position = movePosition(position, direction);
+    if (isEntryApproachPosition(input.map, position)) {
+      penalty += ENTRY_APPROACH_REENTRY_PENALTY;
+    }
+  }
+
+  const firstStepPosition = movePosition(input.start, input.path[0]!);
+  if (
+    !isEntryApproachPosition(input.map, input.start) &&
+    isEntryApproachPosition(input.map, firstStepPosition)
+  ) {
+    penalty += ENTRY_APPROACH_FIRST_STEP_PENALTY;
+  }
+
+  return penalty;
+}
+
+function calculateStartBandPenalty(input: {
+  map: MapView;
+  start: GridPosition;
+  path: Direction[];
+  hasExploredBeyondEntryApproach: boolean;
+}) {
+  if (!input.hasExploredBeyondEntryApproach || input.map.visibilityRadius > 1 || input.path.length === 0) {
+    return 0;
+  }
+
+  let penalty = 0;
+  let position = input.start;
+
+  for (const direction of input.path) {
+    position = movePosition(position, direction);
+    if (
+      position.y >= input.map.startZone.minY &&
+      position.y <= input.map.startZone.maxY &&
+      !isEntryApproachPosition(input.map, position)
+    ) {
+      penalty += START_BAND_TILE_PENALTY;
+    }
+  }
+
+  return penalty;
+}
+
+function preferOutsideEntryApproachPaths<T extends { isEntryApproach: boolean; entersEntryApproach: boolean }>(
+  map: MapView,
+  position: GridPosition,
+  candidates: T[]
+) {
+  if (isEntryApproachPosition(map, position)) {
+    return candidates;
+  }
+
+  const outsideApproachPathCandidates = candidates.some((candidate) => !candidate.entersEntryApproach)
+    ? candidates.filter((candidate) => !candidate.entersEntryApproach)
+    : candidates;
+
+  return outsideApproachPathCandidates.some((candidate) => !candidate.isEntryApproach)
+    ? outsideApproachPathCandidates.filter((candidate) => !candidate.isEntryApproach)
+    : outsideApproachPathCandidates;
+}
+
 function calculateFrontierBias(input: {
   map: MapView;
   candidate: GridPosition;
@@ -903,14 +1090,52 @@ function pickTremauxCandidate<T extends { path: Direction[]; pathKey: string }>(
 
 function isEntryApproachPosition(map: MapView, position: GridPosition) {
   return (
-    isInsideZone(map.startZone, position) ||
-    isConnectorTile(map, position) ||
+    isStrictEntryPosition(map, position) ||
     (
       position.x <= map.startZone.maxX + 3 &&
       position.y >= map.startZone.minY &&
       position.y <= map.startZone.maxY
     )
   );
+}
+
+function isStrictEntryPosition(map: MapView, position: GridPosition) {
+  return isInsideZone(map.startZone, position) || isConnectorTile(map, position);
+}
+
+function hasVisitedOutsideEntryApproach(map: MapView, memory: ExplorerMemory) {
+  for (const tileKey of memory.visitCounts.keys()) {
+    const position = parseTileKey(tileKey);
+    if (position && !isEntryApproachPosition(map, position)) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+function hasVisitedOutsideStrictEntry(map: MapView, memory: ExplorerMemory) {
+  for (const tileKey of memory.visitCounts.keys()) {
+    const position = parseTileKey(tileKey);
+    if (position && !isStrictEntryPosition(map, position)) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+function pathTouchesEntryApproach(map: MapView, start: GridPosition, path: Direction[]) {
+  let position = start;
+
+  for (const direction of path) {
+    position = movePosition(position, direction);
+    if (isEntryApproachPosition(map, position)) {
+      return true;
+    }
+  }
+
+  return false;
 }
 
 function getPreferredEntryRows(map: MapView, seed: number) {
