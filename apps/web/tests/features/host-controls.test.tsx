@@ -281,8 +281,8 @@ describe("HostControls", () => {
           availableBotSlots={0}
           memberNicknames={["host", "bot1", "bot2"]}
           currentBots={[
-            { playerId: "bot-1", nickname: "bot1" },
-            { playerId: "bot-2", nickname: "bot2" }
+            { playerId: "bot-1", nickname: "bot1", strategy: "frontier" },
+            { playerId: "bot-2", nickname: "bot2", strategy: "tremaux" }
           ]}
           onRenameRoom={vi.fn()}
           onSetVisibilitySize={vi.fn()}
@@ -308,6 +308,8 @@ describe("HostControls", () => {
     expect(removeButton).not.toBeNull();
     expect(document.body.querySelector<HTMLElement>('[data-testid="current-bot-list"]')?.style.overflowY).toBe("auto");
     expect(document.body.querySelector<HTMLElement>('[data-testid="current-bot-list"]')?.style.maxHeight).toBe("220px");
+    expect(document.body.querySelector('[data-testid="current-bot-list"]')?.textContent).toContain("Frontier");
+    expect(document.body.querySelector('[data-testid="current-bot-list"]')?.textContent).toContain("Tremaux");
 
     await act(async () => {
       removeButton?.click();
@@ -330,7 +332,7 @@ describe("HostControls", () => {
           canManageBots
           availableBotSlots={2}
           memberNicknames={["host", "bot1"]}
-          currentBots={[{ playerId: "bot-1", nickname: "bot1" }]}
+          currentBots={[{ playerId: "bot-1", nickname: "bot1", strategy: "frontier" }]}
           onRenameRoom={vi.fn()}
           onSetVisibilitySize={vi.fn()}
           onAddBots={vi.fn()}

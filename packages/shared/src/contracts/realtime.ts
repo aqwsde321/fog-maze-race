@@ -1,7 +1,14 @@
 import type { Direction, GridPosition } from "../domain/grid-position.js";
+import {
+  ROOM_EXPLORE_STRATEGIES,
+  type RoomExploreStrategy
+} from "../domain/room-bot-strategy.js";
 import type { ResultEntry } from "../domain/result-entry.js";
 import type { RoomMemberRole, RoomMode, RoomMemberState, RoomStatus } from "../domain/status.js";
 import type { RoomSnapshot } from "./snapshots.js";
+
+export { ROOM_EXPLORE_STRATEGIES };
+export type { RoomExploreStrategy };
 
 export type ConnectPayload = {
   playerId?: string;
@@ -21,9 +28,6 @@ export type JoinRoomPayload = {
 
 export const ROOM_BOT_KINDS = ["join", "explore"] as const;
 export type RoomBotKind = (typeof ROOM_BOT_KINDS)[number];
-
-export const ROOM_EXPLORE_STRATEGIES = ["frontier", "tremaux"] as const;
-export type RoomExploreStrategy = (typeof ROOM_EXPLORE_STRATEGIES)[number];
 
 export type RoomBotRequest = {
   nickname: string;

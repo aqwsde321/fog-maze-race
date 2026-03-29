@@ -99,7 +99,8 @@ export class BotManager {
       this.roomService.joinRoom({
         roomId: input.roomId,
         session,
-        role: "racer"
+        role: "racer",
+        exploreStrategy: kind === "explore" ? requestedBot.strategy ?? DEFAULT_EXPLORE_STRATEGY : null
       });
       this.roomService.sendChatMessage(input.roomId, playerId, DEFAULT_BOT_JOIN_MESSAGE);
       this.bots.set(playerId, {

@@ -77,6 +77,8 @@ describe("PlayerSidebar", () => {
     expect(spectatorMeta).toContain("관전자");
     expect(spectatorMeta).toContain("1명");
     expect(spectatorMeta).not.toContain("채팅 가능");
+    expect(container.textContent).toContain("Frontier");
+    expect(container.textContent).toContain("Tremaux");
   });
 });
 
@@ -153,6 +155,7 @@ function buildBotRaceSnapshot(): RoomSnapshot {
         playerId: "bot-1",
         nickname: "bot1",
         kind: "bot",
+        exploreStrategy: "frontier",
         color: "#3b82f6",
         shape: "square",
         role: "racer",
@@ -165,6 +168,7 @@ function buildBotRaceSnapshot(): RoomSnapshot {
         playerId: "bot-2",
         nickname: "bot2",
         kind: "bot",
+        exploreStrategy: "tremaux",
         color: "#22c55e",
         shape: "diamond",
         role: "racer",

@@ -94,7 +94,8 @@ export function GameScreen({
     .filter((member) => member.kind === "bot")
     .map((member) => ({
       playerId: member.playerId,
-      nickname: member.nickname
+      nickname: member.nickname,
+      strategy: member.exploreStrategy ?? null
     }));
   const serverMetrics = serverHealth ? buildServerMetrics(serverHealth, snapshot.members.length, pingMetric, metricHistory) : [];
 

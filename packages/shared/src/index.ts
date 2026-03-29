@@ -1,4 +1,5 @@
 export * from "./domain/grid-position.js";
+export * from "./domain/room-bot-strategy.js";
 export * from "./domain/result-entry.js";
 export * from "./domain/status.js";
 export * from "./maps/map-definitions.js";

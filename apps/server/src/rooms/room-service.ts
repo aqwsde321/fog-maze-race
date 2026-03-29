@@ -9,6 +9,7 @@ import {
   PLAYER_MARKER_SHAPES,
   type PlayerMarkerShape
 } from "@fog-maze-race/shared/domain/player-marker-shape";
+import type { RoomExploreStrategy } from "@fog-maze-race/shared/domain/room-bot-strategy";
 import type { MatchStatus, RoomMemberRole, RoomMode, RoomMemberState } from "@fog-maze-race/shared/domain/status";
 import type { MapDefinition } from "@fog-maze-race/shared/maps/map-definitions";
 
@@ -86,6 +87,7 @@ export class RoomService {
       playerId: input.session.playerId,
       nickname: input.session.nickname,
       kind: input.session.kind,
+      exploreStrategy: null,
       color: PLAYER_COLORS[0],
       shape: shapeDeck[0] ?? nextShape(0),
       role: creatorRole,
@@ -111,7 +113,12 @@ export class RoomService {
     };
   }
 
-  joinRoom(input: { roomId: string; session: PlayerSession; role?: RoomMemberRole }): RoomJoinedPayload {
+  joinRoom(input: {
+    roomId: string;
+    session: PlayerSession;
+    role?: RoomMemberRole;
+    exploreStrategy?: RoomExploreStrategy | null;
+  }): RoomJoinedPayload {
     const runtime = this.requireRuntime(input.roomId);
     const nextColor = nextAvailableColor(runtime.room.listMembers());
     const previewMap = this.mapRegistry.get(runtime.previewMapId);
@@ -123,6 +130,7 @@ export class RoomService {
       playerId: input.session.playerId,
       nickname: input.session.nickname,
       kind: input.session.kind,
+      exploreStrategy: input.exploreStrategy ?? null,
       color: nextColor,
       shape: nextAssignedShape,
       role,
@@ -319,6 +327,7 @@ export class RoomService {
         playerId: member.playerId,
         nickname: member.nickname,
         kind: member.kind,
+        exploreStrategy: member.exploreStrategy,
         color: member.color,
         shape: member.shape,
         role: member.role,

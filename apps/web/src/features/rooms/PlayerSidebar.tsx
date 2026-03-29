@@ -104,6 +104,11 @@ export function PlayerSidebar({ snapshot, selfPlayerId }: PlayerSidebarProps) {
                 <p style={metaStyle}>
                   {member.isHost ? "방장" : isBotRaceRoom ? "레이서" : "참가자"} · {member.kind === "bot" ? "봇" : "사람"}
                 </p>
+                {member.kind === "bot" && member.exploreStrategy ? (
+                  <div style={strategyMetaRowStyle}>
+                    <span style={strategyBadgeStyle}>{formatStrategyLabel(member.exploreStrategy)}</span>
+                  </div>
+                ) : null}
               </div>
             </div>
             <span style={rankStyle}>
@@ -114,6 +119,10 @@ export function PlayerSidebar({ snapshot, selfPlayerId }: PlayerSidebarProps) {
       </div>
     </aside>
   );
+}
+
+function formatStrategyLabel(strategy: "frontier" | "tremaux") {
+  return strategy === "tremaux" ? "Tremaux" : "Frontier";
 }
 
 const sidebarStyle: CSSProperties = {
@@ -219,6 +228,25 @@ const metaStyle: CSSProperties = {
   margin: "2px 0 0",
   color: "#94a3b8",
   fontSize: "0.68rem"
+};
+
+const strategyMetaRowStyle: CSSProperties = {
+  display: "flex",
+  marginTop: "4px"
+};
+
+const strategyBadgeStyle: CSSProperties = {
+  display: "inline-flex",
+  alignItems: "center",
+  minHeight: "18px",
+  padding: "0 7px",
+  borderRadius: "999px",
+  border: "1px solid rgba(96, 165, 250, 0.22)",
+  background: "rgba(37, 99, 235, 0.12)",
+  color: "#bfdbfe",
+  fontSize: "0.64rem",
+  fontWeight: 700,
+  letterSpacing: "0.02em"
 };
 
 const rankStyle: CSSProperties = {

@@ -101,11 +101,13 @@ describe("US5 room bots contract", () => {
     });
     expect(updated.members.find((member) => member.nickname === "red")).toMatchObject({
       role: "racer",
-      state: "waiting"
+      state: "waiting",
+      exploreStrategy: "frontier"
     });
     expect(updated.members.find((member) => member.nickname === "blue")).toMatchObject({
       role: "racer",
-      state: "waiting"
+      state: "waiting",
+      exploreStrategy: "tremaux"
     });
   }, 15_000);
 

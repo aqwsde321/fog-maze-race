@@ -1,5 +1,6 @@
 import type { GridPosition } from "@fog-maze-race/shared/domain/grid-position";
 import type { PlayerMarkerShape } from "@fog-maze-race/shared/domain/player-marker-shape";
+import type { RoomExploreStrategy } from "@fog-maze-race/shared/domain/room-bot-strategy";
 import type {
   RoomMemberKind,
   RoomMemberRole,
@@ -12,6 +13,7 @@ export type RoomMemberRecord = {
   playerId: string;
   nickname: string;
   kind: RoomMemberKind;
+  exploreStrategy?: RoomExploreStrategy | null;
   color: string;
   shape: PlayerMarkerShape;
   role: RoomMemberRole;

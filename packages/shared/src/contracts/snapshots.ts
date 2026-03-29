@@ -1,6 +1,7 @@
 import type { GridPosition } from "../domain/grid-position.js";
 import type { PlayerMarkerShape } from "../domain/player-marker-shape.js";
 import type { ResultEntry } from "../domain/result-entry.js";
+import type { RoomExploreStrategy } from "../domain/room-bot-strategy.js";
 import type { MatchStatus, RoomMemberKind, RoomMemberRole, RoomMode, RoomMemberState, RoomStatus } from "../domain/status.js";
 import type { ZoneBounds } from "../maps/map-definitions.js";
 
@@ -8,6 +9,7 @@ export type RoomMemberView = {
   playerId: string;
   nickname: string;
   kind: RoomMemberKind;
+  exploreStrategy?: RoomExploreStrategy | null;
   color: string;
   shape: PlayerMarkerShape;
   role: RoomMemberRole;

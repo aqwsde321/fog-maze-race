@@ -15,7 +15,7 @@ type HostControlsProps = {
   canManageBots: boolean;
   availableBotSlots: number;
   memberNicknames: string[];
-  currentBots: Array<{ playerId: string; nickname: string }>;
+  currentBots: Array<{ playerId: string; nickname: string; strategy?: RoomExploreStrategy | null }>;
   onRenameRoom: (name: string) => void;
   onSetVisibilitySize: (visibilitySize: 3 | 5 | 7) => void;
   onAddBots: (input: { kind: RoomBotKind; bots: RoomBotRequest[] }) => void;
@@ -440,7 +440,10 @@ export function HostControls({
                     <div className={SCROLLABLE_PANEL_CLASS} data-testid="current-bot-list" style={botListStyle}>
                       {currentBots.map((bot) => (
                         <div key={bot.playerId} style={botListItemStyle}>
-                          <span style={botListNameStyle}>{bot.nickname}</span>
+                          <div style={botListIdentityStyle}>
+                            <span style={botListNameStyle}>{bot.nickname}</span>
+                            {bot.strategy ? <span style={botStrategyBadgeStyle}>{formatStrategyLabel(bot.strategy)}</span> : null}
+                          </div>
                           <button
                             data-testid={`remove-bot-button-${bot.playerId}`}
                             type="button"
@@ -519,6 +522,10 @@ function createNextDefaultNickname(used: Set<string>, drafts: string[], initialI
 function extractBotSuffix(nickname: string) {
   const suffix = nickname.match(/(\d+)$/)?.[1];
   return suffix ? Number.parseInt(suffix, 10) : 1;
+}
+
+function formatStrategyLabel(strategy: RoomExploreStrategy) {
+  return strategy === "tremaux" ? "Tremaux" : "Frontier";
 }
 
 function resolveBotCount(requestedCount: number, availableBotSlots: number) {
@@ -831,9 +838,31 @@ const botListItemStyle: CSSProperties = {
   border: "1px solid rgba(148, 163, 184, 0.12)"
 };
 
+const botListIdentityStyle: CSSProperties = {
+  display: "flex",
+  alignItems: "center",
+  gap: "8px",
+  minWidth: 0,
+  flexWrap: "wrap"
+};
+
 const botListNameStyle: CSSProperties = {
   color: "#f8fafc",
   fontSize: "0.82rem"
+};
+
+const botStrategyBadgeStyle: CSSProperties = {
+  display: "inline-flex",
+  alignItems: "center",
+  minHeight: "20px",
+  padding: "0 8px",
+  borderRadius: "999px",
+  border: "1px solid rgba(96, 165, 250, 0.26)",
+  background: "rgba(37, 99, 235, 0.16)",
+  color: "#bfdbfe",
+  fontSize: "0.68rem",
+  fontWeight: 700,
+  letterSpacing: "0.02em"
 };
 
 const botEmptyTextStyle: CSSProperties = {
