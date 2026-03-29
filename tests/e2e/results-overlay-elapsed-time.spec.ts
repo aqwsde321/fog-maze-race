@@ -1,5 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 
+import { createRoomFromLobby, enterLobby } from "./helpers/lobby.js";
 import { closeRaceClients, createRaceClients } from "./helpers/multi-client.js";
 
 test("results overlay shows elapsed time for each finisher", async ({ browser }) => {
@@ -9,8 +10,7 @@ test("results overlay shows elapsed time for each finisher", async ({ browser })
 
   try {
     await enterLobby(host.page, "호1");
-    await host.page.getByLabel("방 이름").fill(roomName);
-    await host.page.getByRole("button", { name: "방 만들기" }).click();
+    await createRoomFromLobby(host.page, roomName);
 
     await enterLobby(guest.page, "게2");
     await guest.page.getByRole("button", { name: `입장 ${roomName}` }).click();
@@ -27,7 +27,7 @@ test("results overlay shows elapsed time for each finisher", async ({ browser })
     });
 
     await moveRight(host.page, 8);
-    await moveRight(guest.page, 7);
+    await moveRight(guest.page, 12);
 
     const overlay = host.page.getByTestId("results-overlay");
     await expect(overlay).toBeVisible({
@@ -46,12 +46,6 @@ test("results overlay shows elapsed time for each finisher", async ({ browser })
     await closeRaceClients(clients);
   }
 });
-
-async function enterLobby(page: Page, nickname: string) {
-  await page.goto("/");
-  await page.getByLabel("닉네임").fill(nickname);
-  await page.getByRole("button", { name: "입장" }).click();
-}
 
 async function moveRight(page: Page, steps: number) {
   await page.getByTestId("game-shell").focus();

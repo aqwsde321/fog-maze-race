@@ -1,5 +1,6 @@
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test } from "@playwright/test";
 
+import { createRoomFromLobby, enterLobby } from "./helpers/lobby.js";
 import { closeRaceClients, createRaceClients } from "./helpers/multi-client.js";
 
 test("15 players can join the same room and enter the playing state", async ({ browser }) => {
@@ -10,8 +11,7 @@ test("15 players can join the same room and enter the playing state", async ({ b
 
   try {
     await enterLobby(host.page, "P00");
-    await host.page.getByLabel("방 이름").fill("Full");
-    await host.page.getByRole("button", { name: "방 만들기" }).click();
+    await createRoomFromLobby(host.page, "Full");
 
     for (const [index, guest] of guests.entries()) {
       await enterLobby(guest.page, `P${String(index + 1).padStart(2, "0")}`);
@@ -41,9 +41,3 @@ test("15 players can join the same room and enter the playing state", async ({ b
     await closeRaceClients(clients);
   }
 });
-
-async function enterLobby(page: Page, nickname: string) {
-  await page.goto("/");
-  await page.getByLabel("닉네임").fill(nickname);
-  await page.getByRole("button", { name: "입장" }).click();
-}

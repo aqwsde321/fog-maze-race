@@ -1,5 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 
+import { createRoomFromLobby, enterLobby } from "./helpers/lobby.js";
 import { closeRaceClients, createRaceClients } from "./helpers/multi-client.js";
 
 test("US1 players can finish a race and return to waiting after the host resets from results", async ({ browser }) => {
@@ -11,15 +12,10 @@ test("US1 players can finish a race and return to waiting after the host resets 
     await host.page.setViewportSize({ width: 2048, height: 1330 });
     await guest.page.setViewportSize({ width: 2048, height: 1330 });
 
-    await host.page.goto("/");
-    await host.page.getByLabel("닉네임").fill("호1");
-    await host.page.getByRole("button", { name: "입장" }).click();
-    await host.page.getByLabel("방 이름").fill(roomName);
-    await host.page.getByRole("button", { name: "방 만들기" }).click();
+    await enterLobby(host.page, "호1");
+    await createRoomFromLobby(host.page, roomName);
 
-    await guest.page.goto("/");
-    await guest.page.getByLabel("닉네임").fill("게2");
-    await guest.page.getByRole("button", { name: "입장" }).click();
+    await enterLobby(guest.page, "게2");
     await guest.page.getByRole("button", { name: `입장 ${roomName}` }).click();
 
     const waitingLayout = await readLayout(host.page);
@@ -48,7 +44,7 @@ test("US1 players can finish a race and return to waiting after the host resets 
     await host.page.keyboard.press("ArrowRight");
     await expect.poll(async () => readLayout(host.page)).toEqual(playingLayout);
 
-    await moveRight(host.page, 5);
+    await moveRight(host.page, 8);
     await moveRight(guest.page, 12);
 
     await expect(host.page.getByTestId("results-overlay")).toBeVisible({

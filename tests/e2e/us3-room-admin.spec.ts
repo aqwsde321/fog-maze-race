@@ -1,5 +1,6 @@
 import { expect, test } from "@playwright/test";
 
+import { createRoomFromLobby, enterLobby } from "./helpers/lobby.js";
 import { closeRaceClients, createRaceClients } from "./helpers/multi-client.js";
 
 test("US3 hosts can hand off authority and force-end the next round", async ({
@@ -9,20 +10,13 @@ test("US3 hosts can hand off authority and force-end the next round", async ({
   const [host, guest, watcher] = clients;
 
   try {
-    await host.page.goto("/");
-    await host.page.getByLabel("닉네임").fill("호1");
-    await host.page.getByRole("button", { name: "입장" }).click();
-    await host.page.getByLabel("방 이름").fill("Alpha");
-    await host.page.getByRole("button", { name: "방 만들기" }).click();
+    await enterLobby(host.page, "호1");
+    await createRoomFromLobby(host.page, "Alpha");
 
-    await guest.page.goto("/");
-    await guest.page.getByLabel("닉네임").fill("게2");
-    await guest.page.getByRole("button", { name: "입장" }).click();
+    await enterLobby(guest.page, "게2");
     await guest.page.getByRole("button", { name: "입장 Alpha" }).click();
 
-    await watcher.page.goto("/");
-    await watcher.page.getByLabel("닉네임").fill("관3");
-    await watcher.page.getByRole("button", { name: "입장" }).click();
+    await enterLobby(watcher.page, "관3");
 
     await expect(watcher.page.getByRole("button", { name: "입장 Alpha" })).toBeVisible({
       timeout: 6_000

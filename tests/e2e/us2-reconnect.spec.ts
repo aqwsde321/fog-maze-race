@@ -1,5 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 
+import { createRoomFromLobby, enterLobby } from "./helpers/lobby.js";
 import { closeRaceClients, createRaceClients } from "./helpers/multi-client.js";
 
 test("US2 reconnects a disconnected player into the active room", async ({ browser }) => {
@@ -8,15 +9,10 @@ test("US2 reconnects a disconnected player into the active room", async ({ brows
   const roomName = `B${Date.now().toString().slice(-4)}`;
 
   try {
-    await host.page.goto("/");
-    await host.page.getByLabel("닉네임").fill("호1");
-    await host.page.getByRole("button", { name: "입장" }).click();
-    await host.page.getByLabel("방 이름").fill(roomName);
-    await host.page.getByRole("button", { name: "방 만들기" }).click();
+    await enterLobby(host.page, "호1");
+    await createRoomFromLobby(host.page, roomName);
 
-    await guest.page.goto("/");
-    await guest.page.getByLabel("닉네임").fill("게2");
-    await guest.page.getByRole("button", { name: "입장" }).click();
+    await enterLobby(guest.page, "게2");
     await guest.page.getByRole("button", { name: `입장 ${roomName}` }).click();
 
     await host.page.getByRole("button", { name: "시작" }).click();
@@ -59,15 +55,10 @@ test("US2 blocks recovery after the grace window expires", async ({ browser }) =
   const roomName = `C${Date.now().toString().slice(-4)}`;
 
   try {
-    await host.page.goto("/");
-    await host.page.getByLabel("닉네임").fill("호1");
-    await host.page.getByRole("button", { name: "입장" }).click();
-    await host.page.getByLabel("방 이름").fill(roomName);
-    await host.page.getByRole("button", { name: "방 만들기" }).click();
+    await enterLobby(host.page, "호1");
+    await createRoomFromLobby(host.page, roomName);
 
-    await guest.page.goto("/");
-    await guest.page.getByLabel("닉네임").fill("게2");
-    await guest.page.getByRole("button", { name: "입장" }).click();
+    await enterLobby(guest.page, "게2");
     await guest.page.getByRole("button", { name: `입장 ${roomName}` }).click();
 
     await host.page.getByRole("button", { name: "시작" }).click();

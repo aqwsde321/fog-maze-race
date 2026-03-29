@@ -1,5 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 
+import { createRoomFromLobby, enterLobby } from "./helpers/lobby.js";
 import { closeRaceClients, createRaceClients } from "./helpers/multi-client.js";
 
 test("15-player results overlay stays open, supports scroll, and resets only by button", async ({
@@ -13,8 +14,7 @@ test("15-player results overlay stays open, supports scroll, and resets only by 
 
   try {
     await enterLobby(host.page, "P00");
-    await host.page.getByLabel("방 이름").fill(roomName);
-    await host.page.getByRole("button", { name: "방 만들기" }).click();
+    await createRoomFromLobby(host.page, roomName);
 
     for (const [index, guest] of guests.entries()) {
       await enterLobby(guest.page, `P${String(index + 1).padStart(2, "0")}`);
@@ -77,12 +77,6 @@ test("15-player results overlay stays open, supports scroll, and resets only by 
     await closeRaceClients(clients);
   }
 });
-
-async function enterLobby(page: Page, nickname: string) {
-  await page.goto("/");
-  await page.getByLabel("닉네임").fill(nickname);
-  await page.getByRole("button", { name: "입장" }).click();
-}
 
 async function moveRight(page: Page, steps: number) {
   await page.getByTestId("game-shell").focus();

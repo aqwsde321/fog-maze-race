@@ -133,6 +133,16 @@ describe("HostControls", () => {
     expect(strategySelects).toHaveLength(2);
     expect(strategySelects[0]?.value).toBe("frontier");
     expect(strategySelects[1]?.value).toBe("frontier");
+    const strategyTooltipButton = document.body.querySelector<HTMLButtonElement>('[data-testid="strategy-tooltip-button"]');
+    expect(strategyTooltipButton).not.toBeNull();
+    expect(document.body.querySelector('[data-testid="strategy-tooltip"]')).toBeNull();
+
+    await act(async () => {
+      strategyTooltipButton?.click();
+    });
+
+    expect(document.body.querySelector('[data-testid="strategy-tooltip"]')?.textContent).toContain("Frontier");
+    expect(document.body.querySelector('[data-testid="strategy-tooltip"]')?.textContent).toContain("Tremaux");
 
     await act(async () => {
       const setValue = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")?.set;
@@ -160,6 +170,44 @@ describe("HostControls", () => {
       ]
     });
     expect(document.body.querySelector('[data-testid="bot-panel-overlay"]')).toBeNull();
+  });
+
+  it("hides the strategy tooltip when the bot kind is not explore", async () => {
+    await act(async () => {
+      root.render(
+        <HostControls
+          roomId="room-1"
+          roomName="Alpha"
+          roomMode="normal"
+          visibilitySize={7}
+          canEditVisibility
+          canManageBots
+          availableBotSlots={2}
+          memberNicknames={["host"]}
+          currentBots={[]}
+          onRenameRoom={vi.fn()}
+          onSetVisibilitySize={vi.fn()}
+          onAddBots={vi.fn()}
+          onRemoveBots={vi.fn()}
+        />
+      );
+    });
+
+    const toggleButton = container.querySelector<HTMLButtonElement>('[data-testid="toggle-bot-panel-button"]');
+    await act(async () => {
+      toggleButton?.click();
+    });
+
+    const kindSelect = document.body.querySelector<HTMLSelectElement>('#bot-kind');
+    expect(kindSelect).not.toBeNull();
+
+    await act(async () => {
+      kindSelect!.value = "join";
+      kindSelect!.dispatchEvent(new Event("change", { bubbles: true }));
+    });
+
+    expect(document.body.querySelector('[data-testid="strategy-tooltip-button"]')).toBeNull();
+    expect(document.body.querySelector('[data-testid^="bot-strategy-select-"]')).toBeNull();
   });
 
   it("shows bot count options only up to the remaining room slots", async () => {

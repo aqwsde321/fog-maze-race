@@ -4,6 +4,8 @@ import { createPortal } from "react-dom";
 import type { RoomBotKind, RoomBotRequest, RoomExploreStrategy } from "@fog-maze-race/shared/contracts/realtime";
 import type { RoomMode } from "@fog-maze-race/shared/domain/status";
 
+import { SelectField, baseSelectStyle } from "./SelectField.js";
+
 type HostControlsProps = {
   roomId: string;
   roomName: string;
@@ -43,6 +45,7 @@ export function HostControls({
   const [botKind, setBotKind] = useState<RoomBotKind>("explore");
   const [botCount, setBotCount] = useState<number>(() => resolveBotCount(DEFAULT_BOT_COUNT, availableBotSlots));
   const [isBotPanelOpen, setIsBotPanelOpen] = useState(false);
+  const [isStrategyTooltipOpen, setIsStrategyTooltipOpen] = useState(false);
   const [botNameDrafts, setBotNameDrafts] = useState<string[]>(() =>
     createBotNameDrafts({
       previous: [],
@@ -77,6 +80,7 @@ export function HostControls({
 
   useEffect(() => {
     if (!isBotPanelOpen) {
+      setIsStrategyTooltipOpen(false);
       return;
     }
 
@@ -109,6 +113,12 @@ export function HostControls({
       createBotStrategyDrafts(previous, resolveBotCount(botCount, availableBotSlots))
     );
   }, [availableBotSlots, botCount, roomId]);
+
+  useEffect(() => {
+    if (botKind !== "explore") {
+      setIsStrategyTooltipOpen(false);
+    }
+  }, [botKind]);
 
   void draftName;
   void onRenameRoom;
@@ -209,21 +219,18 @@ export function HostControls({
           <label htmlFor="visibility-size" style={visibilityLabelStyle}>
             시야
           </label>
-          <div style={selectFieldShellStyle}>
-            <select
-              id="visibility-size"
-              name="visibility-size"
-              value={visibilitySize}
-              disabled={!canEditVisibility}
-              onChange={(event) => onSetVisibilitySize(Number(event.target.value) as 3 | 5 | 7)}
-              style={selectStyle}
-            >
+          <SelectField
+            id="visibility-size"
+            name="visibility-size"
+            value={visibilitySize}
+            disabled={!canEditVisibility}
+            onChange={(event) => onSetVisibilitySize(Number(event.target.value) as 3 | 5 | 7)}
+            selectStyle={selectStyle}
+          >
               <option value={7}>7x7</option>
               <option value={5}>5x5</option>
               <option value={3}>3x3</option>
-            </select>
-            <span aria-hidden="true" style={selectChevronStyle}>⌄</span>
-          </div>
+          </SelectField>
         </div>
       </div>
 
@@ -273,50 +280,72 @@ export function HostControls({
                           <label htmlFor="bot-kind" style={botFieldLabelStyle}>
                             종류
                           </label>
-                          <div style={selectFieldShellStyle}>
-                            <select
-                              id="bot-kind"
-                              name="bot-kind"
-                              value={botKind}
-                              disabled={!canManageBots}
-                              onChange={(event) => setBotKind(event.target.value as RoomBotKind)}
-                              style={selectStyle}
-                            >
+                          <SelectField
+                            id="bot-kind"
+                            name="bot-kind"
+                            value={botKind}
+                            disabled={!canManageBots}
+                            onChange={(event) => setBotKind(event.target.value as RoomBotKind)}
+                            selectStyle={selectStyle}
+                          >
                               <option value="explore">탐험형</option>
                               <option value="join">최단 경로형</option>
-                            </select>
-                            <span aria-hidden="true" style={selectChevronStyle}>⌄</span>
-                          </div>
+                          </SelectField>
                         </div>
 
                         <div data-testid="bot-count-field" style={botControlFieldStyle}>
                           <label htmlFor="bot-count" style={botFieldLabelStyle}>
                             수량
                           </label>
-                          <div style={selectFieldShellStyle}>
-                            <select
-                              id="bot-count"
-                              name="bot-count"
-                              value={botCount}
-                              disabled={!canManageBots}
-                              onChange={(event) => setBotCount(Number(event.target.value))}
-                              style={selectStyle}
-                            >
+                          <SelectField
+                            id="bot-count"
+                            name="bot-count"
+                            value={botCount}
+                            disabled={!canManageBots}
+                            onChange={(event) => setBotCount(Number(event.target.value))}
+                            selectStyle={selectStyle}
+                          >
                               {botCountOptions.map((count) => (
                                 <option key={count} value={count}>
                                   {count}명
                                 </option>
                               ))}
-                            </select>
-                            <span aria-hidden="true" style={selectChevronStyle}>⌄</span>
-                          </div>
+                          </SelectField>
                         </div>
                       </div>
                     </section>
 
                     <section data-testid="bot-names-section" style={botSectionCardStyle}>
                       <div style={botSectionHeaderStyle}>
-                        <strong style={botSectionTitleStyle}>봇 이름</strong>
+                        <div style={botSectionTitleRowStyle}>
+                          <strong style={botSectionTitleStyle}>봇 이름</strong>
+                          {botKind === "explore" ? (
+                            <div style={strategyTooltipWrapStyle}>
+                              <button
+                                data-testid="strategy-tooltip-button"
+                                type="button"
+                                aria-label="탐험 전략 설명"
+                                aria-expanded={isStrategyTooltipOpen}
+                                onClick={() => setIsStrategyTooltipOpen((previous) => !previous)}
+                                style={strategyTooltipButtonStyle}
+                              >
+                                전략 설명
+                              </button>
+                              {isStrategyTooltipOpen ? (
+                                <div data-testid="strategy-tooltip" role="tooltip" style={strategyTooltipStyle}>
+                                  <div style={strategyTooltipSectionStyle}>
+                                    <strong style={strategyTooltipLabelStyle}>Frontier</strong>
+                                    <span style={strategyTooltipTextStyle}>현재 보이는 미지 경계를 넓게 찾는 기본 탐험형입니다.</span>
+                                  </div>
+                                  <div style={strategyTooltipSectionStyle}>
+                                    <strong style={strategyTooltipLabelStyle}>Tremaux</strong>
+                                    <span style={strategyTooltipTextStyle}>이미 지난 통로를 더 강하게 피해서 같은 복도 반복을 줄입니다.</span>
+                                  </div>
+                                </div>
+                              ) : null}
+                            </div>
+                          ) : null}
+                        </div>
                         <span style={botSectionMetaStyle}>기본 이름을 수정해서 바로 추가할 수 있습니다.</span>
                       </div>
 
@@ -645,6 +674,13 @@ const botSectionHeaderStyle: CSSProperties = {
   gap: "3px"
 };
 
+const botSectionTitleRowStyle: CSSProperties = {
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "space-between",
+  gap: "8px"
+};
+
 const botSectionTitleStyle: CSSProperties = {
   color: "#f8fafc",
   fontSize: "0.8rem"
@@ -705,6 +741,56 @@ const botInputWrapStyle: CSSProperties = {
 
 const botStrategyWrapStyle: CSSProperties = {
   minWidth: "112px"
+};
+
+const strategyTooltipWrapStyle: CSSProperties = {
+  position: "relative",
+  display: "inline-flex",
+  alignItems: "center",
+  flexShrink: 0
+};
+
+const strategyTooltipButtonStyle: CSSProperties = {
+  minHeight: "24px",
+  padding: "3px 8px",
+  borderRadius: "999px",
+  border: "1px solid rgba(125, 211, 252, 0.2)",
+  background: "rgba(56, 189, 248, 0.08)",
+  color: "#bae6fd",
+  cursor: "pointer",
+  fontSize: "0.68rem",
+  whiteSpace: "nowrap"
+};
+
+const strategyTooltipStyle: CSSProperties = {
+  position: "absolute",
+  top: "calc(100% + 8px)",
+  right: 0,
+  zIndex: 2,
+  display: "grid",
+  gap: "8px",
+  width: "220px",
+  padding: "10px",
+  borderRadius: "12px",
+  border: "1px solid rgba(125, 211, 252, 0.16)",
+  background: "rgba(8, 15, 30, 0.98)",
+  boxShadow: "0 18px 40px rgba(2, 6, 23, 0.36)"
+};
+
+const strategyTooltipSectionStyle: CSSProperties = {
+  display: "grid",
+  gap: "3px"
+};
+
+const strategyTooltipLabelStyle: CSSProperties = {
+  color: "#f8fafc",
+  fontSize: "0.74rem"
+};
+
+const strategyTooltipTextStyle: CSSProperties = {
+  color: "#94a3b8",
+  fontSize: "0.7rem",
+  lineHeight: 1.45
 };
 
 const botManageSectionStyle: CSSProperties = {
@@ -779,19 +865,7 @@ const fullBotRoomMetaStyle: CSSProperties = {
 };
 
 const selectStyle: CSSProperties = {
-  width: "100%",
-  minHeight: "34px",
-  padding: "6px 34px 6px 10px",
-  borderRadius: "10px",
-  border: "1px solid rgba(15, 23, 42, 0.16)",
-  background: "linear-gradient(180deg, rgba(15, 23, 42, 0.96), rgba(30, 41, 59, 0.92))",
-  color: "#f8fafc",
-  fontSize: "0.78rem",
-  fontWeight: 600,
-  appearance: "none",
-  WebkitAppearance: "none",
-  MozAppearance: "none",
-  boxSizing: "border-box"
+  ...baseSelectStyle
 };
 
 const miniSelectShellStyle: CSSProperties = {
@@ -896,26 +970,4 @@ const toggleButtonStyle: CSSProperties = {
 
 const botToggleWrapStyle: CSSProperties = {
   display: "grid"
-};
-
-const selectFieldShellStyle: CSSProperties = {
-  position: "relative",
-  minWidth: 0
-};
-
-const selectChevronStyle: CSSProperties = {
-  position: "absolute",
-  right: "10px",
-  top: "50%",
-  transform: "translateY(-50%)",
-  display: "inline-flex",
-  alignItems: "center",
-  justifyContent: "center",
-  width: "18px",
-  height: "18px",
-  borderRadius: "999px",
-  background: "rgba(56, 189, 248, 0.16)",
-  color: "#7dd3fc",
-  fontSize: "0.72rem",
-  pointerEvents: "none"
 };
