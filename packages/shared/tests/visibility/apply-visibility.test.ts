@@ -26,6 +26,20 @@ describe("createVisibilityProjection", () => {
     expect(projection.visiblePlayerIds).toContain("goal-runner");
   });
 
+  it("keeps fake goal tiles visible even when outside the current vision window", () => {
+    const fakeGoal = { x: map.goalZone.minX - 3, y: map.goalZone.minY };
+    const projection = createVisibilityProjection({
+      map: {
+        ...map,
+        fakeGoalTiles: [fakeGoal]
+      },
+      selfPlayerId: "self",
+      members: [{ playerId: "self", position: { x: 10, y: 8 }, state: "playing" }]
+    });
+
+    expect(projection.visibleTileKeys).toContain(`${fakeGoal.x},${fakeGoal.y}`);
+  });
+
   it("hides maze players outside the viewer's 7x7 vision window", () => {
     const projection = createVisibilityProjection({
       map,

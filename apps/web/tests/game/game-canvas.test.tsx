@@ -93,6 +93,28 @@ describe("GameCanvas preview layout", () => {
     expect(selfDot?.style.height).toBe(`${expectedDotSize}px`);
   });
 
+  it("does not render nickname or recent chat bubble in the waiting preview", async () => {
+    const snapshot = buildWaitingSnapshot({
+      chat: [
+        {
+          messageId: "message-1",
+          playerId: "player-1",
+          nickname: "아르민",
+          color: "#fb7185",
+          content: "안녕",
+          sentAt: new Date().toISOString()
+        }
+      ]
+    });
+
+    await act(async () => {
+      root.render(<GameCanvas snapshot={snapshot} selfPlayerId="player-1" />);
+    });
+
+    expect(container.querySelector('[data-testid="preview-player-nickname"]')).toBeNull();
+    expect(container.querySelector('[data-testid="preview-player-chat"]')).toBeNull();
+  });
+
   it("rerenders the live Pixi scene when the canvas container is resized after the game starts", async () => {
     const controller = {
       render: vi.fn(),
@@ -116,7 +138,7 @@ describe("GameCanvas preview layout", () => {
   });
 });
 
-function buildWaitingSnapshot(): RoomSnapshot {
+function buildWaitingSnapshot(overrides?: { chat?: RoomSnapshot["chat"] }): RoomSnapshot {
   const map = getMapById("alpha-run");
   if (!map) {
     throw new Error("alpha-run map not found");
@@ -147,7 +169,7 @@ function buildWaitingSnapshot(): RoomSnapshot {
         isHost: true
       }
     ],
-    chat: [],
+    chat: overrides?.chat ?? [],
     previewMap: {
       mapId: map.mapId,
       width: map.width,

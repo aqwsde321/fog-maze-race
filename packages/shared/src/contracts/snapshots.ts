@@ -38,6 +38,7 @@ export type MapView = {
   goalZone: ZoneBounds;
   startSlots: GridPosition[];
   connectorTiles: GridPosition[];
+  fakeGoalTiles?: GridPosition[];
   visibilityRadius: number;
 };
 

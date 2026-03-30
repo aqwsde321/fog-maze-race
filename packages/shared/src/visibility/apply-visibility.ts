@@ -2,6 +2,7 @@ import type { GridPosition } from "../domain/grid-position.js";
 import type { RoomMemberState } from "../domain/status.js";
 import {
   isConnectorTile,
+  isFakeGoalTile,
   isInsideZone,
   type MapDefinition
 } from "../maps/map-definitions.js";
@@ -68,6 +69,7 @@ export function createVisibilityProjection(input: {
         isInsideZone(input.map.startZone, position) ||
         isConnectorTile(input.map, position) ||
         (revealGoalZone && isInsideZone(input.map.goalZone, position)) ||
+        (revealGoalZone && isFakeGoalTile(input.map, position)) ||
         withinVision(self.position, position, input.map.visibilityRadius)
       ) {
         visibleTiles.add(toTileKey(position));

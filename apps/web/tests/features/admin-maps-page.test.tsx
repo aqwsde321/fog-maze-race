@@ -189,6 +189,58 @@ describe("AdminMapsPage", () => {
     expect(container.querySelector('[data-testid="maze-cell-4-2"]')?.getAttribute("data-connected-route")).toBe("false");
     expect(container.querySelector('[data-testid="maze-cell-0-0"]')?.getAttribute("data-connected-route")).toBe("false");
   });
+
+  it("lets the editor paint fake goal tiles and includes them in the saved maze rows", async () => {
+    const baseMap = buildAdminMap({
+      mapId: "alpha-run",
+      name: "Alpha Run",
+      origin: "default"
+    });
+    const updatedMap = buildAdminMap({
+      mapId: "alpha-run",
+      name: "Alpha Run",
+      origin: "override"
+    });
+
+    fetchMock
+      .mockResolvedValueOnce(jsonResponse({ maps: [baseMap] }))
+      .mockResolvedValueOnce(jsonResponse({ map: updatedMap }))
+      .mockResolvedValueOnce(jsonResponse({ maps: [updatedMap] }));
+
+    await act(async () => {
+      root.render(<AdminMapsPage />);
+    });
+    await flush();
+
+    const fakeGoalTool = [...container.querySelectorAll("button")].find((button) => button.getAttribute("aria-label") === "꽝 도구");
+    const targetCell = container.querySelector('[data-testid="maze-cell-1-1"]');
+    const saveButton = [...container.querySelectorAll("button")].find((button) => button.textContent?.includes("변경 저장"));
+
+    expect(fakeGoalTool).toBeTruthy();
+    expect(targetCell).toBeTruthy();
+    expect(saveButton).toBeTruthy();
+
+    await act(async () => {
+      fakeGoalTool!.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    });
+    await flush();
+
+    await act(async () => {
+      targetCell!.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    });
+
+    await act(async () => {
+      saveButton!.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    });
+    await flush();
+
+    const body = JSON.parse(fetchMock.mock.calls[1]![1]!.body as string) as {
+      name: string;
+      mazeRows: string[];
+    };
+
+    expect(body.mazeRows[1]?.[1]).toBe("F");
+  });
 });
 
 function buildAdminMap(input: Pick<AdminMapRecord, "mapId" | "name" | "origin">): AdminMapRecord {

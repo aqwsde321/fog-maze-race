@@ -168,6 +168,206 @@ describe("GameScreen keyboard control", () => {
     expect(onMove).toHaveBeenCalledWith("right");
   });
 
+  it("opens quick chat with slash and sends the message on enter", async () => {
+    const onSendChatMessage = vi.fn();
+
+    await act(async () => {
+      root.render(
+        <GameScreen
+          snapshot={buildSnapshot("waiting")}
+          selfPlayerId="player-1"
+          countdownValue={null}
+          onStartGame={vi.fn()}
+          onRenameRoom={vi.fn()}
+          onSetVisibilitySize={vi.fn()}
+          onForceEndRoom={vi.fn()}
+          onResetToWaiting={vi.fn()}
+          onLeaveRoom={vi.fn()}
+          onMove={vi.fn()}
+          onSendChatMessage={onSendChatMessage}
+        />
+      );
+    });
+
+    const openEvent = new KeyboardEvent("keydown", {
+      key: "/",
+      bubbles: true,
+      cancelable: true
+    });
+
+    await act(async () => {
+      getGameShell().dispatchEvent(openEvent);
+    });
+    await flush();
+
+    const quickChatInput = container.querySelector<HTMLInputElement>('[data-testid="quick-chat-input"]');
+
+    expect(openEvent.defaultPrevented).toBe(true);
+    expect(quickChatInput).not.toBeNull();
+
+    await act(async () => {
+      const valueSetter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")?.set;
+      valueSetter?.call(quickChatInput, "테스트");
+      quickChatInput!.dispatchEvent(new Event("input", { bubbles: true }));
+    });
+
+    const submitEvent = new KeyboardEvent("keydown", {
+      key: "Enter",
+      bubbles: true,
+      cancelable: true
+    });
+
+    await act(async () => {
+      quickChatInput?.dispatchEvent(submitEvent);
+    });
+    await flush();
+    await act(async () => {
+      await new Promise<void>((resolve) => {
+        requestAnimationFrame(() => {
+          resolve();
+        });
+      });
+    });
+
+    expect(onSendChatMessage).toHaveBeenCalledWith("테스트");
+    expect(container.querySelector('[data-testid="quick-chat-composer"]')).toBeNull();
+    expect(document.activeElement).toBe(getGameShell());
+  });
+
+  it("shows a centered fake-goal alert when the local player steps onto a fake goal tile", async () => {
+    vi.useFakeTimers();
+    const initialSnapshot = buildSnapshot("playing");
+    const movedSnapshot: RoomSnapshot = {
+      ...initialSnapshot,
+      revision: 2,
+      members: initialSnapshot.members.map((member) => (
+        member.playerId === "player-1"
+          ? {
+              ...member,
+              position: { x: 4, y: 1 }
+            }
+          : member
+      )),
+      match: initialSnapshot.match
+        ? {
+            ...initialSnapshot.match,
+            map: {
+              ...initialSnapshot.match.map,
+              fakeGoalTiles: [{ x: 4, y: 1 }]
+            }
+          }
+        : null
+    };
+
+    await act(async () => {
+      root.render(
+        <GameScreen
+          snapshot={{
+            ...initialSnapshot,
+            match: initialSnapshot.match
+              ? {
+                  ...initialSnapshot.match,
+                  map: {
+                    ...initialSnapshot.match.map,
+                    fakeGoalTiles: [{ x: 4, y: 1 }]
+                  }
+                }
+              : null
+          }}
+          selfPlayerId="player-1"
+          countdownValue={null}
+          onStartGame={vi.fn()}
+          onRenameRoom={vi.fn()}
+          onSetVisibilitySize={vi.fn()}
+          onForceEndRoom={vi.fn()}
+          onResetToWaiting={vi.fn()}
+          onLeaveRoom={vi.fn()}
+          onMove={vi.fn()}
+          onSendChatMessage={vi.fn()}
+        />
+      );
+    });
+
+    expect(container.querySelector('[data-testid="fake-goal-alert"]')).toBeNull();
+
+    await act(async () => {
+      root.render(
+        <GameScreen
+          snapshot={movedSnapshot}
+          selfPlayerId="player-1"
+          countdownValue={null}
+          onStartGame={vi.fn()}
+          onRenameRoom={vi.fn()}
+          onSetVisibilitySize={vi.fn()}
+          onForceEndRoom={vi.fn()}
+          onResetToWaiting={vi.fn()}
+          onLeaveRoom={vi.fn()}
+          onMove={vi.fn()}
+          onSendChatMessage={vi.fn()}
+        />
+      );
+    });
+
+    expect(container.querySelector('[data-testid="fake-goal-alert"]')?.textContent).toContain("꽝");
+
+    await act(async () => {
+      vi.advanceTimersByTime(900);
+    });
+
+    expect(container.querySelector('[data-testid="fake-goal-alert"]')).toBeNull();
+  });
+
+  it("does not show the fake-goal alert when another player stands on a fake goal tile", async () => {
+    const snapshot = buildSnapshot("playing");
+
+    await act(async () => {
+      root.render(
+        <GameScreen
+          snapshot={{
+            ...snapshot,
+            revision: 2,
+            members: [
+              ...snapshot.members,
+              {
+                playerId: "player-2",
+                nickname: "호2",
+                kind: "human",
+                color: "#fb7185",
+                shape: "square",
+                role: "racer",
+                state: "playing",
+                position: { x: 4, y: 1 },
+                finishRank: null,
+                isHost: false
+              }
+            ],
+            match: snapshot.match
+              ? {
+                  ...snapshot.match,
+                  map: {
+                    ...snapshot.match.map,
+                    fakeGoalTiles: [{ x: 4, y: 1 }]
+                  }
+                }
+              : null
+          }}
+          selfPlayerId="player-1"
+          countdownValue={null}
+          onStartGame={vi.fn()}
+          onRenameRoom={vi.fn()}
+          onSetVisibilitySize={vi.fn()}
+          onForceEndRoom={vi.fn()}
+          onResetToWaiting={vi.fn()}
+          onLeaveRoom={vi.fn()}
+          onMove={vi.fn()}
+          onSendChatMessage={vi.fn()}
+        />
+      );
+    });
+
+    expect(container.querySelector('[data-testid="fake-goal-alert"]')).toBeNull();
+  });
+
   it("renders a centered countdown overlay during countdown", async () => {
     await act(async () => {
       root.render(

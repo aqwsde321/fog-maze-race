@@ -11,7 +11,12 @@ import {
 } from "@fog-maze-race/shared/domain/player-marker-shape";
 import type { RoomExploreStrategy } from "@fog-maze-race/shared/domain/room-bot-strategy";
 import type { MatchStatus, RoomMemberRole, RoomMode, RoomMemberState } from "@fog-maze-race/shared/domain/status";
-import type { MapDefinition } from "@fog-maze-race/shared/maps/map-definitions";
+import {
+  isInsideZone,
+  isWalkableTile,
+  type MapDefinition
+} from "@fog-maze-race/shared/maps/map-definitions";
+import type { GridPosition } from "@fog-maze-race/shared/domain/grid-position";
 
 import { MatchAggregate } from "../core/match.js";
 import { PlayerSession } from "../core/player-session.js";
@@ -43,10 +48,13 @@ export type RoomRuntime = {
   room: RoomAggregate;
   match: MatchAggregate | null;
   previewMapId: string;
+  fakeGoalTiles: GridPosition[];
   visibilitySize: 3 | 5 | 7;
   shapeDeck: PlayerMarkerShape[];
   shapeCursor: number;
 };
+
+const NORMAL_ROOM_FAKE_GOAL_COUNT = 3;
 
 export class RoomService {
   private readonly rooms = new Map<string, RoomRuntime>();
@@ -99,6 +107,7 @@ export class RoomService {
       room,
       match: null,
       previewMapId,
+      fakeGoalTiles: createFakeGoalTiles(previewMap, mode, this.random),
       visibilitySize: 5,
       shapeDeck,
       shapeCursor: 1
@@ -160,7 +169,7 @@ export class RoomService {
 
   getPreviewMap(roomId: string) {
     const runtime = this.requireRuntime(roomId);
-    return this.mapRegistry.get(runtime.previewMapId);
+    return decorateMapWithFakeGoals(this.mapRegistry.get(runtime.previewMapId), runtime.fakeGoalTiles);
   }
 
   setPreviewMap(roomId: string, mapId?: string) {
@@ -171,6 +180,7 @@ export class RoomService {
     }
 
     runtime.previewMapId = nextMap.mapId;
+    runtime.fakeGoalTiles = createFakeGoalTiles(nextMap, runtime.room.mode, this.random);
     this.bumpStreamRevision(roomId);
   }
 
@@ -310,7 +320,7 @@ export class RoomService {
   getSnapshot(roomId: string): RoomSnapshot {
     const runtime = this.requireRuntime(roomId);
     const revision = Math.max(runtime.room.revision, this.revisionSync.peek(roomId));
-    const previewMap = this.mapRegistry.get(runtime.previewMapId);
+    const previewMap = this.getPreviewMap(roomId);
 
     return {
       revision,
@@ -440,8 +450,62 @@ function serializeMap(map: MapDefinition, visibilityRadius = map.visibilityRadiu
     goalZone: map.goalZone,
     startSlots: [...map.startSlots],
     connectorTiles: [...map.connectorTiles],
+    fakeGoalTiles: [...(map.fakeGoalTiles ?? [])],
     visibilityRadius
   };
+}
+
+function decorateMapWithFakeGoals(map: MapDefinition | null, fakeGoalTiles: GridPosition[]): MapDefinition | null {
+  if (!map) {
+    return null;
+  }
+
+  return {
+    ...map,
+    fakeGoalTiles: [...fakeGoalTiles]
+  };
+}
+
+function createFakeGoalTiles(
+  map: MapDefinition | null,
+  mode: RoomMode,
+  random: () => number,
+  count = NORMAL_ROOM_FAKE_GOAL_COUNT
+) {
+  if (!map || mode !== "normal") {
+    return [];
+  }
+
+  if ((map.fakeGoalTiles ?? []).length > 0) {
+    return [...(map.fakeGoalTiles ?? [])];
+  }
+
+  const candidates: GridPosition[] = [];
+
+  for (let y = map.mazeZone.minY; y <= map.mazeZone.maxY; y += 1) {
+    for (let x = map.mazeZone.minX; x <= map.mazeZone.maxX; x += 1) {
+      const position = { x, y };
+      if (!isWalkableTile(map, position) || isInsideZone(map.goalZone, position)) {
+        continue;
+      }
+
+      candidates.push(position);
+    }
+  }
+
+  const selected: GridPosition[] = [];
+  const pool = [...candidates];
+  const selectionCount = Math.min(count, pool.length);
+
+  for (let index = 0; index < selectionCount; index += 1) {
+    const nextIndex = Math.floor(random() * pool.length);
+    const [picked] = pool.splice(nextIndex, 1);
+    if (picked) {
+      selected.push(picked);
+    }
+  }
+
+  return selected;
 }
 
 function toVisibilityRadius(visibilitySize: 3 | 5 | 7) {

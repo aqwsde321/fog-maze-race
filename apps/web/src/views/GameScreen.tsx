@@ -12,6 +12,7 @@ import { ResultOverlay } from "../features/rooms/ResultOverlay.js";
 import type { GameResultLogEntry } from "../features/rooms/result-log.js";
 import { RoomChatPanel } from "../features/rooms/RoomChatPanel.js";
 import { GameCanvas } from "../game/GameCanvas.js";
+import { resolvePlayerOverlayAnchor } from "../game/player-overlay-layout.js";
 import { getSocketClient } from "../services/socket-client.js";
 
 type GameScreenProps = {
@@ -33,6 +34,7 @@ type GameScreenProps = {
 
 const SERVER_HEALTH_POLL_INTERVAL_MS = 2_000;
 const SERVER_METRIC_HISTORY_LIMIT = 16;
+const FAKE_GOAL_ALERT_DURATION_MS = 900;
 const SHELL_RAIL_WIDTH = "clamp(156px, 10.5vw, 178px)";
 const SHELL_COLUMN_GAP = "clamp(6px, 0.8vw, 10px)";
 const SHELL_EDGE_OFFSET = "clamp(8px, 1vw, 12px)";
@@ -45,6 +47,30 @@ type PingMetricState = {
 type TrendMetricKey = "cpu" | "fanout" | "heap" | "loop" | "ping" | "rss";
 
 type MetricHistory = Record<TrendMetricKey, number[]>;
+
+type CanvasMetrics = {
+  width: number;
+  height: number;
+  offsetLeft: number;
+  offsetTop: number;
+  frameWidth: number;
+  frameHeight: number;
+};
+
+type QuickChatPlacement = {
+  anchorX: number;
+  anchorY: number;
+  direction: "above" | "below";
+};
+
+const EMPTY_CANVAS_METRICS: CanvasMetrics = {
+  width: 0,
+  height: 0,
+  offsetLeft: 0,
+  offsetTop: 0,
+  frameWidth: 0,
+  frameHeight: 0
+};
 
 function createEmptyMetricHistory(): MetricHistory {
   return {
@@ -75,10 +101,14 @@ export function GameScreen({
 }: GameScreenProps) {
   const canvasFrameRef = useRef<HTMLDivElement | null>(null);
   const quickChatInputRef = useRef<HTMLInputElement | null>(null);
+  const fakeGoalAlertTimeoutRef = useRef<number | null>(null);
+  const previousSelfTileKeyRef = useRef<string | null>(null);
   const [isChatPanelOpen, setIsChatPanelOpen] = useState(false);
   const [isQuickChatOpen, setIsQuickChatOpen] = useState(false);
+  const [isFakeGoalAlertVisible, setIsFakeGoalAlertVisible] = useState(false);
   const [quickChatDraft, setQuickChatDraft] = useState("");
   const [isQuickChatComposing, setIsQuickChatComposing] = useState(false);
+  const [canvasMetrics, setCanvasMetrics] = useState<CanvasMetrics>(EMPTY_CANVAS_METRICS);
   const [isServerPanelOpen, setIsServerPanelOpen] = useState(false);
   const [serverHealth, setServerHealth] = useState<ServerHealthSnapshot | null>(null);
   const [serverHealthError, setServerHealthError] = useState<string | null>(null);
@@ -104,7 +134,17 @@ export function GameScreen({
       nickname: member.nickname,
       strategy: member.exploreStrategy ?? null
     }));
+  const activeMap = snapshot.match?.map ?? snapshot.previewMap;
   const serverMetrics = serverHealth ? buildServerMetrics(serverHealth, snapshot.members.length, pingMetric, metricHistory) : [];
+  const quickChatAnchor = canvasMetrics.width > 0 && canvasMetrics.height > 0
+    ? resolvePlayerOverlayAnchor({
+        snapshot,
+        playerId: selfPlayerId,
+        viewportWidth: canvasMetrics.width,
+        viewportHeight: canvasMetrics.height
+      })
+    : null;
+  const quickChatPlacement = resolveQuickChatPlacement(quickChatAnchor, canvasMetrics);
 
   useEffect(() => {
     if (!canMove) {
@@ -115,6 +155,45 @@ export function GameScreen({
   }, [canMove, snapshot.room.status]);
 
   useEffect(() => {
+    return () => {
+      if (fakeGoalAlertTimeoutRef.current !== null) {
+        window.clearTimeout(fakeGoalAlertTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    const selfMember = selfPlayerId
+      ? snapshot.members.find((member) => member.playerId === selfPlayerId)
+      : null;
+    const selfPosition = selfMember?.position ?? null;
+    const currentTileKey = selfPosition ? toPositionKey(selfPosition) : null;
+    const steppedOntoFakeGoal =
+      currentTileKey !== previousSelfTileKeyRef.current &&
+      Boolean(
+        selfPosition &&
+        (activeMap?.fakeGoalTiles ?? []).some(
+          (tile) => tile.x === selfPosition.x && tile.y === selfPosition.y
+        )
+      );
+
+    previousSelfTileKeyRef.current = currentTileKey;
+    if (!steppedOntoFakeGoal) {
+      return;
+    }
+
+    if (fakeGoalAlertTimeoutRef.current !== null) {
+      window.clearTimeout(fakeGoalAlertTimeoutRef.current);
+    }
+
+    setIsFakeGoalAlertVisible(true);
+    fakeGoalAlertTimeoutRef.current = window.setTimeout(() => {
+      setIsFakeGoalAlertVisible(false);
+      fakeGoalAlertTimeoutRef.current = null;
+    }, FAKE_GOAL_ALERT_DURATION_MS);
+  }, [activeMap, selfPlayerId, snapshot.members, snapshot.revision]);
+
+  useEffect(() => {
     if (!isQuickChatOpen) {
       return;
     }
@@ -123,6 +202,56 @@ export function GameScreen({
       quickChatInputRef.current?.focus({ preventScroll: true });
     });
   }, [isQuickChatOpen]);
+
+  useEffect(() => {
+    const frame = canvasFrameRef.current;
+    if (!frame) {
+      return;
+    }
+
+    const findCanvas = () => frame.querySelector<HTMLElement>('[data-testid="game-canvas"]');
+    const updateCanvasMetrics = () => {
+      const canvas = findCanvas();
+      if (!canvas) {
+        setCanvasMetrics({
+          width: frame.clientWidth,
+          height: frame.clientHeight,
+          offsetLeft: 0,
+          offsetTop: 0,
+          frameWidth: frame.clientWidth,
+          frameHeight: frame.clientHeight
+        });
+        return;
+      }
+
+      setCanvasMetrics({
+        width: canvas.clientWidth,
+        height: canvas.clientHeight,
+        offsetLeft: canvas.offsetLeft,
+        offsetTop: canvas.offsetTop,
+        frameWidth: frame.clientWidth,
+        frameHeight: frame.clientHeight
+      });
+    };
+
+    updateCanvasMetrics();
+    if (typeof ResizeObserver === "undefined") {
+      return;
+    }
+
+    const observer = new ResizeObserver(() => {
+      updateCanvasMetrics();
+    });
+    observer.observe(frame);
+    const canvas = findCanvas();
+    if (canvas) {
+      observer.observe(canvas);
+    }
+
+    return () => {
+      observer.disconnect();
+    };
+  }, [snapshot.revision, snapshot.room.status]);
 
   useEffect(() => {
     const resetViewportScroll = () => {
@@ -357,7 +486,7 @@ export function GameScreen({
           {isQuickChatOpen ? (
             <div
               data-testid="quick-chat-composer"
-              style={quickChatComposerWrapStyle}
+              style={quickChatComposerWrapStyle(quickChatPlacement)}
               onPointerDown={(event) => {
                 event.stopPropagation();
               }}
@@ -395,7 +524,7 @@ export function GameScreen({
                   }}
                 />
                 <span style={quickChatHintStyle}>Enter 전송 · Esc 취소</span>
-                <span style={quickChatTailStyle} aria-hidden="true" />
+                <span style={quickChatTailStyle(quickChatPlacement?.direction ?? "above")} aria-hidden="true" />
               </div>
             </div>
           ) : null}
@@ -430,6 +559,16 @@ export function GameScreen({
               <div style={countdownCardStyle}>
                 <p style={countdownLabelStyle}>시작까지</p>
                 <strong style={countdownValueStyle}>{countdownValue}</strong>
+              </div>
+            </div>
+          ) : null}
+          {isFakeGoalAlertVisible ? (
+            <div data-testid="fake-goal-alert" style={fakeGoalAlertOverlayStyle}>
+              <div style={fakeGoalAlertCardStyle}>
+                <div data-testid="fake-goal-alert-tile" style={fakeGoalAlertTileStyle}>
+                  꽝
+                </div>
+                <p style={fakeGoalAlertCaptionStyle}>가짜 골</p>
               </div>
             </div>
           ) : null}
@@ -704,6 +843,26 @@ function isBlockedGlobalKeyTarget(target: EventTarget | null) {
   }
 
   return Boolean(target.closest("button, a, summary, [role='button'], [role='link']"));
+}
+
+function resolveQuickChatPlacement(anchor: ReturnType<typeof resolvePlayerOverlayAnchor>, metrics: CanvasMetrics): QuickChatPlacement | null {
+  if (!anchor || metrics.frameWidth <= 0 || metrics.frameHeight <= 0) {
+    return null;
+  }
+
+  const targetX = metrics.offsetLeft + anchor.centerX;
+  const targetY = metrics.offsetTop + anchor.centerY;
+  const minAnchorX = Math.min(170, Math.floor(metrics.frameWidth / 2));
+  const maxAnchorX = Math.max(minAnchorX, metrics.frameWidth - 170);
+  const direction = targetY >= 180 ? "above" : "below";
+
+  return {
+    anchorX: Math.min(maxAnchorX, Math.max(minAnchorX, targetX)),
+    anchorY: direction === "above"
+      ? Math.max(112, targetY - anchor.markerRadius - 18)
+      : Math.min(metrics.frameHeight - 92, targetY + anchor.markerRadius + 18),
+    direction
+  };
 }
 
 const shellStyle: CSSProperties = {
@@ -1068,14 +1227,27 @@ const canvasFrameStyle: CSSProperties = {
   outline: "none"
 };
 
-const quickChatComposerWrapStyle: CSSProperties = {
-  position: "absolute",
-  left: "50%",
-  bottom: "24px",
-  transform: "translateX(-50%)",
-  zIndex: 5,
-  pointerEvents: "auto"
-};
+function quickChatComposerWrapStyle(placement: QuickChatPlacement | null): CSSProperties {
+  if (!placement) {
+    return {
+      position: "absolute",
+      left: "50%",
+      bottom: "24px",
+      transform: "translateX(-50%)",
+      zIndex: 5,
+      pointerEvents: "auto"
+    };
+  }
+
+  return {
+    position: "absolute",
+    left: `${placement.anchorX}px`,
+    top: `${placement.anchorY}px`,
+    transform: placement.direction === "above" ? "translate(-50%, -100%)" : "translate(-50%, 0)",
+    zIndex: 5,
+    pointerEvents: "auto"
+  };
+}
 
 const quickChatComposerStyle: CSSProperties = {
   position: "relative",
@@ -1108,21 +1280,44 @@ const quickChatHintStyle: CSSProperties = {
   textAlign: "right"
 };
 
-const quickChatTailStyle: CSSProperties = {
-  position: "absolute",
-  left: "50%",
-  bottom: "-7px",
-  width: "14px",
-  height: "14px",
-  transform: "translateX(-50%) rotate(45deg)",
-  background: "rgba(6, 15, 29, 0.98)",
-  borderRight: "1px solid rgba(125, 211, 252, 0.24)",
-  borderBottom: "1px solid rgba(125, 211, 252, 0.24)"
-};
+function quickChatTailStyle(direction: "above" | "below"): CSSProperties {
+  return direction === "above"
+    ? {
+        position: "absolute",
+        left: "50%",
+        bottom: "-7px",
+        width: "14px",
+        height: "14px",
+        transform: "translateX(-50%) rotate(45deg)",
+        background: "rgba(6, 15, 29, 0.98)",
+        borderRight: "1px solid rgba(125, 211, 252, 0.24)",
+        borderBottom: "1px solid rgba(125, 211, 252, 0.24)"
+      }
+    : {
+        position: "absolute",
+        left: "50%",
+        top: "-7px",
+        width: "14px",
+        height: "14px",
+        transform: "translateX(-50%) rotate(45deg)",
+        background: "rgba(6, 15, 29, 0.98)",
+        borderLeft: "1px solid rgba(125, 211, 252, 0.24)",
+        borderTop: "1px solid rgba(125, 211, 252, 0.24)"
+      };
+}
 
 const countdownOverlayStyle: CSSProperties = {
   position: "absolute",
   inset: 0,
+  display: "grid",
+  placeItems: "center",
+  pointerEvents: "none"
+};
+
+const fakeGoalAlertOverlayStyle: CSSProperties = {
+  position: "absolute",
+  inset: 0,
+  zIndex: 6,
   display: "grid",
   placeItems: "center",
   pointerEvents: "none"
@@ -1165,6 +1360,48 @@ const countdownValueStyle: CSSProperties = {
   lineHeight: 1,
   color: "#f8fafc"
 };
+
+const fakeGoalAlertCardStyle: CSSProperties = {
+  display: "grid",
+  justifyItems: "center",
+  gap: "12px",
+  minWidth: "min(280px, calc(100% - 48px))",
+  padding: "24px 28px",
+  borderRadius: "28px",
+  background: "rgba(2, 6, 23, 0.82)",
+  border: "1px solid rgba(250, 204, 21, 0.28)",
+  boxShadow: "0 24px 80px rgba(2, 6, 23, 0.46)",
+  backdropFilter: "blur(8px)"
+};
+
+const fakeGoalAlertTileStyle: CSSProperties = {
+  width: "clamp(88px, 9vw, 112px)",
+  height: "clamp(88px, 9vw, 112px)",
+  display: "grid",
+  placeItems: "center",
+  borderRadius: "22px",
+  background: "linear-gradient(180deg, #fde047 0%, #facc15 52%, #f59e0b 100%)",
+  border: "1px solid rgba(254, 240, 138, 0.8)",
+  boxShadow: "inset 0 1px 0 rgba(255, 255, 255, 0.35), 0 18px 42px rgba(245, 158, 11, 0.32)",
+  color: "#422006",
+  fontSize: "clamp(2.8rem, 6vw, 4.2rem)",
+  fontWeight: 900,
+  lineHeight: 1,
+  letterSpacing: "0.04em"
+};
+
+const fakeGoalAlertCaptionStyle: CSSProperties = {
+  margin: 0,
+  color: "#fde68a",
+  fontSize: "0.9rem",
+  fontWeight: 700,
+  letterSpacing: "0.18em",
+  textTransform: "uppercase"
+};
+
+function toPositionKey(position: { x: number; y: number }) {
+  return `${position.x},${position.y}`;
+}
 
 function formatBytes(value: number) {
   const units = ["B", "KB", "MB", "GB", "TB"];

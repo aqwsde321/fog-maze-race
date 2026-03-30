@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type CSSProperties } from "react";
+import { Fragment, useEffect, useRef, useState, type CSSProperties } from "react";
 
 import type { RoomSnapshot } from "@fog-maze-race/shared/contracts/snapshots";
 import { isInsideZone } from "@fog-maze-race/shared/maps/map-definitions";
@@ -11,7 +11,9 @@ import {
   getPlayerMarkerStyle
 } from "./player-marker.js";
 import { getPlayerRenderOrder } from "./player-render-order.js";
-import { Fragment } from "react";
+import { createPreviewLayout, resolveRenderMembers } from "./player-overlay-layout.js";
+
+export { createPreviewLayout } from "./player-overlay-layout.js";
 
 type GameCanvasProps = {
   snapshot: RoomSnapshot | null;
@@ -152,7 +154,7 @@ function StartZonePreview({
     return <div data-testid="game-canvas" style={canvasShellStyle} />;
   }
 
-  const members = snapshot.members.filter((member) => member.position && isInsideZone(map.startZone, member.position));
+  const members = resolveRenderMembers(snapshot).filter((member) => member.position && isInsideZone(map.startZone, member.position));
   const layout = createPreviewLayout(map, {
     viewportWidth: viewport.width,
     viewportHeight: viewport.height
@@ -209,8 +211,10 @@ function StartZonePreview({
         </div>
         {getPlayerRenderOrder(members, selfPlayerId).map((member) => {
           const position = member.position!;
-          const x = layout.startX + (position.x - map.startZone.minX) * layout.tileSize + layout.tileSize / 2 - dotSize / 2;
-          const y = layout.startY + (position.y - map.startZone.minY) * layout.tileSize + layout.tileSize / 2 - dotSize / 2;
+          const centerX = layout.startX + (position.x - map.startZone.minX) * layout.tileSize + layout.tileSize / 2;
+          const centerY = layout.startY + (position.y - map.startZone.minY) * layout.tileSize + layout.tileSize / 2;
+          const x = centerX - dotSize / 2;
+          const y = centerY - dotSize / 2;
           const shape = member.shape;
           const ringSize = dotSize + 8;
 
@@ -323,66 +327,6 @@ function playerMarkerPieceStyle(size: number): CSSProperties {
     transform: "translate(-50%, -50%)",
     width: `${size}px`,
     height: `${size}px`
-  };
-}
-
-type PreviewLayout = {
-  tileSize: number;
-  startZoneWidth: number;
-  startZoneHeight: number;
-  mazeWidth: number;
-  mazeHeight: number;
-  startX: number;
-  startY: number;
-  mazeX: number;
-  mazeY: number;
-};
-
-export function createPreviewLayout(
-  map: NonNullable<RoomSnapshot["previewMap"]>,
-  input: { viewportWidth: number; viewportHeight: number }
-): PreviewLayout {
-  const viewportWidth = Math.max(320, Math.floor(input.viewportWidth));
-  const viewportHeight = Math.max(320, Math.floor(input.viewportHeight));
-  const startZoneWidth = map.startZone.maxX - map.startZone.minX + 1;
-  const startZoneHeight = map.startZone.maxY - map.startZone.minY + 1;
-  const mazeWidth = map.mazeZone.maxX - map.mazeZone.minX + 1;
-  const mazeHeight = map.mazeZone.maxY - map.mazeZone.minY + 1;
-  const framePadding = 4;
-  let tileSize = Math.max(
-    18,
-    Math.min(
-      92,
-      Math.floor(
-        Math.min(
-          (viewportWidth - framePadding * 2) / (startZoneWidth + mazeWidth),
-          (viewportHeight - framePadding * 2) / mazeHeight
-        )
-      )
-    )
-  );
-  let gap = Math.max(4, Math.floor(tileSize * 0.08));
-
-  while (startZoneWidth * tileSize + gap + mazeWidth * tileSize + framePadding * 2 > viewportWidth && tileSize > 18) {
-    tileSize -= 1;
-    gap = Math.max(4, Math.floor(tileSize * 0.08));
-  }
-
-  const totalWidth = startZoneWidth * tileSize + gap + mazeWidth * tileSize;
-  const totalHeight = Math.max(startZoneHeight, mazeHeight) * tileSize;
-  const startX = Math.max(framePadding, Math.floor((viewportWidth - totalWidth) / 2));
-  const startY = Math.max(framePadding, Math.floor((viewportHeight - totalHeight) / 2));
-
-  return {
-    tileSize,
-    startZoneWidth,
-    startZoneHeight,
-    mazeWidth,
-    mazeHeight,
-    startX,
-    startY,
-    mazeX: startX + startZoneWidth * tileSize + gap,
-    mazeY: startY
   };
 }
 

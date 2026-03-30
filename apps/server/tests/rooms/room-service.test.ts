@@ -260,4 +260,34 @@ describe("RoomService", () => {
       color: "#ff355e"
     });
   });
+
+  it("adds three fake goal tiles only for normal rooms", () => {
+    const service = new RoomService(new RevisionSync(), new MapRegistry(), {
+      forcedPreviewMapId: getMapById("training-lap")!.mapId,
+      random: () => 0
+    });
+    const normalRoom = service.createRoom({
+      session: new PlayerSession({
+        playerId: "normal-host",
+        nickname: "일반방장"
+      }),
+      name: "일반방",
+      mode: "normal"
+    });
+    const botRaceRoom = service.createRoom({
+      session: new PlayerSession({
+        playerId: "bot-host",
+        nickname: "봇방장"
+      }),
+      name: "봇방",
+      mode: "bot_race"
+    });
+
+    expect(normalRoom.snapshot.previewMap?.fakeGoalTiles).toHaveLength(3);
+    expect(normalRoom.snapshot.previewMap?.fakeGoalTiles).not.toContainEqual({
+      x: normalRoom.snapshot.previewMap?.goalZone.minX,
+      y: normalRoom.snapshot.previewMap?.goalZone.minY
+    });
+    expect(botRaceRoom.snapshot.previewMap?.fakeGoalTiles ?? []).toHaveLength(0);
+  });
 });

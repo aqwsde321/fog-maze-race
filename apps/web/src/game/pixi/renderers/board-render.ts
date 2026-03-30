@@ -1,5 +1,6 @@
 import {
   isConnectorTile,
+  isFakeGoalTile,
   isInsideZone,
   type ZoneBounds,
   type MapDefinition
@@ -8,7 +9,7 @@ import type { TileVisibilityState } from "../../tile-memory.js";
 
 type BoardMap = Pick<
   MapDefinition,
-  "width" | "height" | "startZone" | "mazeZone" | "goalZone" | "connectorTiles"
+  "width" | "height" | "startZone" | "mazeZone" | "goalZone" | "connectorTiles" | "fakeGoalTiles"
 >;
 
 export type BoardLayout = {
@@ -84,7 +85,8 @@ export function getTileVisual(input: {
     if (
       !isInsideZone(input.map.startZone, input.position) &&
       !isConnectorTile(input.map, input.position) &&
-      !isInsideZone(input.map.goalZone, input.position)
+      !isInsideZone(input.map.goalZone, input.position) &&
+      !isFakeGoalTile(input.map, input.position)
     ) {
       return {
         fillColor: 0x0e1520,
@@ -108,6 +110,13 @@ export function getTileVisual(input: {
   }
 
   if (isInsideZone(input.map.goalZone, input.position)) {
+    return {
+      fillColor: input.visibility === "visible" ? 0xfacc15 : 0x854d0e,
+      alpha: input.visibility === "visible" ? 1 : 0.82
+    };
+  }
+
+  if (isFakeGoalTile(input.map, input.position)) {
     return {
       fillColor: input.visibility === "visible" ? 0xfacc15 : 0x854d0e,
       alpha: input.visibility === "visible" ? 1 : 0.82

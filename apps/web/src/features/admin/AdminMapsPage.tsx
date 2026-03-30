@@ -4,7 +4,7 @@ import type { AdminMapRecord, UpsertAdminMapPayload } from "@fog-maze-race/share
 import { PLAYABLE_MAZE_SIZE, createBlankMazeRows } from "@fog-maze-race/shared/maps/map-definitions";
 
 type SaveMode = "create" | "update";
-type PaintTool = "wall" | "path" | "goal";
+type PaintTool = "wall" | "path" | "goal" | "fakeGoal";
 
 type DraftMap = {
   mapId: string;
@@ -15,11 +15,12 @@ type DraftMap = {
 const TOOLS: Array<{
   id: PaintTool;
   label: string;
-  tile: "." | "#" | "G";
+  tile: "." | "#" | "G" | "F";
 }> = [
   { id: "path", label: "통로", tile: "." },
   { id: "wall", label: "벽", tile: "#" },
-  { id: "goal", label: "골", tile: "G" }
+  { id: "goal", label: "골", tile: "G" },
+  { id: "fakeGoal", label: "꽝", tile: "F" }
 ];
 
 export function AdminMapsPage() {
@@ -384,7 +385,7 @@ function applyPaint(mazeRows: string[], rowIndex: number, columnIndex: number, t
     return nextRows.map((row) => row.join(""));
   }
 
-  nextRows[rowIndex]![columnIndex] = tool === "wall" ? "#" : ".";
+  nextRows[rowIndex]![columnIndex] = tool === "wall" ? "#" : tool === "fakeGoal" ? "F" : ".";
   return nextRows.map((row) => row.join(""));
 }
 
@@ -433,7 +434,7 @@ function findEntryPoints(mazeRows: string[]) {
 
   for (let y = 0; y < Math.min(5, mazeRows.length); y += 1) {
     const tile = mazeRows[y]?.[0];
-    if (tile === "." || tile === "G") {
+    if (tile === "." || tile === "G" || tile === "F") {
       entries.push({ x: 0, y });
     }
   }
@@ -449,7 +450,7 @@ function getNeighbors(x: number, y: number, mazeRows: string[]) {
     { x, y: y - 1 }
   ].filter((position) => {
     const tile = mazeRows[position.y]?.[position.x];
-    return tile === "." || tile === "G";
+    return tile === "." || tile === "G" || tile === "F";
   });
 }
 
@@ -524,10 +525,10 @@ function badgeStyle(origin: AdminMapRecord["origin"]): CSSProperties {
   };
 }
 
-function toolSwatchStyle(tile: "." | "#" | "G"): CSSProperties {
+function toolSwatchStyle(tile: "." | "#" | "G" | "F"): CSSProperties {
   return {
     ...toolSwatchBaseStyle,
-    background: tile === "#" ? "#6d7d92" : tile === "G" ? "#facc15" : "#1e3a5f"
+    background: tile === "#" ? "#6d7d92" : tile === "G" || tile === "F" ? "#facc15" : "#1e3a5f"
   };
 }
 
@@ -540,7 +541,7 @@ function mazeEditorCellStyle(tile: string, isConnectedRoute: boolean): CSSProper
     cursor: "crosshair",
     userSelect: "none",
     touchAction: "none",
-    background: tile === "#" ? "#6d7d92" : tile === "G" ? "#facc15" : "#1e3a5f",
+    background: tile === "#" ? "#6d7d92" : tile === "G" || tile === "F" ? "#facc15" : "#1e3a5f",
     boxShadow: isConnectedRoute ? "inset 0 0 0 2px rgba(56, 189, 248, 0.92)" : "none"
   };
 }

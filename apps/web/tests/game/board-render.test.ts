@@ -136,4 +136,40 @@ describe("board render helpers", () => {
     expect(rememberedWallTile.alpha).toBeLessThan(1);
     expect(voidTile).toBeNull();
   });
+
+  it("renders fake goal tiles with the same palette as the real goal", () => {
+    const trainingLap = {
+      ...getMapById("training-lap")!,
+      fakeGoalTiles: [{ x: 4, y: 0 }]
+    };
+    const fakeGoalTile = getTileVisual({
+      tile: ".",
+      map: trainingLap,
+      position: { x: 4, y: 0 },
+      visibility: "visible",
+      mode: "live"
+    });
+    const rememberedFakeGoalTile = getTileVisual({
+      tile: ".",
+      map: trainingLap,
+      position: { x: 4, y: 0 },
+      visibility: "remembered",
+      mode: "live"
+    });
+    const realGoalTile = getTileVisual({
+      tile: "G",
+      map: trainingLap,
+      position: { x: trainingLap.goalZone.minX, y: trainingLap.goalZone.minY },
+      visibility: "visible",
+      mode: "live"
+    });
+
+    if (!fakeGoalTile || !rememberedFakeGoalTile || !realGoalTile) {
+      throw new Error("Expected non-void tile visuals for fake and real goals");
+    }
+
+    expect(fakeGoalTile.fillColor).toBe(realGoalTile.fillColor);
+    expect(fakeGoalTile.alpha).toBe(realGoalTile.alpha);
+    expect(rememberedFakeGoalTile.fillColor).toBe(0x854d0e);
+  });
 });

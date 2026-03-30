@@ -18,6 +18,7 @@ export type MapDefinition = {
   goalZone: ZoneBounds;
   startSlots: GridPosition[];
   connectorTiles: GridPosition[];
+  fakeGoalTiles?: GridPosition[];
   visibilityRadius: number;
 };
 
@@ -499,6 +500,7 @@ export function buildMapDefinition(source: EditableMapSource): MapDefinition {
   };
   const rows = composeRows(mazeRows);
   const goalPosition = findGoal(rows);
+  const fakeGoalTiles = findTiles(rows, "F");
 
   return {
     mapId: source.mapId.trim(),
@@ -516,6 +518,7 @@ export function buildMapDefinition(source: EditableMapSource): MapDefinition {
     },
     startSlots: createStartSlots(),
     connectorTiles: createConnectorTiles(),
+    fakeGoalTiles,
     visibilityRadius: 3
   };
 }
@@ -592,7 +595,7 @@ function validateMapSource(source: EditableMapSource) {
     }
 
     for (const tile of row) {
-      if (tile !== "." && tile !== "#" && tile !== "G") {
+      if (tile !== "." && tile !== "#" && tile !== "G" && tile !== "F") {
         throw new Error("MAP_TILE_INVALID");
       }
 
@@ -608,7 +611,7 @@ function validateMapSource(source: EditableMapSource) {
 
   const connectorReachableRows = source.mazeRows
     .slice(0, Math.min(START_ZONE.maxY + 1, source.mazeRows.length))
-    .filter((row) => row[0] === "." || row[0] === "G");
+    .filter((row) => row[0] === "." || row[0] === "G" || row[0] === "F");
 
   if (connectorReachableRows.length === 0) {
     throw new Error("MAP_ENTRY_BLOCKED");
@@ -629,6 +632,20 @@ function findGoal(rows: string[]) {
   }
 
   throw new Error("Map must contain a goal tile");
+}
+
+function findTiles(rows: string[], target: string) {
+  const positions: GridPosition[] = [];
+
+  for (let y = 0; y < rows.length; y += 1) {
+    for (let x = 0; x < rows[y]!.length; x += 1) {
+      if (rows[y]![x] === target) {
+        positions.push({ x, y });
+      }
+    }
+  }
+
+  return positions;
 }
 
 export function getMapById(mapId: string): MapDefinition | undefined {
@@ -665,10 +682,14 @@ export function isConnectorTile(map: Pick<MapDefinition, "connectorTiles">, posi
   return map.connectorTiles.some((tile) => tile.x === position.x && tile.y === position.y);
 }
 
+export function isFakeGoalTile(map: Pick<MapDefinition, "fakeGoalTiles">, position: GridPosition): boolean {
+  return (map.fakeGoalTiles ?? []).some((tile) => tile.x === position.x && tile.y === position.y);
+}
+
 function hasGoalPath(mazeRows: string[]) {
   const startEntries = mazeRows
     .slice(0, Math.min(START_ZONE.maxY + 1, mazeRows.length))
-    .flatMap((row, rowIndex) => (row[0] === "." || row[0] === "G" ? [{ x: 0, y: rowIndex }] : []));
+    .flatMap((row, rowIndex) => (row[0] === "." || row[0] === "G" || row[0] === "F" ? [{ x: 0, y: rowIndex }] : []));
   const goal = findMazeGoal(mazeRows);
 
   const queue = [...startEntries];

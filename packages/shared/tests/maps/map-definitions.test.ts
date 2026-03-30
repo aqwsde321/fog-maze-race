@@ -97,6 +97,26 @@ describe("MAP_DEFINITIONS", () => {
     ).toThrowError("MAP_UNREACHABLE");
   });
 
+  it("parses fake goal tiles as walkable decoys without affecting the real goal count", () => {
+    const rows = createBlankMazeRows();
+    rows[2] = `F${rows[2]!.slice(1)}`;
+
+    const map = buildMapDefinition({
+      mapId: "fake-goal-test",
+      name: "Fake Goal Test",
+      mazeRows: rows
+    });
+
+    expect(map.fakeGoalTiles).toContainEqual({ x: map.mazeZone.minX, y: 2 });
+    expect(isWalkableTile(map, { x: map.mazeZone.minX, y: 2 })).toBe(true);
+    expect(map.goalZone).not.toEqual({
+      minX: map.mazeZone.minX,
+      minY: 2,
+      maxX: map.mazeZone.minX,
+      maxY: 2
+    });
+  });
+
   it("includes ten hard-tier mazes with dense walls and long optimal routes", () => {
     for (const mapId of HARD_MAP_IDS) {
       const map = getMapById(mapId);

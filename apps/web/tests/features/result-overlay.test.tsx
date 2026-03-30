@@ -104,7 +104,7 @@ describe("ResultOverlay", () => {
     expect(resultItems[1]?.querySelectorAll("p")).toHaveLength(0);
   });
 
-  it("shows game logs with time, room, host, and result", async () => {
+  it("does not render game logs inside the result modal", async () => {
     const logs: GameResultLogEntry[] = [
       {
         id: "room-1:101",
@@ -127,11 +127,11 @@ describe("ResultOverlay", () => {
       );
     });
 
-    expect(container.textContent).toContain("게임 기록");
-    expect(container.textContent).toContain("방 이름: Alpha");
-    expect(container.textContent).toContain("방장: 호1");
-    expect(container.textContent).toContain("결과: 1위 호1(00:20.000) / 2위 호2(00:21.000)");
-    expect(container.querySelectorAll('[data-testid="results-history-item"]')).toHaveLength(1);
+    expect(container.textContent).not.toContain("게임 기록");
+    expect(container.textContent).not.toContain("방 이름: Alpha");
+    expect(container.textContent).not.toContain("방장: 호1");
+    expect(container.querySelector('[data-testid="results-history-list"]')).toBeNull();
+    expect(container.querySelectorAll('[data-testid="results-history-item"]')).toHaveLength(0);
   });
 });
 

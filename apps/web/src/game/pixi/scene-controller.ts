@@ -363,6 +363,7 @@ function toVisibilityMap(map: MapView): MapDefinition {
     goalZone: map.goalZone,
     startSlots: map.startSlots,
     connectorTiles: map.connectorTiles,
+    fakeGoalTiles: map.fakeGoalTiles ?? [],
     visibilityRadius: map.visibilityRadius
   };
 }

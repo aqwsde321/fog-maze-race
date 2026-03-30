@@ -1,7 +1,7 @@
 import type { CSSProperties } from "react";
 
 import type { RoomSnapshot } from "@fog-maze-race/shared/contracts/snapshots";
-import { formatLogTime, type GameResultLogEntry } from "./result-log.js";
+import type { GameResultLogEntry } from "./result-log.js";
 
 type ResultOverlayProps = {
   snapshot: RoomSnapshot;
@@ -12,10 +12,9 @@ type ResultOverlayProps = {
 
 const SCROLLABLE_RESULTS_CLASS = "result-overlay-scrollable";
 
-export function ResultOverlay({ snapshot, isHost, gameLogs: logs, onResetToWaiting }: ResultOverlayProps) {
+export function ResultOverlay({ snapshot, isHost, onResetToWaiting }: ResultOverlayProps) {
   const results = snapshot.match?.results ?? [];
   const isVisible = snapshot.room.status === "ended" && results.length > 0;
-  const gameLogs = logs ?? [];
 
   if (!isVisible) {
     return null;
@@ -75,27 +74,6 @@ export function ResultOverlay({ snapshot, isHost, gameLogs: logs, onResetToWaiti
             </article>
           ))}
         </div>
-        {gameLogs.length > 0 ? (
-          <section style={historySectionStyle}>
-            <p style={historyTitleStyle}>게임 기록</p>
-            <div
-              className={SCROLLABLE_RESULTS_CLASS}
-              data-testid="results-history-list"
-              style={historyListStyle}
-            >
-              {gameLogs.map((entry) => (
-                <article key={entry.id} data-testid="results-history-item" style={historyItemStyle}>
-                  <time style={historyTimeStyle}>{formatLogTime(entry.endedAt)}</time>
-                  <p style={historyMetaStyle}>
-                    <span>방 이름: {entry.roomName}</span>
-                    <span>방장: {entry.hostNickname}</span>
-                  </p>
-                  <p style={historyResultStyle}>결과: {entry.result}</p>
-                </article>
-              ))}
-            </div>
-          </section>
-        ) : null}
         {isHost ? (
           <button
             data-testid="results-reset-button"
@@ -160,58 +138,6 @@ const resultListStyle: CSSProperties = {
   maxHeight: "min(48vh, 420px)",
   overflowY: "auto",
   paddingRight: "6px"
-};
-
-const historySectionStyle: CSSProperties = {
-  marginTop: "16px",
-  display: "grid",
-  gap: "10px"
-};
-
-const historyTitleStyle: CSSProperties = {
-  margin: 0,
-  color: "#38bdf8",
-  fontSize: "0.95rem",
-  fontWeight: 700
-};
-
-const historyListStyle: CSSProperties = {
-  display: "grid",
-  gap: "10px",
-  minHeight: 0,
-  maxHeight: "min(36vh, 220px)",
-  overflowY: "auto",
-  paddingRight: "6px"
-};
-
-const historyItemStyle: CSSProperties = {
-  display: "grid",
-  gap: "6px",
-  padding: "12px 14px",
-  borderRadius: "14px",
-  background: "rgba(15, 23, 42, 0.74)",
-  border: "1px solid rgba(125, 211, 252, 0.18)"
-};
-
-const historyTimeStyle: CSSProperties = {
-  color: "#94a3b8",
-  fontSize: "0.76rem"
-};
-
-const historyMetaStyle: CSSProperties = {
-  margin: 0,
-  display: "grid",
-  gap: "4px",
-  fontSize: "0.88rem",
-  color: "#cbd5e1"
-};
-
-const historyResultStyle: CSSProperties = {
-  margin: 0,
-  color: "#fde68a",
-  fontWeight: 700,
-  fontSize: "0.9rem",
-  wordBreak: "break-word"
 };
 
 const resultItemStyle: CSSProperties = {
