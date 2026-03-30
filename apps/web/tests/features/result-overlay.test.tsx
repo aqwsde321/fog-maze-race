@@ -3,6 +3,7 @@ import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { RoomSnapshot } from "@fog-maze-race/shared/contracts/snapshots";
+import type { GameResultLogEntry } from "../../src/features/rooms/result-log.js";
 
 import { ResultOverlay } from "../../src/features/rooms/ResultOverlay.js";
 
@@ -101,6 +102,36 @@ describe("ResultOverlay", () => {
     expect(container.textContent).toContain("00:21.000");
     expect(resultItems[0]?.querySelectorAll("p")).toHaveLength(0);
     expect(resultItems[1]?.querySelectorAll("p")).toHaveLength(0);
+  });
+
+  it("shows game logs with time, room, host, and result", async () => {
+    const logs: GameResultLogEntry[] = [
+      {
+        id: "room-1:101",
+        roomId: "room-1",
+        roomName: "Alpha",
+        hostNickname: "호1",
+        endedAt: "2026-03-23T00:00:00.000Z",
+        result: "1위 호1(00:20.000) / 2위 호2(00:21.000)"
+      }
+    ];
+
+    await act(async () => {
+      root.render(
+        <ResultOverlay
+          snapshot={buildEndedSnapshot()}
+          isHost
+          gameLogs={logs}
+          onResetToWaiting={vi.fn()}
+        />
+      );
+    });
+
+    expect(container.textContent).toContain("게임 기록");
+    expect(container.textContent).toContain("방 이름: Alpha");
+    expect(container.textContent).toContain("방장: 호1");
+    expect(container.textContent).toContain("결과: 1위 호1(00:20.000) / 2위 호2(00:21.000)");
+    expect(container.querySelectorAll('[data-testid="results-history-item"]')).toHaveLength(1);
   });
 });
 

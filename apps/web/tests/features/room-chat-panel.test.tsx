@@ -79,6 +79,7 @@ describe("RoomChatPanel", () => {
     expect(panel?.style.height).toBe("480px");
     expect(log?.style.overflowY).toBe("auto");
     expect(log?.style.minHeight).toBe("0");
+    expect(log?.className).toContain("room-chat-log-scroll");
   });
 });
 

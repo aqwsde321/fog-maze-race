@@ -6,6 +6,7 @@ import type {
   ConnectedPayload,
   CountdownPayload,
   ErrorPayload,
+  GameEndedPayload,
   RoomBotKind,
   RoomBotRequest,
   RoomLeftPayload,
@@ -19,6 +20,7 @@ import { ConnectionBanner } from "../features/session/ConnectionBanner.js";
 import { NicknameGate } from "../features/session/NicknameGate.js";
 import { AdminMapsPage } from "../features/admin/AdminMapsPage.js";
 import { RoomListPanel } from "../features/rooms/RoomListPanel.js";
+import { summarizeGameResult, type GameResultLogEntry } from "../features/rooms/result-log.js";
 import { GameScreen } from "../views/GameScreen.js";
 import { getSocketClient } from "../services/socket-client.js";
 import { useRoomStore } from "../stores/roomStore.js";
@@ -48,6 +50,7 @@ export function App() {
   const [selfPlayerId, setSelfPlayerId] = useState<string | null>(playerId);
   const [countdownValue, setCountdownValue] = useState<number | null>(null);
   const [lastError, setLastError] = useState<string | null>(null);
+  const [gameResultLogs, setGameResultLogs] = useState<GameResultLogEntry[]>([]);
 
   useEffect(() => {
     if (isAdminRoute) {
@@ -154,6 +157,30 @@ export function App() {
       clearRoom();
     };
 
+    const handleGameEnded = (payload: GameEndedPayload) => {
+      const currentSnapshot = useRoomStore.getState().snapshot;
+      if (!currentSnapshot || currentSnapshot.room.roomId !== payload.roomId) {
+        return;
+      }
+
+      const host = currentSnapshot.members.find(
+        (member) => member.playerId === currentSnapshot.room.hostPlayerId
+      );
+
+      const nextLogEntry: GameResultLogEntry = {
+        id: `${payload.roomId}-${payload.revision}`,
+        roomId: payload.roomId,
+        roomName: currentSnapshot.room.name,
+        hostNickname: host?.nickname ?? "방장",
+        endedAt: currentSnapshot.match?.endedAt ?? new Date().toISOString(),
+        result: summarizeGameResult(payload.results)
+      };
+
+      setGameResultLogs((previous) =>
+        previous.some((entry) => entry.id === nextLogEntry.id) ? previous : [nextLogEntry, ...previous]
+      );
+    };
+
     const handleError = (payload: ErrorPayload) => {
       setLastError(payload.message);
     };
@@ -167,6 +194,7 @@ export function App() {
     socket.on("ROOM_STATE_UPDATE", handleRoomState);
     socket.on("COUNTDOWN", handleCountdown);
     socket.on("PLAYER_MOVED", applyMove);
+    socket.on("GAME_ENDED", handleGameEnded);
     socket.on("ERROR", handleError);
 
     return () => {
@@ -177,6 +205,7 @@ export function App() {
       socket.off("ROOM_STATE_UPDATE", handleRoomState);
       socket.off("COUNTDOWN", handleCountdown);
       socket.off("PLAYER_MOVED", applyMove);
+      socket.off("GAME_ENDED", handleGameEnded);
       socket.off("ERROR", handleError);
       socket.off("connect", handleConnectTransport);
       socket.off("disconnect", handleDisconnectTransport);
@@ -343,6 +372,10 @@ export function App() {
     });
   }
 
+  const visibleGameResultLogs = snapshot
+    ? gameResultLogs.filter((entry) => entry.roomId === snapshot.room.roomId)
+    : [];
+
   return (
     <main style={pageStyle}>
       <div style={backgroundGlowStyle} />
@@ -380,6 +413,7 @@ export function App() {
         <GameScreen
           snapshot={snapshot}
           selfPlayerId={selfPlayerId}
+          gameResultLogs={visibleGameResultLogs}
           countdownValue={countdownValue}
           onStartGame={handleStartGame}
           onRenameRoom={handleRenameRoom}

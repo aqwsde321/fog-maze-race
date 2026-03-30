@@ -1,4 +1,4 @@
-import { Application, Graphics } from "pixi.js";
+import { Application, Container, Graphics, Text, TextStyle } from "pixi.js";
 
 import type { MapView, RoomSnapshot } from "@fog-maze-race/shared/contracts/snapshots";
 import { createVisibilityProjection, toTileKey } from "@fog-maze-race/shared/visibility/apply-visibility";
@@ -18,6 +18,7 @@ import {
   resolveTileVisibilityState,
   updateTileMemory
 } from "../tile-memory.js";
+import { clampOverlayCenterX, collectActivePlayerChats } from "./player-overlays.js";
 
 export type SceneController = {
   render: (snapshot: RoomSnapshot | null, selfPlayerId: string | null) => void;
@@ -37,20 +38,38 @@ export async function createSceneController(container: HTMLDivElement): Promise<
   const tileLayer = new Graphics();
   const playerLayer = new Graphics();
   const fogLayer = new Graphics();
+  const overlayLayer = new Container();
 
   app.stage.addChild(panelLayer);
   app.stage.addChild(tileLayer);
   app.stage.addChild(playerLayer);
   app.stage.addChild(fogLayer);
+  app.stage.addChild(overlayLayer);
   container.replaceChildren(app.canvas);
   let tileMemory = createTileMemoryState();
+  let latestSnapshot: RoomSnapshot | null = null;
+  let latestSelfPlayerId: string | null = null;
+  let overlayRefreshTimeout: ReturnType<typeof setTimeout> | null = null;
 
-  return {
+  const clearOverlayRefreshTimeout = () => {
+    if (overlayRefreshTimeout) {
+      clearTimeout(overlayRefreshTimeout);
+      overlayRefreshTimeout = null;
+    }
+  };
+
+  const controller: SceneController = {
     render(snapshot, selfPlayerId) {
+      latestSnapshot = snapshot;
+      latestSelfPlayerId = selfPlayerId;
       panelLayer.clear();
       tileLayer.clear();
       playerLayer.clear();
       fogLayer.clear();
+      for (const child of overlayLayer.removeChildren()) {
+        child.destroy();
+      }
+      clearOverlayRefreshTimeout();
 
       const match = snapshot?.match;
       const map = match?.map ?? snapshot?.previewMap;
@@ -97,6 +116,9 @@ export async function createSceneController(container: HTMLDivElement): Promise<
 
       const visibleTileSet = new Set(projection.visibleTileKeys);
       const visiblePlayerSet = new Set(projection.visiblePlayerIds);
+      const activeChatByPlayer = collectActivePlayerChats({
+        chat: snapshot.chat
+      });
       tileMemory = updateTileMemory({
         previous: tileMemory,
         snapshot,
@@ -171,6 +193,26 @@ export async function createSceneController(container: HTMLDivElement): Promise<
           color: 0x081120,
           alpha: 0.92
         });
+
+        const chatBubble = activeChatByPlayer.get(member.playerId);
+        if (chatBubble) {
+          drawPlayerChatBubble(overlayLayer, {
+            centerX,
+            centerY,
+            markerRadius,
+            message: chatBubble.content,
+            viewportWidth: layout.viewportWidth
+          });
+        }
+
+        drawPlayerNicknameLabel(overlayLayer, {
+          centerX,
+          centerY,
+          markerRadius,
+          nickname: member.nickname,
+          viewportWidth: layout.viewportWidth,
+          isSelf: member.playerId === selfPlayerId
+        });
       }
 
       if (match) {
@@ -184,11 +226,116 @@ export async function createSceneController(container: HTMLDivElement): Promise<
           showFullMap: projection.showFullMap
         });
       }
+
+      if (activeChatByPlayer.size > 0 && latestSnapshot) {
+        const nextExpiryAt = Math.min(...[...activeChatByPlayer.values()].map((message) => message.expiresAt));
+        overlayRefreshTimeout = setTimeout(() => {
+          controller.render(latestSnapshot, latestSelfPlayerId);
+        }, Math.max(24, nextExpiryAt - Date.now() + 24));
+      }
     },
     destroy() {
+      clearOverlayRefreshTimeout();
+      for (const child of overlayLayer.removeChildren()) {
+        child.destroy();
+      }
       app.destroy({ removeView: true }, true);
     }
   };
+
+  return controller;
+}
+
+const PLAYER_NICKNAME_STYLE = new TextStyle({
+  fill: "#facc15",
+  fontSize: 11,
+  fontWeight: "700",
+  stroke: {
+    color: "#07111f",
+    width: 3,
+    join: "round"
+  },
+  dropShadow: {
+    alpha: 0.4,
+    blur: 0,
+    color: "#020617",
+    distance: 1,
+    angle: Math.PI / 2
+  }
+});
+
+const SELF_PLAYER_NICKNAME_STYLE = new TextStyle({
+  ...PLAYER_NICKNAME_STYLE,
+  fill: "#fde68a"
+});
+
+const PLAYER_CHAT_STYLE = new TextStyle({
+  fill: "#f8fafc",
+  fontSize: 12,
+  fontWeight: "600",
+  stroke: {
+    color: "#07111f",
+    width: 3,
+    join: "round"
+  }
+});
+
+function drawPlayerChatBubble(layer: Container, input: {
+  centerX: number;
+  centerY: number;
+  markerRadius: number;
+  message: string;
+  viewportWidth: number;
+}) {
+  const text = new Text({
+    text: input.message,
+    style: PLAYER_CHAT_STYLE
+  });
+  const bubbleWidth = text.width + 16;
+  const bubbleHeight = text.height + 10;
+  const bubbleCenterX = clampOverlayCenterX({
+    centerX: input.centerX,
+    overlayWidth: bubbleWidth,
+    viewportWidth: input.viewportWidth,
+    padding: 10
+  });
+  const bubbleX = bubbleCenterX - bubbleWidth / 2;
+  const bubbleY = Math.max(8, input.centerY - input.markerRadius - bubbleHeight - 10);
+  const bubble = new Graphics();
+  bubble
+    .roundRect(bubbleX, bubbleY, bubbleWidth, bubbleHeight, 12)
+    .fill({ color: 0x0f172a, alpha: 0.76 })
+    .stroke({ color: 0x67e8f9, alpha: 0.2, width: 1 });
+
+  text.x = bubbleCenterX - text.width / 2;
+  text.y = bubbleY + (bubbleHeight - text.height) / 2 - 1;
+
+  layer.addChild(bubble);
+  layer.addChild(text);
+}
+
+function drawPlayerNicknameLabel(layer: Container, input: {
+  centerX: number;
+  centerY: number;
+  markerRadius: number;
+  nickname: string;
+  viewportWidth: number;
+  isSelf: boolean;
+}) {
+  const text = new Text({
+    text: input.nickname,
+    style: input.isSelf ? SELF_PLAYER_NICKNAME_STYLE : PLAYER_NICKNAME_STYLE
+  });
+  const clampedCenterX = clampOverlayCenterX({
+    centerX: input.centerX,
+    overlayWidth: text.width,
+    viewportWidth: input.viewportWidth,
+    padding: 6
+  });
+
+  text.x = clampedCenterX - text.width / 2;
+  text.y = input.centerY + input.markerRadius + 6;
+  layer.addChild(text);
 }
 
 function drawPlaceholder(graphics: Graphics) {

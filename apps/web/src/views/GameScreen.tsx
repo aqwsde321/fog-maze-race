@@ -9,6 +9,7 @@ import type { RoomSnapshot } from "@fog-maze-race/shared/contracts/snapshots";
 import { HostControls } from "../features/rooms/HostControls.js";
 import { PlayerSidebar } from "../features/rooms/PlayerSidebar.js";
 import { ResultOverlay } from "../features/rooms/ResultOverlay.js";
+import type { GameResultLogEntry } from "../features/rooms/result-log.js";
 import { RoomChatPanel } from "../features/rooms/RoomChatPanel.js";
 import { GameCanvas } from "../game/GameCanvas.js";
 import { getSocketClient } from "../services/socket-client.js";
@@ -16,6 +17,7 @@ import { getSocketClient } from "../services/socket-client.js";
 type GameScreenProps = {
   snapshot: RoomSnapshot;
   selfPlayerId: string | null;
+  gameResultLogs?: ReadonlyArray<GameResultLogEntry>;
   countdownValue: number | null;
   onStartGame: () => void;
   onRenameRoom: (name: string) => void;
@@ -58,6 +60,7 @@ function createEmptyMetricHistory(): MetricHistory {
 export function GameScreen({
   snapshot,
   selfPlayerId,
+  gameResultLogs = [],
   countdownValue,
   onStartGame,
   onRenameRoom,
@@ -71,7 +74,11 @@ export function GameScreen({
   onSendChatMessage
 }: GameScreenProps) {
   const canvasFrameRef = useRef<HTMLDivElement | null>(null);
+  const quickChatInputRef = useRef<HTMLInputElement | null>(null);
   const [isChatPanelOpen, setIsChatPanelOpen] = useState(false);
+  const [isQuickChatOpen, setIsQuickChatOpen] = useState(false);
+  const [quickChatDraft, setQuickChatDraft] = useState("");
+  const [isQuickChatComposing, setIsQuickChatComposing] = useState(false);
   const [isServerPanelOpen, setIsServerPanelOpen] = useState(false);
   const [serverHealth, setServerHealth] = useState<ServerHealthSnapshot | null>(null);
   const [serverHealthError, setServerHealthError] = useState<string | null>(null);
@@ -108,6 +115,16 @@ export function GameScreen({
   }, [canMove, snapshot.room.status]);
 
   useEffect(() => {
+    if (!isQuickChatOpen) {
+      return;
+    }
+
+    requestAnimationFrame(() => {
+      quickChatInputRef.current?.focus({ preventScroll: true });
+    });
+  }, [isQuickChatOpen]);
+
+  useEffect(() => {
     const resetViewportScroll = () => {
       if (window.scrollX === 0 && window.scrollY === 0) {
         return;
@@ -117,12 +134,24 @@ export function GameScreen({
     };
 
     const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "/" || event.key === "Enter") {
+        if (isBlockedGlobalKeyTarget(event.target)) {
+          return;
+        }
+
+        event.preventDefault();
+        event.stopPropagation();
+        resetViewportScroll();
+        setIsQuickChatOpen(true);
+        return;
+      }
+
       const direction = toDirection(event.key);
       if (!direction) {
         return;
       }
 
-      if (isEditableTarget(event.target)) {
+      if (isBlockedGlobalKeyTarget(event.target)) {
         return;
       }
 
@@ -139,7 +168,7 @@ export function GameScreen({
     };
 
     const handleKeyUp = (event: KeyboardEvent) => {
-      if (!toDirection(event.key) || isEditableTarget(event.target)) {
+      if (!toDirection(event.key) || isBlockedGlobalKeyTarget(event.target)) {
         return;
       }
 
@@ -218,6 +247,28 @@ export function GameScreen({
     };
   }, [isServerPanelOpen]);
 
+  function focusGameShell() {
+    requestAnimationFrame(() => {
+      canvasFrameRef.current?.focus({ preventScroll: true });
+    });
+  }
+
+  function closeQuickChat() {
+    setIsQuickChatOpen(false);
+    setQuickChatDraft("");
+    setIsQuickChatComposing(false);
+    focusGameShell();
+  }
+
+  function submitQuickChat() {
+    const content = quickChatDraft.trim();
+    if (content) {
+      onSendChatMessage(content);
+    }
+
+    closeQuickChat();
+  }
+
   useEffect(() => {
     if (!isServerPanelOpen) {
       return;
@@ -293,11 +344,61 @@ export function GameScreen({
           data-testid="game-shell"
           style={canvasFrameStyle}
           onPointerDown={() => {
+            if (isQuickChatOpen) {
+              setIsQuickChatOpen(false);
+              setQuickChatDraft("");
+              setIsQuickChatComposing(false);
+            }
             canvasFrameRef.current?.focus({ preventScroll: true });
           }}
           tabIndex={0}
         >
           <GameCanvas snapshot={snapshot} selfPlayerId={selfPlayerId} />
+          {isQuickChatOpen ? (
+            <div
+              data-testid="quick-chat-composer"
+              style={quickChatComposerWrapStyle}
+              onPointerDown={(event) => {
+                event.stopPropagation();
+              }}
+            >
+              <div style={quickChatComposerStyle}>
+                <input
+                  ref={quickChatInputRef}
+                  data-testid="quick-chat-input"
+                  style={quickChatInputStyle}
+                  value={quickChatDraft}
+                  maxLength={80}
+                  placeholder="메시지 입력"
+                  onChange={(event) => {
+                    setQuickChatDraft(event.target.value);
+                  }}
+                  onCompositionStart={() => {
+                    setIsQuickChatComposing(true);
+                  }}
+                  onCompositionEnd={() => {
+                    setIsQuickChatComposing(false);
+                  }}
+                  onKeyDown={(event) => {
+                    if (event.key === "Escape") {
+                      event.preventDefault();
+                      event.stopPropagation();
+                      closeQuickChat();
+                      return;
+                    }
+
+                    if (event.key === "Enter" && !isQuickChatComposing && !event.nativeEvent.isComposing) {
+                      event.preventDefault();
+                      event.stopPropagation();
+                      submitQuickChat();
+                    }
+                  }}
+                />
+                <span style={quickChatHintStyle}>Enter 전송 · Esc 취소</span>
+                <span style={quickChatTailStyle} aria-hidden="true" />
+              </div>
+            </div>
+          ) : null}
           <div data-testid="room-chat-dock" style={chatDockStyle}>
             {isChatPanelOpen ? (
               <RoomChatPanel
@@ -332,7 +433,12 @@ export function GameScreen({
               </div>
             </div>
           ) : null}
-          <ResultOverlay snapshot={snapshot} isHost={isHost} onResetToWaiting={onResetToWaiting} />
+          <ResultOverlay
+            snapshot={snapshot}
+            isHost={isHost}
+            gameLogs={gameResultLogs}
+            onResetToWaiting={onResetToWaiting}
+          />
         </div>
       </div>
 
@@ -380,7 +486,12 @@ export function GameScreen({
                 나가기
               </button>
               {isHost ? (
-                <button type="button" onClick={onForceEndRoom} disabled={snapshot.room.status === "waiting"} style={dangerButtonStyle}>
+                <button
+                  type="button"
+                  onClick={onForceEndRoom}
+                  disabled={snapshot.room.status === "waiting" || snapshot.room.status === "ended"}
+                  style={dangerButtonStyle}
+                >
                   강제 종료
                 </button>
               ) : null}
@@ -581,6 +692,18 @@ function isEditableTarget(target: EventTarget | null) {
 
   const tagName = target.tagName.toLowerCase();
   return tagName === "input" || tagName === "textarea" || tagName === "select";
+}
+
+function isBlockedGlobalKeyTarget(target: EventTarget | null) {
+  if (!(target instanceof HTMLElement)) {
+    return false;
+  }
+
+  if (isEditableTarget(target)) {
+    return true;
+  }
+
+  return Boolean(target.closest("button, a, summary, [role='button'], [role='link']"));
 }
 
 const shellStyle: CSSProperties = {
@@ -943,6 +1066,58 @@ const canvasFrameStyle: CSSProperties = {
   background: "linear-gradient(180deg, rgba(8, 15, 30, 0.82), rgba(6, 14, 26, 0.88))",
   boxShadow: "inset 0 1px 0 rgba(255, 255, 255, 0.02)",
   outline: "none"
+};
+
+const quickChatComposerWrapStyle: CSSProperties = {
+  position: "absolute",
+  left: "50%",
+  bottom: "24px",
+  transform: "translateX(-50%)",
+  zIndex: 5,
+  pointerEvents: "auto"
+};
+
+const quickChatComposerStyle: CSSProperties = {
+  position: "relative",
+  display: "grid",
+  gap: "6px",
+  minWidth: "min(320px, calc(100vw - 56px))",
+  padding: "12px 14px",
+  borderRadius: "18px",
+  background: "linear-gradient(180deg, rgba(8, 20, 36, 0.96), rgba(6, 15, 29, 0.98))",
+  border: "1px solid rgba(125, 211, 252, 0.24)",
+  boxShadow: "0 20px 44px rgba(2, 6, 23, 0.36)"
+};
+
+const quickChatInputStyle: CSSProperties = {
+  width: "100%",
+  minWidth: 0,
+  height: "42px",
+  padding: "0 12px",
+  borderRadius: "12px",
+  border: "1px solid rgba(125, 211, 252, 0.18)",
+  background: "rgba(2, 6, 23, 0.76)",
+  color: "#f8fafc",
+  outline: "none",
+  boxSizing: "border-box"
+};
+
+const quickChatHintStyle: CSSProperties = {
+  fontSize: "0.72rem",
+  color: "#94a3b8",
+  textAlign: "right"
+};
+
+const quickChatTailStyle: CSSProperties = {
+  position: "absolute",
+  left: "50%",
+  bottom: "-7px",
+  width: "14px",
+  height: "14px",
+  transform: "translateX(-50%) rotate(45deg)",
+  background: "rgba(6, 15, 29, 0.98)",
+  borderRight: "1px solid rgba(125, 211, 252, 0.24)",
+  borderBottom: "1px solid rgba(125, 211, 252, 0.24)"
 };
 
 const countdownOverlayStyle: CSSProperties = {

@@ -8,6 +8,8 @@ type RoomChatPanelProps = {
   onSendMessage: (content: string) => void;
 };
 
+const SCROLLABLE_CHAT_LOG_CLASS = "room-chat-log-scroll";
+
 export function RoomChatPanel({
   snapshot,
   selfPlayerId,
@@ -45,6 +47,31 @@ export function RoomChatPanel({
       style={panelStyle}
       onPointerDown={blockCanvasFocus}
     >
+      <style>{`
+        .${SCROLLABLE_CHAT_LOG_CLASS} {
+          scrollbar-width: thin;
+          scrollbar-color: rgba(56, 189, 248, 0.55) rgba(15, 23, 42, 0.28);
+        }
+
+        .${SCROLLABLE_CHAT_LOG_CLASS}::-webkit-scrollbar {
+          width: 8px;
+        }
+
+        .${SCROLLABLE_CHAT_LOG_CLASS}::-webkit-scrollbar-track {
+          background: rgba(15, 23, 42, 0.28);
+          border-radius: 999px;
+        }
+
+        .${SCROLLABLE_CHAT_LOG_CLASS}::-webkit-scrollbar-thumb {
+          background: linear-gradient(180deg, rgba(103, 232, 249, 0.76), rgba(14, 165, 233, 0.82));
+          border-radius: 999px;
+          border: 1px solid rgba(7, 17, 31, 0.38);
+        }
+
+        .${SCROLLABLE_CHAT_LOG_CLASS}::-webkit-scrollbar-thumb:hover {
+          background: linear-gradient(180deg, rgba(125, 211, 252, 0.9), rgba(56, 189, 248, 0.9));
+        }
+      `}</style>
       <header style={headerStyle}>
         <div>
           <p style={eyebrowStyle}>Room Chat</p>
@@ -53,7 +80,7 @@ export function RoomChatPanel({
         <span style={countStyle}>{snapshot.chat.length}</span>
       </header>
 
-      <div ref={logRef} data-testid="room-chat-log" style={logStyle}>
+      <div ref={logRef} data-testid="room-chat-log" className={SCROLLABLE_CHAT_LOG_CLASS} style={logStyle}>
         {snapshot.chat.length > 0 ? (
           snapshot.chat.map((message) => {
             const isSelf = message.playerId === selfPlayerId;

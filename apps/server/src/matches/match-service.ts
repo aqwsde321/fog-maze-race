@@ -16,6 +16,7 @@ import {
   isInsideZone,
   isWalkableTile
 } from "@fog-maze-race/shared/maps/map-definitions";
+import type { ResultEntry } from "@fog-maze-race/shared/domain/result-entry";
 
 import { MatchAggregate } from "../core/match.js";
 import { forceEndMatch } from "../rooms/force-end-match.js";
@@ -230,6 +231,14 @@ export class MatchService {
       throw new Error("HOST_ONLY");
     }
 
+    if (runtime.room.status === "ended" || runtime.match.status === "ended") {
+      return;
+    }
+
+    if (runtime.room.status !== "countdown" && runtime.room.status !== "playing") {
+      throw new Error("ROOM_NOT_JOINABLE");
+    }
+
     forceEndMatch(runtime.room, runtime.match);
     this.finishGame(roomId, sink);
   }
@@ -309,6 +318,10 @@ export class MatchService {
     if (!runtime) {
       return;
     }
+    if (runtime.room.status === "ended" || runtime.match?.status === "ended") {
+      return;
+    }
+
     const match = runtime.match;
     if (!match) {
       return;
@@ -317,6 +330,18 @@ export class MatchService {
     runtime.room.endRound();
     match.end();
     this.roomService.syncRoomRevision(roomId);
+    const hostMember = runtime.room.getMember(runtime.room.hostPlayerId);
+    const endedAt = new Date().toISOString();
+    console.log(
+      JSON.stringify({
+        event: "GAME_ENDED",
+        endedAt,
+        roomId,
+        roomName: runtime.room.name,
+        hostNickname: hostMember?.nickname ?? "Unknown",
+        result: this.summarizeResult(match.results)
+      })
+    );
 
     const endedSnapshot = this.roomService.getSnapshot(roomId);
     sink.emitRoomState({
@@ -354,6 +379,44 @@ export class MatchService {
       roomId,
       snapshot
     });
+  }
+
+  private summarizeResult(results: readonly ResultEntry[]) {
+    if (results.length === 0) {
+      return "완주자 없음";
+    }
+
+    const rankedResults = [...results]
+      .sort((left, right) => {
+        if (left.rank === null && right.rank === null) {
+          return 0;
+        }
+        if (left.rank === null) {
+          return 1;
+        }
+        if (right.rank === null) {
+          return -1;
+        }
+        return left.rank - right.rank;
+      })
+      .map((entry) => {
+        if (entry.outcome === "finished" && entry.rank !== null) {
+          const elapsed = entry.elapsedMs === null ? "-" : this.formatElapsedTime(entry.elapsedMs);
+          return `${entry.rank}위 ${entry.nickname}(${elapsed})`;
+        }
+        return `나감 ${entry.nickname}`;
+      })
+      .join(" / ");
+
+    return rankedResults;
+  }
+
+  private formatElapsedTime(elapsedMs: number) {
+    const minutes = Math.floor(elapsedMs / 60_000);
+    const seconds = Math.floor((elapsedMs % 60_000) / 1_000);
+    const milliseconds = elapsedMs % 1_000;
+
+    return `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}.${String(milliseconds).padStart(3, "0")}`;
   }
 
   private getTimerBucket(roomId: string): TimerBucket {
