@@ -68,10 +68,11 @@ describe("PlayerSidebar", () => {
 
     const cards = [...container.querySelectorAll("aside article")];
 
-    expect(cards).toHaveLength(2);
+    expect(cards).toHaveLength(3);
     expect(container.textContent).toContain("레이서");
     expect(container.textContent).toContain("bot1");
     expect(container.textContent).toContain("bot2");
+    expect(container.textContent).toContain("bot3");
     expect(container.querySelector('[data-testid="player-sidebar-list"]')?.textContent).not.toContain("관전자");
     const spectatorMeta = container.querySelector('[data-testid="spectator-meta"]')?.textContent ?? "";
     expect(spectatorMeta).toContain("관전자");
@@ -79,6 +80,7 @@ describe("PlayerSidebar", () => {
     expect(spectatorMeta).not.toContain("채팅 가능");
     expect(container.textContent).toContain("Frontier");
     expect(container.textContent).toContain("Tremaux");
+    expect(container.textContent).toContain("Wall");
   });
 });
 
@@ -174,6 +176,19 @@ function buildBotRaceSnapshot(): RoomSnapshot {
         role: "racer",
         state: "waiting",
         position: { x: 1, y: 1 },
+        finishRank: null,
+        isHost: false
+      },
+      {
+        playerId: "bot-3",
+        nickname: "bot3",
+        kind: "bot",
+        exploreStrategy: "wall",
+        color: "#f59e0b",
+        shape: "triangle",
+        role: "racer",
+        state: "waiting",
+        position: { x: 2, y: 1 },
         finishRank: null,
         isHost: false
       }

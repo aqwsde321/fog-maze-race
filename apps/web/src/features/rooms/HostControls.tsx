@@ -341,6 +341,10 @@ export function HostControls({
                                     <strong style={strategyTooltipLabelStyle}>Tremaux</strong>
                                     <span style={strategyTooltipTextStyle}>이미 지난 통로를 더 강하게 피해서 같은 복도 반복을 줄입니다.</span>
                                   </div>
+                                  <div style={strategyTooltipSectionStyle}>
+                                    <strong style={strategyTooltipLabelStyle}>Wall</strong>
+                                    <span style={strategyTooltipTextStyle}>최근 진행 방향 기준으로 벽을 더듬듯 좌우 한쪽 손 우선으로 탐험합니다.</span>
+                                  </div>
                                 </div>
                               ) : null}
                             </div>
@@ -388,6 +392,7 @@ export function HostControls({
                                 >
                                   <option value="frontier">Frontier</option>
                                   <option value="tremaux">Tremaux</option>
+                                  <option value="wall">Wall</option>
                                 </select>
                                 <span aria-hidden="true" style={miniSelectChevronStyle}>⌄</span>
                               </div>
@@ -525,7 +530,15 @@ function extractBotSuffix(nickname: string) {
 }
 
 function formatStrategyLabel(strategy: RoomExploreStrategy) {
-  return strategy === "tremaux" ? "Tremaux" : "Frontier";
+  if (strategy === "tremaux") {
+    return "Tremaux";
+  }
+
+  if (strategy === "wall") {
+    return "Wall";
+  }
+
+  return "Frontier";
 }
 
 function resolveBotCount(requestedCount: number, availableBotSlots: number) {

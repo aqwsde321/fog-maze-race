@@ -405,6 +405,76 @@ describe("explorer-policy", () => {
       reason: "goal"
     });
   });
+
+  it("makes wall follow the current heading's left-hand probe order", () => {
+    const map = createMap({
+      tiles: [
+        "...",
+        "...",
+        "..."
+      ],
+      visibilityRadius: 2,
+      startZone: bounds(1, 1, 1, 1),
+      goalZone: bounds(2, 2, 2, 2)
+    });
+    const memory = createMemoryFromRows(
+      [
+        "???",
+        "..?",
+        "???"
+      ],
+      [],
+      ["0,1", "1,1"]
+    );
+
+    const decision = decideExplorerMove({
+      map,
+      memory,
+      position: { x: 1, y: 1 },
+      seed: 0,
+      strategy: "wall"
+    });
+
+    expect(decision).toEqual({
+      direction: "up",
+      reason: "probe"
+    });
+  });
+
+  it("lets wall choose the opposite hand for odd explorer seeds", () => {
+    const map = createMap({
+      tiles: [
+        "...",
+        "...",
+        "..."
+      ],
+      visibilityRadius: 2,
+      startZone: bounds(1, 1, 1, 1),
+      goalZone: bounds(2, 2, 2, 2)
+    });
+    const memory = createMemoryFromRows(
+      [
+        "???",
+        "..?",
+        "???"
+      ],
+      [],
+      ["0,1", "1,1"]
+    );
+
+    const decision = decideExplorerMove({
+      map,
+      memory,
+      position: { x: 1, y: 1 },
+      seed: 1,
+      strategy: "wall"
+    });
+
+    expect(decision).toEqual({
+      direction: "down",
+      reason: "probe"
+    });
+  });
 });
 
 function createMemoryFromRows(
@@ -576,7 +646,7 @@ function isStrictEntryPosition(map: (typeof MAP_DEFINITIONS)[number], position: 
 function collectTrace(input: {
   map: (typeof MAP_DEFINITIONS)[number];
   seed: number;
-  strategy?: "frontier" | "tremaux";
+  strategy?: "frontier" | "tremaux" | "wall";
   steps: number;
 }) {
   let position = { ...input.map.startSlots[0]! };

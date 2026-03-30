@@ -595,6 +595,76 @@ test("tremaux prefers the less-marked shortest goal route", () => {
   });
 });
 
+test("wall follows the current heading's left-hand probe order", () => {
+  const map = createMap({
+    tiles: [
+      "...",
+      "...",
+      "..."
+    ],
+    visibilityRadius: 2,
+    startZone: bounds(1, 1, 1, 1),
+    goalZone: bounds(2, 2, 2, 2)
+  });
+  const memory = createMemoryFromRows(
+    [
+      "???",
+      "..?",
+      "???"
+    ],
+    [],
+    ["0,1", "1,1"]
+  );
+
+  const decision = decideExplorerMove({
+    map,
+    memory,
+    position: { x: 1, y: 1 },
+    seed: 0,
+    strategy: "wall"
+  });
+
+  assert.deepEqual(decision, {
+    direction: "up",
+    reason: "probe"
+  });
+});
+
+test("wall chooses the opposite hand for odd explorer seeds", () => {
+  const map = createMap({
+    tiles: [
+      "...",
+      "...",
+      "..."
+    ],
+    visibilityRadius: 2,
+    startZone: bounds(1, 1, 1, 1),
+    goalZone: bounds(2, 2, 2, 2)
+  });
+  const memory = createMemoryFromRows(
+    [
+      "???",
+      "..?",
+      "???"
+    ],
+    [],
+    ["0,1", "1,1"]
+  );
+
+  const decision = decideExplorerMove({
+    map,
+    memory,
+    position: { x: 1, y: 1 },
+    seed: 1,
+    strategy: "wall"
+  });
+
+  assert.deepEqual(decision, {
+    direction: "down",
+    reason: "probe"
+  });
+});
+
 test("explorer bot reaches the goal on every shipped map", () => {
   const failures = [];
 

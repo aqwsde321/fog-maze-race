@@ -81,17 +81,19 @@ describe("US5 room bots contract", () => {
       roomId: hostJoined.roomId,
       bots: [
         { nickname: "red", kind: "explore", strategy: "frontier" },
-        { nickname: "blue", kind: "explore", strategy: "tremaux" }
+        { nickname: "blue", kind: "explore", strategy: "tremaux" },
+        { nickname: "wall", kind: "explore", strategy: "wall" }
       ]
     });
 
     const updated = await waitForSnapshot(
       host,
       (snapshot) =>
-        snapshot.members.length === 4 &&
+        snapshot.members.length === 5 &&
         snapshot.members.some((member) => member.nickname === "red") &&
         snapshot.members.some((member) => member.nickname === "blue") &&
-        snapshot.chat.filter((message) => message.content === "들어왔다.").length === 2,
+        snapshot.members.some((member) => member.nickname === "wall") &&
+        snapshot.chat.filter((message) => message.content === "들어왔다.").length === 3,
       2_000
     );
 
@@ -108,6 +110,11 @@ describe("US5 room bots contract", () => {
       role: "racer",
       state: "waiting",
       exploreStrategy: "tremaux"
+    });
+    expect(updated.members.find((member) => member.nickname === "wall")).toMatchObject({
+      role: "racer",
+      state: "waiting",
+      exploreStrategy: "wall"
     });
   }, 15_000);
 

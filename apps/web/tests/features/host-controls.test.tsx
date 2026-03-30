@@ -133,6 +133,7 @@ describe("HostControls", () => {
     expect(strategySelects).toHaveLength(2);
     expect(strategySelects[0]?.value).toBe("frontier");
     expect(strategySelects[1]?.value).toBe("frontier");
+    expect([...strategySelects[0]!.options].map((option) => option.value)).toEqual(["frontier", "tremaux", "wall"]);
     const strategyTooltipButton = document.body.querySelector<HTMLButtonElement>('[data-testid="strategy-tooltip-button"]');
     expect(strategyTooltipButton).not.toBeNull();
     expect(document.body.querySelector('[data-testid="strategy-tooltip"]')).toBeNull();
@@ -143,6 +144,7 @@ describe("HostControls", () => {
 
     expect(document.body.querySelector('[data-testid="strategy-tooltip"]')?.textContent).toContain("Frontier");
     expect(document.body.querySelector('[data-testid="strategy-tooltip"]')?.textContent).toContain("Tremaux");
+    expect(document.body.querySelector('[data-testid="strategy-tooltip"]')?.textContent).toContain("Wall");
 
     await act(async () => {
       const setValue = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")?.set;
@@ -151,7 +153,7 @@ describe("HostControls", () => {
     });
 
     await act(async () => {
-      strategySelects[1]!.value = "tremaux";
+      strategySelects[1]!.value = "wall";
       strategySelects[1]!.dispatchEvent(new Event("change", { bubbles: true }));
     });
 
@@ -166,7 +168,7 @@ describe("HostControls", () => {
       kind: "explore",
       bots: [
         { nickname: "red", kind: "explore", strategy: "frontier" },
-        { nickname: "bot2", kind: "explore", strategy: "tremaux" }
+        { nickname: "bot2", kind: "explore", strategy: "wall" }
       ]
     });
     expect(document.body.querySelector('[data-testid="bot-panel-overlay"]')).toBeNull();

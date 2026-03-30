@@ -121,8 +121,16 @@ export function PlayerSidebar({ snapshot, selfPlayerId }: PlayerSidebarProps) {
   );
 }
 
-function formatStrategyLabel(strategy: "frontier" | "tremaux") {
-  return strategy === "tremaux" ? "Tremaux" : "Frontier";
+function formatStrategyLabel(strategy: "frontier" | "tremaux" | "wall") {
+  if (strategy === "tremaux") {
+    return "Tremaux";
+  }
+
+  if (strategy === "wall") {
+    return "Wall";
+  }
+
+  return "Frontier";
 }
 
 const sidebarStyle: CSSProperties = {

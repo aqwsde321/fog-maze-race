@@ -205,6 +205,16 @@ export function decideExplorerMove({
           hasExploredBeyondEntryApproach,
           hasExploredBeyondStrictEntry
         })
+      : strategy === "wall"
+        ? decideWallGoalMove({
+            map,
+            knownTiles: memory.knownTiles,
+            recentTileKeys: memory.recentTileKeys,
+            position,
+            seed,
+            hasExploredBeyondEntryApproach,
+            hasExploredBeyondStrictEntry
+          })
       : decideSeededGoalMove({
           map,
           knownTiles: memory.knownTiles,
@@ -220,6 +230,20 @@ export function decideExplorerMove({
       direction: goalMove,
       reason: "goal"
     };
+  }
+
+  if (strategy === "wall") {
+    const wallMove = decideWallFollowMove({
+      map,
+      memory,
+      position,
+      seed,
+      hasExploredBeyondEntryApproach,
+      hasExploredBeyondStrictEntry
+    });
+    if (wallMove) {
+      return wallMove;
+    }
   }
 
   const immediateProbe = findUnknownNeighborDirection({
@@ -284,6 +308,136 @@ export function rememberBlockedMove({
   return {
     ...memory,
     knownTiles: new Map(memory.knownTiles).set(tileKey, "#")
+  };
+}
+
+function decideWallGoalMove({
+  map,
+  knownTiles,
+  recentTileKeys,
+  position,
+  seed,
+  hasExploredBeyondEntryApproach,
+  hasExploredBeyondStrictEntry
+}) {
+  const directionSteps = getWallDirectionSteps(seed, recentTileKeys, position);
+  const candidates = [];
+
+  for (const step of directionSteps) {
+    const next = {
+      x: position.x + step.x,
+      y: position.y + step.y
+    };
+    if (!isInsideMap(map, next) || !isKnownWalkable(knownTiles, next)) {
+      continue;
+    }
+
+    const pathTail = findPath({
+      map,
+      knownTiles,
+      start: next,
+      isTarget: (candidate) => isKnownGoalTile(map, knownTiles, candidate.x, candidate.y),
+      directionSteps,
+      avoidStrictEntryReentry: map.visibilityRadius <= 1 && hasExploredBeyondStrictEntry
+    });
+    if (!pathTail) {
+      continue;
+    }
+
+    const path = [step.direction, ...pathTail];
+    candidates.push({
+      entersEntryApproach: pathTouchesEntryApproach(map, position, path),
+      path,
+      pathKey: path.join(","),
+      recentPenalty:
+        calculateRecentPathPenalty({
+          start: position,
+          path,
+          recentTileKeys
+        }) +
+        calculateEntryApproachPenalty({
+          map,
+          path,
+          start: position,
+          hasExploredBeyondEntryApproach
+        }) +
+        calculateStartBandPenalty({
+          map,
+          path,
+          start: position,
+          hasExploredBeyondEntryApproach
+        })
+    });
+  }
+
+  if (candidates.length === 0) {
+    return null;
+  }
+
+  const shortestLength = Math.min(...candidates.map((candidate) => candidate.path.length));
+  const shortestCandidates = candidates.filter((candidate) => candidate.path.length === shortestLength);
+  const preferredShortestCandidates =
+    hasExploredBeyondEntryApproach &&
+    map.visibilityRadius <= 1 &&
+    shortestCandidates.some((candidate) => !candidate.entersEntryApproach)
+      ? shortestCandidates.filter((candidate) => !candidate.entersEntryApproach)
+      : shortestCandidates;
+  const bestPenalty = Math.min(...preferredShortestCandidates.map((candidate) => candidate.recentPenalty));
+  const rankedCandidates = preferredShortestCandidates
+    .filter((candidate) => candidate.recentPenalty === bestPenalty)
+    .sort((left, right) => {
+      const leftRank = rankDirectionBySteps(directionSteps, left.path[0]);
+      const rightRank = rankDirectionBySteps(directionSteps, right.path[0]);
+      if (leftRank !== rightRank) {
+        return leftRank - rightRank;
+      }
+
+      return left.pathKey.localeCompare(right.pathKey);
+    });
+
+  return rankedCandidates[0]?.path[0] ?? null;
+}
+
+function decideWallFollowMove({
+  map,
+  memory,
+  position,
+  seed,
+  hasExploredBeyondEntryApproach,
+  hasExploredBeyondStrictEntry
+}) {
+  const directionSteps = getWallDirectionSteps(seed, memory.recentTileKeys, position);
+  const probeDirection = findUnknownNeighborDirection({
+    map,
+    knownTiles: memory.knownTiles,
+    position,
+    directionSteps,
+    avoidEntryApproachReentry: map.visibilityRadius <= 1 && hasExploredBeyondEntryApproach,
+    avoidStrictEntryReentry: map.visibilityRadius <= 1 && hasExploredBeyondStrictEntry
+  });
+  if (probeDirection) {
+    return {
+      direction: probeDirection,
+      reason: "probe"
+    };
+  }
+
+  const walkableDirection = findKnownWalkableDirection({
+    map,
+    knownTiles: memory.knownTiles,
+    recentTileKeys: memory.recentTileKeys,
+    position,
+    directionSteps,
+    avoidEntryApproachReentry: map.visibilityRadius <= 1 && hasExploredBeyondEntryApproach,
+    avoidStrictEntryReentry: map.visibilityRadius <= 1 && hasExploredBeyondStrictEntry
+  });
+  if (!walkableDirection) {
+    return null;
+  }
+
+  return {
+    direction: walkableDirection,
+    reason: "frontier"
   };
 }
 
@@ -849,6 +1003,17 @@ function getDirectionSteps(seed) {
   return DIRECTION_STEPS.slice(rotation).concat(DIRECTION_STEPS.slice(0, rotation));
 }
 
+function getWallDirectionSteps(seed, recentTileKeys, position) {
+  const heading = getRecentHeading(recentTileKeys, position) ?? getDirectionSteps(seed)[0].direction;
+  const orderedDirections = normalizeSeed(seed) % 2 === 0
+    ? [turnLeft(heading), heading, turnRight(heading), oppositeDirection(heading)]
+    : [turnRight(heading), heading, turnLeft(heading), oppositeDirection(heading)];
+
+  return orderedDirections
+    .map((direction) => DIRECTION_STEPS.find((step) => step.direction === direction))
+    .filter(Boolean);
+}
+
 function calculateRecentPathPenalty({
   start,
   path,
@@ -1076,6 +1241,137 @@ function pickTremauxCandidate(candidates) {
 
     return candidate.pathKey.localeCompare(best.pathKey) < 0 ? candidate : best;
   }, null);
+}
+
+function findKnownWalkableDirection({
+  map,
+  knownTiles,
+  recentTileKeys,
+  position,
+  directionSteps,
+  avoidEntryApproachReentry = false,
+  avoidStrictEntryReentry = false
+}) {
+  if (!isKnownWalkable(knownTiles, position)) {
+    return null;
+  }
+
+  const previousTileKey =
+    recentTileKeys.length >= 2
+      ? recentTileKeys[recentTileKeys.length - 2] ?? null
+      : null;
+  let candidates = directionSteps
+    .map((step) => ({
+      direction: step.direction,
+      position: {
+        x: position.x + step.x,
+        y: position.y + step.y
+      }
+    }))
+    .filter((candidate) => isInsideMap(map, candidate.position))
+    .filter((candidate) => isKnownWalkable(knownTiles, candidate.position));
+
+  if (candidates.length === 0) {
+    return null;
+  }
+
+  if (avoidEntryApproachReentry) {
+    const outsideApproach = candidates.filter((candidate) => !isEntryApproachPosition(map, candidate.position));
+    if (outsideApproach.length > 0) {
+      candidates = outsideApproach;
+    }
+  }
+
+  if (avoidStrictEntryReentry) {
+    const outsideStrictEntry = candidates.filter((candidate) => !isStrictEntryPosition(map, candidate.position));
+    if (outsideStrictEntry.length > 0) {
+      candidates = outsideStrictEntry;
+    }
+  }
+
+  if (previousTileKey) {
+    const nonBacktrack = candidates.filter((candidate) => toTileKey(candidate.position) !== previousTileKey);
+    if (nonBacktrack.length > 0) {
+      candidates = nonBacktrack;
+    }
+  }
+
+  return candidates[0]?.direction ?? null;
+}
+
+function rankDirectionBySteps(directionSteps, direction) {
+  if (!direction) {
+    return Number.MAX_SAFE_INTEGER;
+  }
+
+  const index = directionSteps.findIndex((step) => step.direction === direction);
+  return index >= 0 ? index : Number.MAX_SAFE_INTEGER;
+}
+
+function getRecentHeading(recentTileKeys, position) {
+  const currentTileKey = toTileKey(position);
+  if (recentTileKeys[recentTileKeys.length - 1] !== currentTileKey || recentTileKeys.length < 2) {
+    return null;
+  }
+
+  const previousPosition = parseTileKey(recentTileKeys[recentTileKeys.length - 2] ?? "");
+  if (!previousPosition) {
+    return null;
+  }
+
+  if (previousPosition.x === position.x - 1 && previousPosition.y === position.y) {
+    return "right";
+  }
+  if (previousPosition.x === position.x + 1 && previousPosition.y === position.y) {
+    return "left";
+  }
+  if (previousPosition.x === position.x && previousPosition.y === position.y - 1) {
+    return "down";
+  }
+  if (previousPosition.x === position.x && previousPosition.y === position.y + 1) {
+    return "up";
+  }
+
+  return null;
+}
+
+function turnLeft(direction) {
+  if (direction === "up") {
+    return "left";
+  }
+  if (direction === "left") {
+    return "down";
+  }
+  if (direction === "down") {
+    return "right";
+  }
+  return "up";
+}
+
+function turnRight(direction) {
+  if (direction === "up") {
+    return "right";
+  }
+  if (direction === "right") {
+    return "down";
+  }
+  if (direction === "down") {
+    return "left";
+  }
+  return "up";
+}
+
+function oppositeDirection(direction) {
+  if (direction === "up") {
+    return "down";
+  }
+  if (direction === "down") {
+    return "up";
+  }
+  if (direction === "left") {
+    return "right";
+  }
+  return "left";
 }
 
 function isEntryApproachPosition(map, position) {
