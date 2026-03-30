@@ -475,6 +475,42 @@ describe("explorer-policy", () => {
       reason: "probe"
     });
   });
+
+  it("lets wall finish training-lap on 5x5 without looping at the connector", () => {
+    const map = MAP_DEFINITIONS.find((entry) => entry.mapId === "training-lap");
+    expect(map).toBeTruthy();
+
+    const result = simulateExplorer({
+      map: {
+        ...map!,
+        visibilityRadius: 2
+      },
+      seed: createExplorerSeed("w1"),
+      strategy: "wall",
+      stepLimit: 400
+    });
+
+    expect(result.ok).toBe(true);
+    expect(result.steps).toBeLessThan(400);
+  });
+
+  it("lets wall clear zeta-rift on 5x5 for the regression seed", () => {
+    const map = MAP_DEFINITIONS.find((entry) => entry.mapId === "zeta-rift");
+    expect(map).toBeTruthy();
+
+    const result = simulateExplorer({
+      map: {
+        ...map!,
+        visibilityRadius: 2
+      },
+      seed: createExplorerSeed("w1"),
+      strategy: "wall",
+      stepLimit: 2_000
+    });
+
+    expect(result.ok).toBe(true);
+    expect(result.steps).toBeLessThan(2_000);
+  });
 });
 
 function createMemoryFromRows(
@@ -547,16 +583,16 @@ function bounds(minX: number, minY: number, maxX: number, maxY: number) {
 
 function simulateExplorer(input: {
   map: (typeof MAP_DEFINITIONS)[number];
-  slotIndex: number;
+  slotIndex?: number;
   seed: number;
   stepLimit: number;
   strategy?: RoomExploreStrategy;
 }) {
   const map = {
-    ...input.map,
-    visibilityRadius: 1
+    ...input.map
   };
-  let position = { ...map.startSlots[input.slotIndex]! };
+  const slotIndex = input.slotIndex ?? 0;
+  let position = { ...map.startSlots[slotIndex]! };
   let memory = createExplorerMemory();
   let leftApproachAt: number | null = null;
   let returnedToApproachAt: number | null = null;

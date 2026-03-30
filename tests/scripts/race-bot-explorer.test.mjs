@@ -665,6 +665,46 @@ test("wall chooses the opposite hand for odd explorer seeds", () => {
   });
 });
 
+test("wall finishes training-lap on 5x5 without looping at the connector", () => {
+  const map = MAP_DEFINITIONS.find((entry) => entry.mapId === "training-lap");
+  assert.ok(map);
+
+  const result = simulateExplorer(
+    {
+      ...map,
+      visibilityRadius: 2
+    },
+    400,
+    {
+      seed: createExplorerSeed("w1"),
+      strategy: "wall"
+    }
+  );
+
+  assert.equal(result.ok, true);
+  assert.ok(result.steps < 400);
+});
+
+test("wall clears zeta-rift on 5x5 for the regression seed", () => {
+  const map = MAP_DEFINITIONS.find((entry) => entry.mapId === "zeta-rift");
+  assert.ok(map);
+
+  const result = simulateExplorer(
+    {
+      ...map,
+      visibilityRadius: 2
+    },
+    2_000,
+    {
+      seed: createExplorerSeed("w1"),
+      strategy: "wall"
+    }
+  );
+
+  assert.equal(result.ok, true);
+  assert.ok(result.steps < 2_000);
+});
+
 test("explorer bot reaches the goal on every shipped map", () => {
   const failures = [];
 

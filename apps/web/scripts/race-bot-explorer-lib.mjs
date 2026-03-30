@@ -181,12 +181,14 @@ export function decideExplorerMove({
   const directionSteps = getDirectionSteps(seed);
   const hasExploredBeyondEntryApproach = hasVisitedOutsideEntryApproach(map, memory);
   const hasExploredBeyondStrictEntry = hasVisitedOutsideStrictEntry(map, memory);
-  const stagedMove = planStartZoneMove({
-    map,
-    memory,
-    position,
-    seed
-  });
+  const stagedMove = hasExploredBeyondStrictEntry
+    ? null
+    : planStartZoneMove({
+        map,
+        memory,
+        position,
+        seed
+      });
   if (stagedMove) {
     return {
       direction: stagedMove,
@@ -420,6 +422,21 @@ function decideWallFollowMove({
       direction: probeDirection,
       reason: "probe"
     };
+  }
+
+  if (shouldEscapeWallLoop(memory, position)) {
+    const tremauxMove = decideTremauxFrontierMove({
+      map,
+      memory,
+      position,
+      seed
+    });
+    if (tremauxMove) {
+      return {
+        direction: tremauxMove,
+        reason: "frontier"
+      };
+    }
   }
 
   const walkableDirection = findKnownWalkableDirection({
@@ -1012,6 +1029,24 @@ function getWallDirectionSteps(seed, recentTileKeys, position) {
   return orderedDirections
     .map((direction) => DIRECTION_STEPS.find((step) => step.direction === direction))
     .filter(Boolean);
+}
+
+function shouldEscapeWallLoop(memory, position) {
+  const currentVisits = memory.visitCounts.get(toTileKey(position)) ?? 0;
+  if (currentVisits >= 4) {
+    return true;
+  }
+
+  if (currentVisits < 2) {
+    return false;
+  }
+
+  const recentWindow = memory.recentTileKeys.slice(-6);
+  if (recentWindow.length < 4) {
+    return false;
+  }
+
+  return new Set(recentWindow).size <= 4;
 }
 
 function calculateRecentPathPenalty({

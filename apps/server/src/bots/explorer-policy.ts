@@ -174,12 +174,16 @@ export function decideExplorerMove(input: {
   }
 
   const directionSteps = getDirectionSteps(input.seed ?? 0);
-  const stagedMove = planStartZoneMove({
-    map: input.map,
-    memory: input.memory,
-    position: input.position,
-    seed: input.seed ?? 0
-  });
+  const hasExploredBeyondEntryApproach = hasVisitedOutsideEntryApproach(input.map, input.memory);
+  const hasExploredBeyondStrictEntry = hasVisitedOutsideStrictEntry(input.map, input.memory);
+  const stagedMove = hasExploredBeyondStrictEntry
+    ? null
+    : planStartZoneMove({
+        map: input.map,
+        memory: input.memory,
+        position: input.position,
+        seed: input.seed ?? 0
+      });
   if (stagedMove) {
     return {
       direction: stagedMove,
@@ -188,8 +192,6 @@ export function decideExplorerMove(input: {
   }
 
   const strategy = input.strategy ?? "frontier";
-  const hasExploredBeyondEntryApproach = hasVisitedOutsideEntryApproach(input.map, input.memory);
-  const hasExploredBeyondStrictEntry = hasVisitedOutsideStrictEntry(input.map, input.memory);
   const goalMove =
     strategy === "tremaux"
       ? decideTremauxGoalMove({
@@ -416,6 +418,21 @@ function decideWallFollowMove(input: {
       direction: probeDirection,
       reason: "probe"
     };
+  }
+
+  if (shouldEscapeWallLoop(input.memory, input.position)) {
+    const tremauxMove = decideTremauxFrontierMove({
+      map: input.map,
+      memory: input.memory,
+      position: input.position,
+      seed: input.seed
+    });
+    if (tremauxMove) {
+      return {
+        direction: tremauxMove,
+        reason: "frontier"
+      };
+    }
   }
 
   const walkableDirection = findKnownWalkableDirection({
@@ -1008,6 +1025,24 @@ function getWallDirectionSteps(seed: number, recentTileKeys: string[], position:
   return orderedDirections
     .map((direction) => DIRECTION_STEPS.find((step) => step.direction === direction))
     .filter((step): step is ExplorerDirectionStep => Boolean(step));
+}
+
+function shouldEscapeWallLoop(memory: ExplorerMemory, position: GridPosition) {
+  const currentVisits = memory.visitCounts.get(toTileKey(position)) ?? 0;
+  if (currentVisits >= 4) {
+    return true;
+  }
+
+  if (currentVisits < 2) {
+    return false;
+  }
+
+  const recentWindow = memory.recentTileKeys.slice(-6);
+  if (recentWindow.length < 4) {
+    return false;
+  }
+
+  return new Set(recentWindow).size <= 4;
 }
 
 function calculateRecentPathPenalty(input: {
