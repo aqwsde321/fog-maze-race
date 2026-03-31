@@ -321,11 +321,20 @@ describe("GameScreen keyboard control", () => {
 
     expect(container.querySelector('[data-testid="fake-goal-alert"]')?.textContent).toContain("가짜 골");
     expect(fakeGoalWord?.getAttribute("aria-label")).toBe("쿠!");
-    expect(fakeGoalWord?.style.gridTemplateColumns).toBe("repeat(11, 18px)");
-    expect(fakeGoalWord?.style.gridTemplateRows).toBe("repeat(8, 18px)");
-    expect(fakeGoalCard?.style.position).toBe("relative");
+    expect(fakeGoalWord?.style.gridTemplateColumns).toBe("repeat(11, 22px)");
+    expect(fakeGoalWord?.style.gridTemplateRows).toBe("repeat(8, 22px)");
+    expect(fakeGoalCard?.style.position).toBe("absolute");
+    expect(fakeGoalCard?.style.left).toBe("calc(50% + 24px)");
+    expect(fakeGoalCard?.style.top).toBe("calc(50% - 32px)");
+    expect(fakeGoalCard?.style.width).toBe("0px");
+    expect(fakeGoalCard?.style.height).toBe("0px");
+    expect(fakeGoalWord?.style.position).toBe("absolute");
+    expect(fakeGoalWord?.style.left).toBe("0px");
+    expect(fakeGoalWord?.style.top).toBe("0px");
+    expect(fakeGoalWord?.style.transform).toBe("translate(-50%, -50%)");
     expect(fakeGoalCaption?.style.position).toBe("absolute");
-    expect(fakeGoalCaption?.style.top).toBe("calc(100% + 10px)");
+    expect(fakeGoalCaption?.style.left).toBe("0px");
+    expect(fakeGoalCaption?.style.top).toBe("118px");
     expect(fakeGoalPixels).toHaveLength(28);
     expect(topKiyeokColumns).toEqual(["2", "3", "4", "5", "6", "10"]);
     expect(bottomStrokeColumns).toEqual(["1", "2", "3", "4", "5", "6", "7", "10"]);
@@ -341,6 +350,132 @@ describe("GameScreen keyboard control", () => {
     });
 
     expect(container.querySelector('[data-testid="fake-goal-alert"]')).toBeNull();
+  });
+
+  it("positions the fake-goal alert at the center of the measured game canvas", async () => {
+    const clientWidthSpy = vi.spyOn(HTMLElement.prototype, "clientWidth", "get").mockImplementation(function (
+      this: HTMLElement
+    ) {
+      const testId = this.getAttribute("data-testid");
+      if (testId === "game-shell") {
+        return 1280;
+      }
+
+      if (testId === "game-canvas") {
+        return 960;
+      }
+
+      return 0;
+    });
+    const clientHeightSpy = vi.spyOn(HTMLElement.prototype, "clientHeight", "get").mockImplementation(function (
+      this: HTMLElement
+    ) {
+      const testId = this.getAttribute("data-testid");
+      if (testId === "game-shell") {
+        return 720;
+      }
+
+      if (testId === "game-canvas") {
+        return 540;
+      }
+
+      return 0;
+    });
+    const offsetLeftSpy = vi.spyOn(HTMLElement.prototype, "offsetLeft", "get").mockImplementation(function (
+      this: HTMLElement
+    ) {
+      return this.getAttribute("data-testid") === "game-canvas" ? 140 : 0;
+    });
+    const offsetTopSpy = vi.spyOn(HTMLElement.prototype, "offsetTop", "get").mockImplementation(function (
+      this: HTMLElement
+    ) {
+      return this.getAttribute("data-testid") === "game-canvas" ? 36 : 0;
+    });
+    const initialSnapshot = buildSnapshot("playing");
+    const movedSnapshot: RoomSnapshot = {
+      ...initialSnapshot,
+      revision: initialSnapshot.revision + 1,
+      members: initialSnapshot.members.map((member) => (
+        member.playerId === "player-1"
+          ? {
+              ...member,
+              position: { x: 4, y: 1 }
+            }
+          : member
+      )),
+      match: initialSnapshot.match
+        ? {
+            ...initialSnapshot.match,
+            map: {
+              ...initialSnapshot.match.map,
+              fakeGoalTiles: [{ x: 4, y: 1 }]
+            }
+          }
+        : null
+    };
+
+    try {
+      await act(async () => {
+        root.render(
+          <GameScreen
+            snapshot={{
+              ...initialSnapshot,
+              match: initialSnapshot.match
+                ? {
+                    ...initialSnapshot.match,
+                    map: {
+                      ...initialSnapshot.match.map,
+                      fakeGoalTiles: [{ x: 4, y: 1 }]
+                    }
+                  }
+                : null
+            }}
+            selfPlayerId="player-1"
+            countdownValue={null}
+            onStartGame={vi.fn()}
+            onRenameRoom={vi.fn()}
+            onSetVisibilitySize={vi.fn()}
+            onForceEndRoom={vi.fn()}
+            onResetToWaiting={vi.fn()}
+            onLeaveRoom={vi.fn()}
+            onMove={vi.fn()}
+            onSendChatMessage={vi.fn()}
+          />
+        );
+      });
+
+      await act(async () => {
+        root.render(
+          <GameScreen
+            snapshot={movedSnapshot}
+            selfPlayerId="player-1"
+            countdownValue={null}
+            onStartGame={vi.fn()}
+            onRenameRoom={vi.fn()}
+            onSetVisibilitySize={vi.fn()}
+            onForceEndRoom={vi.fn()}
+            onResetToWaiting={vi.fn()}
+            onLeaveRoom={vi.fn()}
+            onMove={vi.fn()}
+            onSendChatMessage={vi.fn()}
+          />
+        );
+      });
+
+      const overlay = container.querySelector<HTMLElement>('[data-testid="fake-goal-alert"]');
+
+      expect(overlay).not.toBeNull();
+      expect(overlay?.style.left).toBe("140px");
+      expect(overlay?.style.top).toBe("36px");
+      expect(overlay?.style.width).toBe("960px");
+      expect(overlay?.style.height).toBe("540px");
+      expect(overlay?.style.inset).toBe("");
+    } finally {
+      clientWidthSpy.mockRestore();
+      clientHeightSpy.mockRestore();
+      offsetLeftSpy.mockRestore();
+      offsetTopSpy.mockRestore();
+    }
   });
 
   it("does not show the fake-goal alert when another player stands on a fake goal tile", async () => {

@@ -36,8 +36,11 @@ type GameScreenProps = {
 const SERVER_HEALTH_POLL_INTERVAL_MS = 2_000;
 const SERVER_METRIC_HISTORY_LIMIT = 16;
 const FAKE_GOAL_ALERT_DURATION_MS = 2_000;
-const FAKE_GOAL_ALERT_TILE_SIZE_PX = 18;
+const FAKE_GOAL_ALERT_TILE_SIZE_PX = 22;
 const FAKE_GOAL_ALERT_TILE_GAP_PX = 4;
+const FAKE_GOAL_ALERT_CENTER_OFFSET_X_PX = 24;
+const FAKE_GOAL_ALERT_CENTER_OFFSET_Y_PX = 32;
+const FAKE_GOAL_ALERT_CAPTION_GAP_PX = 16;
 const FAKE_GOAL_ALERT_WORD_PATTERN = [
   "01111100010",
   "00000100010",
@@ -50,6 +53,12 @@ const FAKE_GOAL_ALERT_WORD_PATTERN = [
 ] as const;
 const FAKE_GOAL_ALERT_WORD_COLUMNS = Math.max(...FAKE_GOAL_ALERT_WORD_PATTERN.map((line) => line.length));
 const FAKE_GOAL_ALERT_WORD_ROWS = FAKE_GOAL_ALERT_WORD_PATTERN.length;
+const FAKE_GOAL_ALERT_WORD_WIDTH_PX =
+  FAKE_GOAL_ALERT_WORD_COLUMNS * FAKE_GOAL_ALERT_TILE_SIZE_PX +
+  (FAKE_GOAL_ALERT_WORD_COLUMNS - 1) * FAKE_GOAL_ALERT_TILE_GAP_PX;
+const FAKE_GOAL_ALERT_WORD_HEIGHT_PX =
+  FAKE_GOAL_ALERT_WORD_ROWS * FAKE_GOAL_ALERT_TILE_SIZE_PX +
+  (FAKE_GOAL_ALERT_WORD_ROWS - 1) * FAKE_GOAL_ALERT_TILE_GAP_PX;
 const SHELL_RAIL_WIDTH = "clamp(156px, 10.5vw, 178px)";
 const SHELL_COLUMN_GAP = "clamp(6px, 0.8vw, 10px)";
 const SHELL_EDGE_OFFSET = "clamp(8px, 1vw, 12px)";
@@ -579,7 +588,7 @@ export function GameScreen({
             </div>
           ) : null}
           {isFakeGoalAlertVisible ? (
-            <div data-testid="fake-goal-alert" style={fakeGoalAlertOverlayStyle}>
+            <div data-testid="fake-goal-alert" style={fakeGoalAlertOverlayStyle(canvasMetrics)}>
               <div data-testid="fake-goal-alert-card" style={fakeGoalAlertCardStyle}>
                 <div
                   data-testid="fake-goal-alert-word"
@@ -1408,14 +1417,30 @@ const countdownOverlayStyle: CSSProperties = {
   pointerEvents: "none"
 };
 
-const fakeGoalAlertOverlayStyle: CSSProperties = {
-  position: "absolute",
-  inset: 0,
-  zIndex: 6,
-  display: "grid",
-  placeItems: "center",
-  pointerEvents: "none"
-};
+function fakeGoalAlertOverlayStyle(canvasMetrics: CanvasMetrics): CSSProperties {
+  if (canvasMetrics.width > 0 && canvasMetrics.height > 0) {
+    return {
+      position: "absolute",
+      left: `${canvasMetrics.offsetLeft}px`,
+      top: `${canvasMetrics.offsetTop}px`,
+      width: `${canvasMetrics.width}px`,
+      height: `${canvasMetrics.height}px`,
+      zIndex: 6,
+      display: "grid",
+      placeItems: "center",
+      pointerEvents: "none"
+    };
+  }
+
+  return {
+    position: "absolute",
+    inset: 0,
+    zIndex: 6,
+    display: "grid",
+    placeItems: "center",
+    pointerEvents: "none"
+  };
+}
 
 const chatDockStyle: CSSProperties = {
   position: "absolute",
@@ -1456,14 +1481,23 @@ const countdownValueStyle: CSSProperties = {
 };
 
 const fakeGoalAlertCardStyle: CSSProperties = {
-  position: "relative",
+  position: "absolute",
+  left: `calc(50% + ${FAKE_GOAL_ALERT_CENTER_OFFSET_X_PX}px)`,
+  top: `calc(50% - ${FAKE_GOAL_ALERT_CENTER_OFFSET_Y_PX}px)`,
   display: "grid",
-  justifyItems: "center"
+  justifyItems: "center",
+  width: 0,
+  height: 0
 };
 
 const fakeGoalAlertWordStyle: CSSProperties = {
-  position: "relative",
+  position: "absolute",
+  left: 0,
+  top: 0,
+  transform: "translate(-50%, -50%)",
   display: "grid",
+  width: `${FAKE_GOAL_ALERT_WORD_WIDTH_PX}px`,
+  height: `${FAKE_GOAL_ALERT_WORD_HEIGHT_PX}px`,
   gridTemplateColumns: `repeat(${FAKE_GOAL_ALERT_WORD_COLUMNS}, ${FAKE_GOAL_ALERT_TILE_SIZE_PX}px)`,
   gridTemplateRows: `repeat(${FAKE_GOAL_ALERT_WORD_ROWS}, ${FAKE_GOAL_ALERT_TILE_SIZE_PX}px)`,
   gap: `${FAKE_GOAL_ALERT_TILE_GAP_PX}px`,
@@ -1472,8 +1506,8 @@ const fakeGoalAlertWordStyle: CSSProperties = {
 
 const fakeGoalAlertCaptionStyle: CSSProperties = {
   position: "absolute",
-  left: "50%",
-  top: "calc(100% + 10px)",
+  left: 0,
+  top: `${Math.floor(FAKE_GOAL_ALERT_WORD_HEIGHT_PX / 2) + FAKE_GOAL_ALERT_CAPTION_GAP_PX}px`,
   transform: "translateX(-50%)",
   margin: 0,
   whiteSpace: "nowrap",
