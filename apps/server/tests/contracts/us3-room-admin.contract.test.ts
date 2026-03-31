@@ -175,13 +175,15 @@ describe("US3 room administration contract", () => {
     guest.emit("JOIN_ROOM", { roomId: hostJoined.roomId });
     await once(guest, "ROOM_JOINED");
 
+    const hostSnapshotPromise = waitForSnapshot(host, (snapshot) => snapshot.chat.length === 1, 1_000);
+    const guestSnapshotPromise = waitForSnapshot(guest, (snapshot) => snapshot.chat.length === 1, 1_000);
+
     host.emit("SEND_CHAT_MESSAGE", {
       roomId: hostJoined.roomId,
       content: "  안개 조심  "
     });
 
-    const hostSnapshot = await waitForSnapshot(host, (snapshot) => snapshot.chat.length === 1, 1_000);
-    const guestSnapshot = await waitForSnapshot(guest, (snapshot) => snapshot.chat.length === 1, 1_000);
+    const [hostSnapshot, guestSnapshot] = await Promise.all([hostSnapshotPromise, guestSnapshotPromise]);
 
     expect(hostSnapshot.chat).toEqual(guestSnapshot.chat);
     expect(guestSnapshot.chat[0]).toMatchObject({
