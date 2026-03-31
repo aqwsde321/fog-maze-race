@@ -2,6 +2,7 @@ import { defineConfig } from "@playwright/test";
 
 const E2E_SERVER_PORT = 3300;
 const E2E_WEB_PORT = 4273;
+const E2E_RECOVERY_GRACE_MS = 2_000;
 
 export default defineConfig({
   testDir: "./tests/e2e",
@@ -12,7 +13,9 @@ export default defineConfig({
   webServer: [
     {
       command:
-        `PORT=${E2E_SERVER_PORT} COUNTDOWN_STEP_MS=50 RESULTS_DURATION_MS=1200 RECOVERY_GRACE_MS=350 FORCED_MAP_ID=training-lap pnpm --filter @fog-maze-race/server dev`,
+        `PORT=${E2E_SERVER_PORT} COUNTDOWN_STEP_MS=50 RESULTS_DURATION_MS=1200 ` +
+        `RECOVERY_GRACE_MS=${E2E_RECOVERY_GRACE_MS} FORCED_MAP_ID=training-lap ` +
+        `pnpm --filter @fog-maze-race/server dev`,
       url: `http://127.0.0.1:${E2E_SERVER_PORT}/health`,
       reuseExistingServer: false,
       timeout: 30_000

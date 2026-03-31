@@ -3,6 +3,8 @@ import { expect, test, type Page } from "@playwright/test";
 import { createRoomFromLobby, enterLobby } from "./helpers/lobby.js";
 import { closeRaceClients, createRaceClients } from "./helpers/multi-client.js";
 
+const E2E_RECOVERY_GRACE_MS = 2_000;
+
 test.describe.configure({ timeout: 60_000 });
 
 test("US2 reconnects a disconnected player into the active room", async ({ browser }) => {
@@ -75,7 +77,7 @@ test("US2 blocks recovery after the grace window expires", async ({ browser }) =
     await expect(host.page.locator("aside").getByText("게2")).toBeVisible({
       timeout: 4_000
     });
-    await host.page.waitForTimeout(700);
+    await host.page.waitForTimeout(E2E_RECOVERY_GRACE_MS + 500);
     await expect(host.page.locator("aside article")).toHaveCount(1, {
       timeout: 4_000
     });
