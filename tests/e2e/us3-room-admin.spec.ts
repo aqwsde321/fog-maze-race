@@ -23,7 +23,7 @@ test("US3 hosts can hand off authority and force-end the next round", async ({
     });
 
     await host.page.getByRole("button", { name: "나가기" }).click();
-    await expect(host.page.getByText("방 목록")).toBeVisible({
+    await expect(host.page.getByTestId("room-list-card")).toBeVisible({
       timeout: 6_000
     });
 
