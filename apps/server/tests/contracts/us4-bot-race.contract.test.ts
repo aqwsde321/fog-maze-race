@@ -61,21 +61,29 @@ describe("US4 bot race contract", () => {
     racerTwo.connect();
     watcher.connect();
 
+    const hostConnectedPromise = once(host, "CONNECTED");
+    const racerOneConnectedPromise = once(racerOne, "CONNECTED");
+    const racerTwoConnectedPromise = once(racerTwo, "CONNECTED");
+    const watcherConnectedPromise = once(watcher, "CONNECTED");
+
     host.emit("CONNECT", { nickname: "호1" });
     racerOne.emit("CONNECT", { nickname: "봇1" });
     racerTwo.emit("CONNECT", { nickname: "봇2" });
     watcher.emit("CONNECT", { nickname: "관3" });
 
-    const hostConnected = await once(host, "CONNECTED");
-    const racerOneConnected = await once(racerOne, "CONNECTED");
-    const racerTwoConnected = await once(racerTwo, "CONNECTED");
-    const watcherConnected = await once(watcher, "CONNECTED");
+    const [hostConnected, racerOneConnected, racerTwoConnected, watcherConnected] = await Promise.all([
+      hostConnectedPromise,
+      racerOneConnectedPromise,
+      racerTwoConnectedPromise,
+      watcherConnectedPromise
+    ]);
 
+    const hostJoinedPromise = once(host, "ROOM_JOINED");
     host.emit("CREATE_ROOM", {
       name: "Bot Only",
       mode: "bot_race"
     });
-    const hostJoined = await once(host, "ROOM_JOINED");
+    const hostJoined = await hostJoinedPromise;
     lastSnapshot = hostJoined.snapshot;
     expect(hostJoined.snapshot.room.mode).toBe("bot_race");
     expect(hostJoined.snapshot.members[0]).toMatchObject({
@@ -83,6 +91,10 @@ describe("US4 bot race contract", () => {
       role: "spectator",
       position: null
     });
+
+    const racerOneJoinedPromise = once(racerOne, "ROOM_JOINED");
+    const racerTwoJoinedPromise = once(racerTwo, "ROOM_JOINED");
+    const watcherJoinedPromise = once(watcher, "ROOM_JOINED");
 
     racerOne.emit("JOIN_ROOM", {
       roomId: hostJoined.roomId,
@@ -96,23 +108,24 @@ describe("US4 bot race contract", () => {
       roomId: hostJoined.roomId
     });
 
-    await once(racerOne, "ROOM_JOINED");
-    await once(racerTwo, "ROOM_JOINED");
-    const watcherJoined = await once(watcher, "ROOM_JOINED");
+    await racerOneJoinedPromise;
+    await racerTwoJoinedPromise;
+    const watcherJoined = await watcherJoinedPromise;
     expect(watcherJoined.snapshot.members.find((member) => member.playerId === watcherConnected.playerId)).toMatchObject({
       role: "spectator",
       position: null
     });
 
-    host.emit("START_GAME", { roomId: hostJoined.roomId });
-
-    const playingSnapshot = await waitForSnapshot(
+    const playingSnapshotPromise = waitForSnapshot(
       host,
       (snapshot) =>
         snapshot.room.status === "playing" &&
         snapshot.members.filter((member) => member.role === "racer" && member.state === "playing").length === 2,
       1_500
     );
+    host.emit("START_GAME", { roomId: hostJoined.roomId });
+
+    const playingSnapshot = await playingSnapshotPromise;
 
     expect(playingSnapshot.members.find((member) => member.playerId === hostConnected.playerId)).toMatchObject({
       role: "spectator",
@@ -183,16 +196,26 @@ async function waitForSnapshot(
   predicate: (snapshot: RoomJoinedPayload["snapshot"]) => boolean,
   timeoutMs: number
 ) {
-  const startedAt = Date.now();
+  return new Promise<RoomJoinedPayload["snapshot"]>((resolve, reject) => {
+    const untypedSocket = socket as any;
 
-  while (Date.now() - startedAt < timeoutMs) {
-    const payload = await once(socket, "ROOM_STATE_UPDATE");
-    if (predicate(payload.snapshot)) {
-      return payload.snapshot;
-    }
-  }
+    const timeout = setTimeout(() => {
+      untypedSocket.off("ROOM_STATE_UPDATE", handleSnapshot);
+      reject(new Error("Timed out waiting for room snapshot"));
+    }, timeoutMs);
 
-  throw new Error("Timed out waiting for room snapshot");
+    const handleSnapshot = (payload: RoomStateUpdatePayload) => {
+      if (!predicate(payload.snapshot)) {
+        return;
+      }
+
+      clearTimeout(timeout);
+      untypedSocket.off("ROOM_STATE_UPDATE", handleSnapshot);
+      resolve(payload.snapshot);
+    };
+
+    untypedSocket.on("ROOM_STATE_UPDATE", handleSnapshot);
+  });
 }
 
 async function waitForValue<T>(

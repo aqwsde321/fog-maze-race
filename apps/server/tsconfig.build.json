@@ -6,8 +6,11 @@
     "declaration": true,
     "declarationMap": true,
     "sourceMap": true,
-    "baseUrl": ".",
-    "paths": {}
+    "baseUrl": "../..",
+    "paths": {
+      "@fog-maze-race/shared": ["packages/shared/dist/index.d.ts"],
+      "@fog-maze-race/shared/*": ["packages/shared/dist/*.d.ts"]
+    }
   },
   "include": ["src/**/*.ts"],
   "exclude": ["tests/**/*.ts"]
