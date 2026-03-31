@@ -11,9 +11,21 @@ services:
     autoDeployTrigger: checksPass
     buildFilter:
       paths:
-        - apps/**
-        - packages/**
+        - apps/server/src/**
+        - apps/server/package.json
+        - apps/server/tsconfig.json
+        - apps/server/tsconfig.build.json
+        - apps/web/src/**
+        - apps/web/index.html
+        - apps/web/package.json
+        - apps/web/tsconfig.json
+        - apps/web/vite.config.ts
+        - packages/shared/src/**
+        - packages/shared/package.json
+        - packages/shared/tsconfig.json
+        - packages/shared/tsconfig.build.json
         - data/**
+        - .dockerignore
         - Dockerfile
         - package.json
         - pnpm-lock.yaml
