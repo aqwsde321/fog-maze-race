@@ -61,6 +61,14 @@
 
 - [render.yaml](../render.yaml)
 
+자동 배포 기준 권장값:
+
+- 프로덕션 배포 브랜치: `main`
+- Render Auto-Deploy: `After CI Checks Pass`
+- CI: GitHub Actions
+
+`main`을 실제 운영 배포 브랜치로 두고, 테스트용 브랜치가 필요하면 별도 Render 서비스에 다른 브랜치를 연결하는 편이 관리가 단순합니다.
+
 ## 사전 준비
 
 - GitHub 저장소 push 완료
@@ -87,10 +95,14 @@
 권장값:
 
 - Name: `fog-maze-race`
-- Branch: 배포 브랜치
+- Branch: `main`
 - Region: 사용자와 가까운 리전
 - Language: `Docker`
 - Dockerfile Path: `Dockerfile`
+
+Auto-Deploy 권장값:
+
+- `After CI Checks Pass`
 
 별도 Build Command / Start Command는 필요 없습니다.
 
