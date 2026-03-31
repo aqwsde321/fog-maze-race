@@ -69,6 +69,17 @@
 
 `main`을 실제 운영 배포 브랜치로 두고, 테스트용 브랜치가 필요하면 별도 Render 서비스에 다른 브랜치를 연결하는 편이 관리가 단순합니다.
 
+현재 저장소의 `render.yaml`은 `buildFilter.paths`를 사용합니다. 따라서 문서, 테스트, Playwright 설정처럼 런타임 산출물에 직접 영향이 없는 변경만 있을 때는 Render가 새 배포를 시작하지 않는 것이 정상입니다.
+
+자동 배포가 실제로 시작되는 조건은 다음과 같습니다.
+
+1. `main` 브랜치에 푸시
+2. GitHub Actions CI 전체 성공
+3. 변경 파일이 `buildFilter.paths`에 포함됨
+4. Render가 새 deploy를 시작
+
+즉 `README`, `docs`, `tests`만 바뀐 커밋은 `main`에 올라가도 자동배포가 생략될 수 있습니다.
+
 ## 사전 준비
 
 - GitHub 저장소 push 완료
@@ -177,6 +188,18 @@ https://<service-name>.onrender.com/health
   "uptimeSeconds": 12
 }
 ```
+
+## 자동배포가 안 붙는 것처럼 보일 때
+
+다음 순서로 확인합니다.
+
+1. GitHub Actions 최신 `main` 런이 모두 초록인지 확인
+2. Render 서비스의 연결 브랜치가 `main`인지 확인
+3. Render Auto-Deploy가 `After CI Checks Pass`인지 확인
+4. 이번 커밋에서 바뀐 파일이 `render.yaml`의 `buildFilter.paths` 대상인지 확인
+5. Render `Events`에서 해당 커밋 SHA 기준 deploy가 생성됐는지 확인
+
+예를 들어 `tests/**`, `docs/**`, `README.md`만 바뀐 경우에는 자동배포가 생략되는 편이 맞습니다.
 
 ## Free 플랜 운영 팁
 
