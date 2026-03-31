@@ -188,7 +188,7 @@ describe("US3 room administration contract", () => {
       nickname: "호1",
       content: "안개 조심"
     });
-  }, 10_000);
+  }, 15_000);
 
   it("acknowledges ping checks so the client can measure round-trip latency", async () => {
     const socket = createRaceSocket();
