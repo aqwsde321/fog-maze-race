@@ -308,10 +308,36 @@ describe("GameScreen keyboard control", () => {
       );
     });
 
-    expect(container.querySelector('[data-testid="fake-goal-alert"]')?.textContent).toContain("꽝");
+    const fakeGoalWord = container.querySelector<HTMLElement>('[data-testid="fake-goal-alert-word"]');
+    const fakeGoalCard = container.querySelector<HTMLElement>('[data-testid="fake-goal-alert-card"]');
+    const fakeGoalCaption = container.querySelector<HTMLElement>('[data-testid="fake-goal-alert-caption"]');
+    const fakeGoalPixels = container.querySelectorAll('[data-testid="fake-goal-alert-pixel"]');
+    const topKiyeokColumns = [...fakeGoalPixels]
+      .filter((pixel) => (pixel as HTMLElement).style.gridRow === "1")
+      .map((pixel) => (pixel as HTMLElement).style.gridColumn);
+    const bottomStrokeColumns = [...fakeGoalPixels]
+      .filter((pixel) => (pixel as HTMLElement).style.gridRow === "6")
+      .map((pixel) => (pixel as HTMLElement).style.gridColumn);
+
+    expect(container.querySelector('[data-testid="fake-goal-alert"]')?.textContent).toContain("가짜 골");
+    expect(fakeGoalWord?.getAttribute("aria-label")).toBe("쿠!");
+    expect(fakeGoalWord?.style.gridTemplateColumns).toBe("repeat(11, 18px)");
+    expect(fakeGoalWord?.style.gridTemplateRows).toBe("repeat(8, 18px)");
+    expect(fakeGoalCard?.style.position).toBe("relative");
+    expect(fakeGoalCaption?.style.position).toBe("absolute");
+    expect(fakeGoalCaption?.style.top).toBe("calc(100% + 10px)");
+    expect(fakeGoalPixels).toHaveLength(28);
+    expect(topKiyeokColumns).toEqual(["2", "3", "4", "5", "6", "10"]);
+    expect(bottomStrokeColumns).toEqual(["1", "2", "3", "4", "5", "6", "7", "10"]);
 
     await act(async () => {
-      vi.advanceTimersByTime(900);
+      vi.advanceTimersByTime(1_999);
+    });
+
+    expect(container.querySelector('[data-testid="fake-goal-alert"]')).not.toBeNull();
+
+    await act(async () => {
+      vi.advanceTimersByTime(1);
     });
 
     expect(container.querySelector('[data-testid="fake-goal-alert"]')).toBeNull();

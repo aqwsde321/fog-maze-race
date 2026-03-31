@@ -34,7 +34,21 @@ type GameScreenProps = {
 
 const SERVER_HEALTH_POLL_INTERVAL_MS = 2_000;
 const SERVER_METRIC_HISTORY_LIMIT = 16;
-const FAKE_GOAL_ALERT_DURATION_MS = 900;
+const FAKE_GOAL_ALERT_DURATION_MS = 2_000;
+const FAKE_GOAL_ALERT_TILE_SIZE_PX = 18;
+const FAKE_GOAL_ALERT_TILE_GAP_PX = 4;
+const FAKE_GOAL_ALERT_WORD_PATTERN = [
+  "01111100010",
+  "00000100010",
+  "01111100010",
+  "00000100010",
+  "00000000010",
+  "11111110010",
+  "00010000000",
+  "00010000010"
+] as const;
+const FAKE_GOAL_ALERT_WORD_COLUMNS = Math.max(...FAKE_GOAL_ALERT_WORD_PATTERN.map((line) => line.length));
+const FAKE_GOAL_ALERT_WORD_ROWS = FAKE_GOAL_ALERT_WORD_PATTERN.length;
 const SHELL_RAIL_WIDTH = "clamp(156px, 10.5vw, 178px)";
 const SHELL_COLUMN_GAP = "clamp(6px, 0.8vw, 10px)";
 const SHELL_EDGE_OFFSET = "clamp(8px, 1vw, 12px)";
@@ -564,11 +578,26 @@ export function GameScreen({
           ) : null}
           {isFakeGoalAlertVisible ? (
             <div data-testid="fake-goal-alert" style={fakeGoalAlertOverlayStyle}>
-              <div style={fakeGoalAlertCardStyle}>
-                <div data-testid="fake-goal-alert-tile" style={fakeGoalAlertTileStyle}>
-                  꽝
+              <div data-testid="fake-goal-alert-card" style={fakeGoalAlertCardStyle}>
+                <div
+                  data-testid="fake-goal-alert-word"
+                  role="img"
+                  aria-label="쿠!"
+                  style={fakeGoalAlertWordStyle}
+                >
+                  {FAKE_GOAL_ALERT_WORD_PATTERN.flatMap((line, rowIndex) =>
+                    [...line].map((cell, columnIndex) =>
+                      cell === "1" ? (
+                        <span
+                          key={`${rowIndex}-${columnIndex}`}
+                          data-testid="fake-goal-alert-pixel"
+                          style={fakeGoalAlertPixelStyle(columnIndex, rowIndex)}
+                        />
+                      ) : null
+                    )
+                  )}
                 </div>
-                <p style={fakeGoalAlertCaptionStyle}>가짜 골</p>
+                <p data-testid="fake-goal-alert-caption" style={fakeGoalAlertCaptionStyle}>가짜 골</p>
               </div>
             </div>
           ) : null}
@@ -1362,42 +1391,48 @@ const countdownValueStyle: CSSProperties = {
 };
 
 const fakeGoalAlertCardStyle: CSSProperties = {
+  position: "relative",
   display: "grid",
-  justifyItems: "center",
-  gap: "12px",
-  minWidth: "min(280px, calc(100% - 48px))",
-  padding: "24px 28px",
-  borderRadius: "28px",
-  background: "rgba(2, 6, 23, 0.82)",
-  border: "1px solid rgba(250, 204, 21, 0.28)",
-  boxShadow: "0 24px 80px rgba(2, 6, 23, 0.46)",
-  backdropFilter: "blur(8px)"
+  justifyItems: "center"
 };
 
-const fakeGoalAlertTileStyle: CSSProperties = {
-  width: "clamp(88px, 9vw, 112px)",
-  height: "clamp(88px, 9vw, 112px)",
+const fakeGoalAlertWordStyle: CSSProperties = {
+  position: "relative",
   display: "grid",
-  placeItems: "center",
-  borderRadius: "22px",
-  background: "linear-gradient(180deg, #fde047 0%, #facc15 52%, #f59e0b 100%)",
-  border: "1px solid rgba(254, 240, 138, 0.8)",
-  boxShadow: "inset 0 1px 0 rgba(255, 255, 255, 0.35), 0 18px 42px rgba(245, 158, 11, 0.32)",
-  color: "#422006",
-  fontSize: "clamp(2.8rem, 6vw, 4.2rem)",
-  fontWeight: 900,
-  lineHeight: 1,
-  letterSpacing: "0.04em"
+  gridTemplateColumns: `repeat(${FAKE_GOAL_ALERT_WORD_COLUMNS}, ${FAKE_GOAL_ALERT_TILE_SIZE_PX}px)`,
+  gridTemplateRows: `repeat(${FAKE_GOAL_ALERT_WORD_ROWS}, ${FAKE_GOAL_ALERT_TILE_SIZE_PX}px)`,
+  gap: `${FAKE_GOAL_ALERT_TILE_GAP_PX}px`,
+  filter: "drop-shadow(0 18px 40px rgba(2, 6, 23, 0.28))"
 };
 
 const fakeGoalAlertCaptionStyle: CSSProperties = {
+  position: "absolute",
+  left: "50%",
+  top: "calc(100% + 10px)",
+  transform: "translateX(-50%)",
   margin: 0,
+  whiteSpace: "nowrap",
+  padding: "6px 12px",
+  borderRadius: "999px",
+  background: "rgba(2, 6, 23, 0.78)",
   color: "#fde68a",
-  fontSize: "0.9rem",
-  fontWeight: 700,
-  letterSpacing: "0.18em",
+  fontSize: "0.82rem",
+  fontWeight: 800,
+  letterSpacing: "0.16em",
   textTransform: "uppercase"
 };
+
+function fakeGoalAlertPixelStyle(columnIndex: number, rowIndex: number): CSSProperties {
+  return {
+    gridColumn: `${columnIndex + 1}`,
+    gridRow: `${rowIndex + 1}`,
+    width: `${FAKE_GOAL_ALERT_TILE_SIZE_PX}px`,
+    height: `${FAKE_GOAL_ALERT_TILE_SIZE_PX}px`,
+    borderRadius: "2px",
+    background: "#facc15",
+    boxShadow: "inset 0 0 0 1px rgba(255, 255, 255, 0.18), inset 0 0 0 2px rgba(2, 6, 23, 0.36)"
+  };
+}
 
 function toPositionKey(position: { x: number; y: number }) {
   return `${position.x},${position.y}`;
