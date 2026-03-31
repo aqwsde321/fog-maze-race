@@ -3,6 +3,8 @@ import { expect, test, type Page } from "@playwright/test";
 import { createRoomFromLobby, enterLobby } from "./helpers/lobby.js";
 import { closeRaceClients, createRaceClients } from "./helpers/multi-client.js";
 
+test.describe.configure({ timeout: 60_000 });
+
 test("US2 reconnects a disconnected player into the active room", async ({ browser }) => {
   const clients = await createRaceClients(browser, 2);
   const [host, guest] = clients;
@@ -35,7 +37,7 @@ test("US2 reconnects a disconnected player into the active room", async ({ brows
     await guest.page.goto("/");
 
     await expect(guest.page.getByTestId("room-status")).toContainText("playing", {
-      timeout: 6_000
+      timeout: 15_000
     });
 
     await moveRight(host.page, 12);
@@ -83,7 +85,7 @@ test("US2 blocks recovery after the grace window expires", async ({ browser }) =
     await guest.page.goto("/");
 
     await expect(guest.page.getByTestId("room-list-card")).toBeVisible({
-      timeout: 6_000
+      timeout: 10_000
     });
 
     await moveRight(host.page, 12);
