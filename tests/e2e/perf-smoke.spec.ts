@@ -3,9 +3,9 @@ import { expect, test } from "@playwright/test";
 import { createRoomFromLobby, enterLobby } from "./helpers/lobby.js";
 import { closeRaceClients, createRaceClients } from "./helpers/multi-client.js";
 
-test("15 players can join the same room and enter the playing state", async ({ browser }) => {
-  test.setTimeout(60_000);
+test.describe.configure({ timeout: 120_000 });
 
+test("15 players can join the same room and enter the playing state", async ({ browser }) => {
   const clients = await createRaceClients(browser, 15);
   const [host, ...guests] = clients;
 

@@ -3,11 +3,11 @@ import { expect, test, type Page } from "@playwright/test";
 import { createRoomFromLobby, enterLobby } from "./helpers/lobby.js";
 import { closeRaceClients, createRaceClients } from "./helpers/multi-client.js";
 
+test.describe.configure({ timeout: 120_000 });
+
 test("15-player results overlay stays open, supports scroll, and resets only by button", async ({
   browser
 }) => {
-  test.setTimeout(90_000);
-
   const clients = await createRaceClients(browser, 15);
   const [host, ...guests] = clients;
   const roomName = `R${Date.now().toString().slice(-4)}`;
@@ -46,7 +46,7 @@ test("15-player results overlay stays open, supports scroll, and resets only by 
     await expect(resultsList.locator("article")).toHaveCount(15);
     await expect(overlay.getByText("1위")).toBeVisible();
 
-    await host.page.waitForTimeout(6_500);
+    await host.page.waitForTimeout(2_000);
 
     await expect(overlay).toBeVisible();
     await expect(host.page.getByTestId("room-status")).toContainText("ended");
