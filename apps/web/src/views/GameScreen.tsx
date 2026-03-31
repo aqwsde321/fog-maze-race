@@ -13,6 +13,7 @@ import { ResultsHistoryPanel } from "../features/rooms/ResultsHistoryPanel.js";
 import type { GameResultLogEntry } from "../features/rooms/result-log.js";
 import { RoomChatPanel } from "../features/rooms/RoomChatPanel.js";
 import { GameCanvas } from "../game/GameCanvas.js";
+import { createBoardLayout } from "../game/pixi/renderers/board-render.js";
 import { resolvePlayerOverlayAnchor } from "../game/player-overlay-layout.js";
 import { getSocketClient } from "../services/socket-client.js";
 
@@ -38,7 +39,6 @@ const SERVER_METRIC_HISTORY_LIMIT = 16;
 const FAKE_GOAL_ALERT_DURATION_MS = 2_000;
 const FAKE_GOAL_ALERT_TILE_SIZE_PX = 22;
 const FAKE_GOAL_ALERT_TILE_GAP_PX = 4;
-const FAKE_GOAL_ALERT_CENTER_OFFSET_X_PX = 24;
 const FAKE_GOAL_ALERT_CENTER_OFFSET_Y_PX = 32;
 const FAKE_GOAL_ALERT_CAPTION_GAP_PX = 16;
 const FAKE_GOAL_ALERT_WORD_PATTERN = [
@@ -59,6 +59,11 @@ const FAKE_GOAL_ALERT_WORD_WIDTH_PX =
 const FAKE_GOAL_ALERT_WORD_HEIGHT_PX =
   FAKE_GOAL_ALERT_WORD_ROWS * FAKE_GOAL_ALERT_TILE_SIZE_PX +
   (FAKE_GOAL_ALERT_WORD_ROWS - 1) * FAKE_GOAL_ALERT_TILE_GAP_PX;
+const FAKE_GOAL_ALERT_WORD_BOUNDS = measureFakeGoalAlertPatternBounds(
+  FAKE_GOAL_ALERT_WORD_PATTERN,
+  FAKE_GOAL_ALERT_TILE_SIZE_PX,
+  FAKE_GOAL_ALERT_TILE_GAP_PX
+);
 const SHELL_RAIL_WIDTH = "clamp(156px, 10.5vw, 178px)";
 const SHELL_COLUMN_GAP = "clamp(6px, 0.8vw, 10px)";
 const SHELL_EDGE_OFFSET = "clamp(8px, 1vw, 12px)";
@@ -85,6 +90,11 @@ type QuickChatPlacement = {
   anchorX: number;
   anchorY: number;
   direction: "above" | "below";
+};
+
+type FakeGoalAlertAnchor = {
+  centerX: number;
+  centerY: number;
 };
 
 const EMPTY_CANVAS_METRICS: CanvasMetrics = {
@@ -161,6 +171,10 @@ export function GameScreen({
     }));
   const activeMap = snapshot.match?.map ?? snapshot.previewMap;
   const serverMetrics = serverHealth ? buildServerMetrics(serverHealth, snapshot.members.length, pingMetric, metricHistory) : [];
+  const fakeGoalAlertAnchor =
+    snapshot.match?.map && canvasMetrics.width > 0 && canvasMetrics.height > 0
+      ? resolveFakeGoalAlertAnchor(snapshot.match.map, canvasMetrics)
+      : null;
   const quickChatAnchor = canvasMetrics.width > 0 && canvasMetrics.height > 0
     ? resolvePlayerOverlayAnchor({
         snapshot,
@@ -589,7 +603,7 @@ export function GameScreen({
           ) : null}
           {isFakeGoalAlertVisible ? (
             <div data-testid="fake-goal-alert" style={fakeGoalAlertOverlayStyle(canvasMetrics)}>
-              <div data-testid="fake-goal-alert-card" style={fakeGoalAlertCardStyle}>
+              <div data-testid="fake-goal-alert-card" style={fakeGoalAlertCardStyle(fakeGoalAlertAnchor)}>
                 <div
                   data-testid="fake-goal-alert-word"
                   role="img"
@@ -1480,21 +1494,35 @@ const countdownValueStyle: CSSProperties = {
   color: "#f8fafc"
 };
 
-const fakeGoalAlertCardStyle: CSSProperties = {
-  position: "absolute",
-  left: `calc(50% + ${FAKE_GOAL_ALERT_CENTER_OFFSET_X_PX}px)`,
-  top: `calc(50% - ${FAKE_GOAL_ALERT_CENTER_OFFSET_Y_PX}px)`,
-  display: "grid",
-  justifyItems: "center",
-  width: 0,
-  height: 0
-};
+function fakeGoalAlertCardStyle(anchor: FakeGoalAlertAnchor | null): CSSProperties {
+  if (anchor) {
+    return {
+      position: "absolute",
+      left: `${anchor.centerX}px`,
+      top: `${anchor.centerY - FAKE_GOAL_ALERT_CENTER_OFFSET_Y_PX}px`,
+      display: "grid",
+      justifyItems: "center",
+      width: 0,
+      height: 0
+    };
+  }
+
+  return {
+    position: "absolute",
+    left: "50%",
+    top: `calc(50% - ${FAKE_GOAL_ALERT_CENTER_OFFSET_Y_PX}px)`,
+    display: "grid",
+    justifyItems: "center",
+    width: 0,
+    height: 0
+  };
+}
 
 const fakeGoalAlertWordStyle: CSSProperties = {
   position: "absolute",
   left: 0,
   top: 0,
-  transform: "translate(-50%, -50%)",
+  transform: `translate(${-FAKE_GOAL_ALERT_WORD_BOUNDS.centerX}px, ${-FAKE_GOAL_ALERT_WORD_BOUNDS.centerY}px)`,
   display: "grid",
   width: `${FAKE_GOAL_ALERT_WORD_WIDTH_PX}px`,
   height: `${FAKE_GOAL_ALERT_WORD_HEIGHT_PX}px`,
@@ -1507,7 +1535,7 @@ const fakeGoalAlertWordStyle: CSSProperties = {
 const fakeGoalAlertCaptionStyle: CSSProperties = {
   position: "absolute",
   left: 0,
-  top: `${Math.floor(FAKE_GOAL_ALERT_WORD_HEIGHT_PX / 2) + FAKE_GOAL_ALERT_CAPTION_GAP_PX}px`,
+  top: `${FAKE_GOAL_ALERT_WORD_BOUNDS.maxY - FAKE_GOAL_ALERT_WORD_BOUNDS.centerY + FAKE_GOAL_ALERT_CAPTION_GAP_PX}px`,
   transform: "translateX(-50%)",
   margin: 0,
   whiteSpace: "nowrap",
@@ -1530,6 +1558,69 @@ function fakeGoalAlertPixelStyle(columnIndex: number, rowIndex: number): CSSProp
     borderRadius: "2px",
     background: "#facc15",
     boxShadow: "inset 0 0 0 1px rgba(255, 255, 255, 0.18), inset 0 0 0 2px rgba(2, 6, 23, 0.36)"
+  };
+}
+
+function measureFakeGoalAlertPatternBounds(
+  pattern: readonly string[],
+  tileSizePx: number,
+  gapPx: number
+) {
+  let minX = Number.POSITIVE_INFINITY;
+  let minY = Number.POSITIVE_INFINITY;
+  let maxX = Number.NEGATIVE_INFINITY;
+  let maxY = Number.NEGATIVE_INFINITY;
+
+  pattern.forEach((line, rowIndex) => {
+    [...line].forEach((cell, columnIndex) => {
+      if (cell !== "1") {
+        return;
+      }
+
+      const x = columnIndex * (tileSizePx + gapPx);
+      const y = rowIndex * (tileSizePx + gapPx);
+      minX = Math.min(minX, x);
+      minY = Math.min(minY, y);
+      maxX = Math.max(maxX, x + tileSizePx);
+      maxY = Math.max(maxY, y + tileSizePx);
+    });
+  });
+
+  if (!Number.isFinite(minX) || !Number.isFinite(minY) || !Number.isFinite(maxX) || !Number.isFinite(maxY)) {
+    const width = pattern.length > 0 ? pattern[0]!.length * tileSizePx : 0;
+    const height = pattern.length * tileSizePx;
+    return {
+      minX: 0,
+      minY: 0,
+      maxX: width,
+      maxY: height,
+      centerX: width / 2,
+      centerY: height / 2
+    };
+  }
+
+  return {
+    minX,
+    minY,
+    maxX,
+    maxY,
+    centerX: (minX + maxX) / 2,
+    centerY: (minY + maxY) / 2
+  };
+}
+
+function resolveFakeGoalAlertAnchor(
+  map: NonNullable<RoomSnapshot["match"]>["map"],
+  canvasMetrics: CanvasMetrics
+): FakeGoalAlertAnchor {
+  const layout = createBoardLayout(map, {
+    viewportWidth: canvasMetrics.width,
+    viewportHeight: canvasMetrics.height
+  });
+
+  return {
+    centerX: layout.offsetX + ((map.mazeZone.minX + map.mazeZone.maxX + 1) * layout.tileSize) / 2,
+    centerY: layout.offsetY + ((map.mazeZone.minY + map.mazeZone.maxY + 1) * layout.tileSize) / 2
   };
 }
 

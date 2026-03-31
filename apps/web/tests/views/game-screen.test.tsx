@@ -324,14 +324,14 @@ describe("GameScreen keyboard control", () => {
     expect(fakeGoalWord?.style.gridTemplateColumns).toBe("repeat(11, 22px)");
     expect(fakeGoalWord?.style.gridTemplateRows).toBe("repeat(8, 22px)");
     expect(fakeGoalCard?.style.position).toBe("absolute");
-    expect(fakeGoalCard?.style.left).toBe("calc(50% + 24px)");
+    expect(fakeGoalCard?.style.left).toBe("50%");
     expect(fakeGoalCard?.style.top).toBe("calc(50% - 32px)");
     expect(fakeGoalCard?.style.width).toBe("0px");
     expect(fakeGoalCard?.style.height).toBe("0px");
     expect(fakeGoalWord?.style.position).toBe("absolute");
     expect(fakeGoalWord?.style.left).toBe("0px");
     expect(fakeGoalWord?.style.top).toBe("0px");
-    expect(fakeGoalWord?.style.transform).toBe("translate(-50%, -50%)");
+    expect(fakeGoalWord?.style.transform).toBe("translate(-128px, -102px)");
     expect(fakeGoalCaption?.style.position).toBe("absolute");
     expect(fakeGoalCaption?.style.left).toBe("0px");
     expect(fakeGoalCaption?.style.top).toBe("118px");
@@ -463,6 +463,7 @@ describe("GameScreen keyboard control", () => {
       });
 
       const overlay = container.querySelector<HTMLElement>('[data-testid="fake-goal-alert"]');
+      const card = container.querySelector<HTMLElement>('[data-testid="fake-goal-alert-card"]');
 
       expect(overlay).not.toBeNull();
       expect(overlay?.style.left).toBe("140px");
@@ -470,6 +471,8 @@ describe("GameScreen keyboard control", () => {
       expect(overlay?.style.width).toBe("960px");
       expect(overlay?.style.height).toBe("540px");
       expect(overlay?.style.inset).toBe("");
+      expect(card?.style.left).toBe("648px");
+      expect(card?.style.top).toBe("238px");
     } finally {
       clientWidthSpy.mockRestore();
       clientHeightSpy.mockRestore();
