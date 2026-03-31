@@ -173,7 +173,14 @@ export function App() {
         roomName: currentSnapshot.room.name,
         hostNickname: host?.nickname ?? "방장",
         endedAt: currentSnapshot.match?.endedAt ?? new Date().toISOString(),
-        result: summarizeGameResult(payload.results)
+        result: summarizeGameResult(payload.results),
+        results: payload.results.map((entry) => ({
+          playerId: entry.playerId,
+          nickname: entry.nickname,
+          outcome: entry.outcome,
+          rank: entry.rank,
+          elapsedMs: entry.elapsedMs
+        }))
       };
 
       setGameResultLogs((previous) =>

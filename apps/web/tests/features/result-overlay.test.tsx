@@ -112,7 +112,23 @@ describe("ResultOverlay", () => {
         roomName: "Alpha",
         hostNickname: "호1",
         endedAt: "2026-03-23T00:00:00.000Z",
-        result: "1위 호1(00:20.000) / 2위 호2(00:21.000)"
+        result: "1위 호1(00:20.000) / 2위 호2(00:21.000)",
+        results: [
+          {
+            playerId: "player-1",
+            nickname: "호1",
+            outcome: "finished",
+            rank: 1,
+            elapsedMs: 20_000
+          },
+          {
+            playerId: "player-2",
+            nickname: "호2",
+            outcome: "finished",
+            rank: 2,
+            elapsedMs: 21_000
+          }
+        ]
       }
     ];
 

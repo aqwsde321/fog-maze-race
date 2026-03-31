@@ -9,6 +9,7 @@ import type { RoomSnapshot } from "@fog-maze-race/shared/contracts/snapshots";
 import { HostControls } from "../features/rooms/HostControls.js";
 import { PlayerSidebar } from "../features/rooms/PlayerSidebar.js";
 import { ResultOverlay } from "../features/rooms/ResultOverlay.js";
+import { ResultsHistoryPanel } from "../features/rooms/ResultsHistoryPanel.js";
 import type { GameResultLogEntry } from "../features/rooms/result-log.js";
 import { RoomChatPanel } from "../features/rooms/RoomChatPanel.js";
 import { GameCanvas } from "../game/GameCanvas.js";
@@ -124,6 +125,7 @@ export function GameScreen({
   const [isQuickChatComposing, setIsQuickChatComposing] = useState(false);
   const [canvasMetrics, setCanvasMetrics] = useState<CanvasMetrics>(EMPTY_CANVAS_METRICS);
   const [isServerPanelOpen, setIsServerPanelOpen] = useState(false);
+  const [isResultsHistoryOpen, setIsResultsHistoryOpen] = useState(false);
   const [serverHealth, setServerHealth] = useState<ServerHealthSnapshot | null>(null);
   const [serverHealthError, setServerHealthError] = useState<string | null>(null);
   const [metricHistory, setMetricHistory] = useState<MetricHistory>(createEmptyMetricHistory);
@@ -607,21 +609,31 @@ export function GameScreen({
             gameLogs={gameResultLogs}
             onResetToWaiting={onResetToWaiting}
           />
+          <ResultsHistoryPanel
+            isOpen={isResultsHistoryOpen}
+            roomName={snapshot.room.name}
+            logs={gameResultLogs}
+            onClose={() => {
+              setIsResultsHistoryOpen(false);
+            }}
+          />
         </div>
       </div>
 
       <div data-testid="game-rail" style={railStyle}>
         <header style={topBarStyle}>
-          <div style={roomHeaderRowStyle}>
+          <div data-testid="room-header-row" style={roomHeaderRowStyle}>
             <div style={roomHeaderStyle}>
               <p style={labelStyle}>Room</p>
               <h2 style={roomNameStyle}>{snapshot.room.name}</h2>
             </div>
-            <div style={statusPanelStyle}>
-              <p style={labelStyle}>Status</p>
-              <strong data-testid="room-status" style={statusValueStyle}>
-                {displayStatus}
-              </strong>
+            <div style={roomHeaderActionsStyle}>
+              <div style={statusPanelStyle}>
+                <p style={labelStyle}>Status</p>
+                <strong data-testid="room-status" style={statusValueStyle}>
+                  {displayStatus}
+                </strong>
+              </div>
             </div>
           </div>
           {isHost ? (
@@ -643,7 +655,7 @@ export function GameScreen({
               />
             </div>
           ) : null}
-          <div style={actionPanelStyle}>
+          <div data-testid="room-action-panel" style={actionPanelStyle}>
             <div style={isHost ? hostActionRailStyle : guestActionRailStyle}>
               {isHost ? (
                 <button type="button" onClick={onStartGame} disabled={!canStart} style={startButtonStyle}>
@@ -664,6 +676,20 @@ export function GameScreen({
                 </button>
               ) : null}
             </div>
+            <button
+              data-testid="results-history-toggle"
+              type="button"
+              aria-expanded={isResultsHistoryOpen}
+              onClick={() => {
+                setIsResultsHistoryOpen((previous) => !previous);
+              }}
+              style={historyToggleButtonStyle(isResultsHistoryOpen, gameResultLogs.length > 0)}
+            >
+              <span style={historyToggleLabelStyle}>로그</span>
+              <strong style={historyToggleValueStyle}>
+                {gameResultLogs.length > 0 ? `${gameResultLogs.length}경기` : "기록 없음"}
+              </strong>
+            </button>
           </div>
 
         </header>
@@ -946,6 +972,12 @@ const roomHeaderStyle: CSSProperties = {
   flex: "1 1 auto"
 };
 
+const roomHeaderActionsStyle: CSSProperties = {
+  display: "grid",
+  justifyItems: "end",
+  flexShrink: 0
+};
+
 const hostControlsWrapStyle: CSSProperties = {
   minWidth: 0
 };
@@ -975,6 +1007,39 @@ const statusValueStyle: CSSProperties = {
   marginTop: "2px",
   fontSize: "0.76rem",
   color: "#f8fafc"
+};
+
+function historyToggleButtonStyle(isOpen: boolean, hasLogs: boolean): CSSProperties {
+  return {
+    display: "grid",
+    gridTemplateColumns: "minmax(0, 1fr) auto",
+    alignItems: "center",
+    gap: "10px",
+    width: "100%",
+    minHeight: "40px",
+    padding: "10px 12px",
+    borderRadius: "12px",
+    border: `1px solid ${hasLogs ? "rgba(250, 204, 21, 0.22)" : "rgba(148, 163, 184, 0.16)"}`,
+    background: isOpen
+      ? "linear-gradient(180deg, rgba(32, 23, 7, 0.96), rgba(22, 16, 6, 0.94))"
+      : "rgba(15, 23, 42, 0.62)",
+    color: "#f8fafc",
+    cursor: "pointer",
+    textAlign: "left"
+  };
+}
+
+const historyToggleLabelStyle: CSSProperties = {
+  fontSize: "0.68rem",
+  letterSpacing: "0.12em",
+  textTransform: "uppercase",
+  color: "#94a3b8"
+};
+
+const historyToggleValueStyle: CSSProperties = {
+  color: "#fde68a",
+  fontSize: "0.8rem",
+  whiteSpace: "nowrap"
 };
 
 const actionPanelStyle: CSSProperties = {

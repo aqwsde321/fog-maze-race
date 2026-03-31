@@ -561,6 +561,44 @@ describe("GameScreen keyboard control", () => {
     expect(onResetToWaiting).toHaveBeenCalledTimes(1);
   });
 
+  it("opens the race history sheet from the room header when logs are available", async () => {
+    await act(async () => {
+      root.render(
+        <GameScreen
+          snapshot={buildSnapshot("waiting")}
+          selfPlayerId="player-1"
+          gameResultLogs={buildGameResultLogs()}
+          countdownValue={null}
+          onStartGame={vi.fn()}
+          onRenameRoom={vi.fn()}
+          onSetVisibilitySize={vi.fn()}
+          onForceEndRoom={vi.fn()}
+          onResetToWaiting={vi.fn()}
+          onLeaveRoom={vi.fn()}
+          onMove={vi.fn()}
+          onSendChatMessage={vi.fn()}
+        />
+      );
+    });
+
+    const toggle = container.querySelector<HTMLButtonElement>('[data-testid="results-history-toggle"]');
+    const actionPanel = container.querySelector<HTMLElement>('[data-testid="room-action-panel"]');
+    const roomHeader = container.querySelector<HTMLElement>('[data-testid="room-header-row"]');
+
+    expect(toggle?.textContent).toContain("로그");
+    expect(toggle?.textContent).toContain("2경기");
+    expect(actionPanel?.contains(toggle ?? null)).toBe(true);
+    expect(roomHeader?.contains(toggle ?? null)).toBe(false);
+    expect(document.body.querySelector('[data-testid="results-history-panel"]')).toBeNull();
+
+    await act(async () => {
+      toggle?.click();
+    });
+
+    expect(document.body.querySelector('[data-testid="results-history-panel"]')?.textContent).toContain("bot2");
+    expect(document.body.querySelector('[data-testid="results-history-panel"]')?.textContent).toContain("00:25.368");
+  });
+
   it("keeps server diagnostics collapsed until the floating toggle is opened", async () => {
     await act(async () => {
       root.render(
@@ -1069,6 +1107,52 @@ function buildServerHealth(): ServerHealthSnapshot {
       avgFanoutPerSecond10s: 750
     }
   };
+}
+
+function buildGameResultLogs() {
+  return [
+    {
+      id: "room-1:2",
+      roomId: "room-1",
+      roomName: "Alpha",
+      hostNickname: "호1",
+      endedAt: "2026-03-31T12:59:12.334Z",
+      result: "1위 bot2(00:25.368) / 2위 bot8(00:26.883)",
+      results: [
+        {
+          playerId: "bot-2",
+          nickname: "bot2",
+          outcome: "finished" as const,
+          rank: 1,
+          elapsedMs: 25_368
+        },
+        {
+          playerId: "bot-8",
+          nickname: "bot8",
+          outcome: "finished" as const,
+          rank: 2,
+          elapsedMs: 26_883
+        }
+      ]
+    },
+    {
+      id: "room-1:1",
+      roomId: "room-1",
+      roomName: "Alpha",
+      hostNickname: "호1",
+      endedAt: "2026-03-31T12:58:12.334Z",
+      result: "1위 bot3(00:28.120)",
+      results: [
+        {
+          playerId: "bot-3",
+          nickname: "bot3",
+          outcome: "finished" as const,
+          rank: 1,
+          elapsedMs: 28_120
+        }
+      ]
+    }
+  ];
 }
 
 function jsonResponse(payload: unknown) {
