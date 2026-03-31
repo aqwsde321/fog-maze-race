@@ -249,6 +249,8 @@ pnpm typecheck
 
 ## 상세 문서
 
+- [초기 MVP 명세서](./docs/mvp-initial-spec.md)
+- [Speckit 작업 절차](./docs/speckit-workflow.md)
 - [Render 배포 가이드](./docs/deploy-render.md)
 - [Codex 레이스 봇 가이드](./docs/race-bot.md)
 - [빠른 시작](./specs/001-fog-maze-race/quickstart.md)
