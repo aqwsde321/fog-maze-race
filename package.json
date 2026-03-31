@@ -17,10 +17,10 @@
     "docker:remove": "bash ./scripts/docker/remove.sh",
     "docker:logs": "bash ./scripts/docker/logs.sh",
     "docker:ps": "bash ./scripts/docker/status.sh",
-    "test": "pnpm --filter @fog-maze-race/shared test && pnpm --filter @fog-maze-race/server test && pnpm --filter @fog-maze-race/web test && pnpm test:scripts",
+    "test": "pnpm --filter @fog-maze-race/shared build && pnpm --filter @fog-maze-race/shared test && pnpm --filter @fog-maze-race/server test && pnpm --filter @fog-maze-race/web test && pnpm test:scripts",
     "test:scripts": "node --test tests/scripts/docker-scripts.test.mjs tests/scripts/race-bot.test.mjs tests/scripts/race-bot-explorer.test.mjs tests/scripts/race-bot-fill.test.mjs",
     "typecheck": "pnpm --filter @fog-maze-race/shared typecheck && pnpm --filter @fog-maze-race/server typecheck && pnpm --filter @fog-maze-race/web typecheck",
-    "test:e2e": "playwright test"
+    "test:e2e": "pnpm --filter @fog-maze-race/shared build && playwright test"
   },
   "devDependencies": {
     "@playwright/test": "^1.55.0",
