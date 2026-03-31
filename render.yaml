@@ -2,12 +2,24 @@ services:
   - type: web
     runtime: docker
     name: fog-maze-race
+    branch: main
     plan: free
     region: singapore
     dockerfilePath: ./Dockerfile
     dockerContext: ./
     healthCheckPath: /health
-    autoDeployTrigger: commit
+    autoDeployTrigger: checksPass
+    buildFilter:
+      paths:
+        - apps/**
+        - packages/**
+        - data/**
+        - Dockerfile
+        - package.json
+        - pnpm-lock.yaml
+        - pnpm-workspace.yaml
+        - tsconfig.base.json
+        - render.yaml
     envVars:
       - key: APP_VERSION
         value: render

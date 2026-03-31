@@ -82,7 +82,7 @@ test("US2 blocks recovery after the grace window expires", async ({ browser }) =
     guest.page = latePage;
     await guest.page.goto("/");
 
-    await expect(guest.page.getByText("방 목록")).toBeVisible({
+    await expect(guest.page.getByTestId("room-list-card")).toBeVisible({
       timeout: 6_000
     });
 
