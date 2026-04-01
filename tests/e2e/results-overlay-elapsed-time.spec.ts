@@ -26,8 +26,12 @@ test("results overlay shows elapsed time for each finisher", async ({ browser })
       timeout: 6_000
     });
 
-    await moveRight(host.page, 8);
-    await moveRight(guest.page, 12);
+    await moveRight(host.page, 12);
+    await moveRightUntilEnded(guest.page, host.page, 20);
+
+    await expect(host.page.getByTestId("room-status")).toContainText("ended", {
+      timeout: 6_000
+    });
 
     const overlay = host.page.getByTestId("results-overlay");
     await expect(overlay).toBeVisible({
@@ -54,4 +58,20 @@ async function moveRight(page: Page, steps: number) {
     await page.keyboard.press("ArrowRight");
     await page.waitForTimeout(35);
   }
+}
+
+async function moveRightUntilEnded(page: Page, observerPage: Page, maxSteps: number) {
+  await page.getByTestId("game-shell").focus();
+
+  for (let step = 0; step < maxSteps; step += 1) {
+    await page.keyboard.press("ArrowRight");
+    await page.waitForTimeout(35);
+
+    const statusText = await observerPage.getByTestId("room-status").textContent();
+    if (statusText?.includes("ended")) {
+      return;
+    }
+  }
+
+  throw new Error("Timed out moving right until the room ended");
 }
