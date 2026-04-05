@@ -20,6 +20,7 @@ type HostControlsProps = {
   canEditVisibility: boolean;
   canManageBots: boolean;
   availableBotSlots: number;
+  defaultBotNicknameBase?: string | null;
   memberNicknames: string[];
   currentBots: Array<{ playerId: string; nickname: string; strategy?: RoomExploreStrategy | null }>;
   onRenameRoom: (name: string) => void;
@@ -29,7 +30,7 @@ type HostControlsProps = {
   onRemoveBots: (playerIds?: string[]) => void;
 };
 
-const DEFAULT_BOT_COUNT = 2;
+const DEFAULT_BOT_COUNT = 1;
 const DEFAULT_EXPLORE_STRATEGY: RoomExploreStrategy = "frontier";
 const SCROLLABLE_PANEL_CLASS = "host-controls-scrollable";
 
@@ -42,6 +43,7 @@ export function HostControls({
   canEditVisibility,
   canManageBots,
   availableBotSlots,
+  defaultBotNicknameBase,
   memberNicknames,
   currentBots,
   onRenameRoom,
@@ -59,6 +61,7 @@ export function HostControls({
     createBotNameDrafts({
       previous: [],
       count: resolveBotCount(DEFAULT_BOT_COUNT, availableBotSlots),
+      defaultNicknameBase: defaultBotNicknameBase,
       usedNicknames: memberNicknames
     })
   );
@@ -66,6 +69,7 @@ export function HostControls({
     createBotStrategyDrafts([], resolveBotCount(DEFAULT_BOT_COUNT, availableBotSlots))
   );
   const memberNicknamesKey = useMemo(() => memberNicknames.join("|"), [memberNicknames]);
+  const defaultBotNicknameBaseKey = defaultBotNicknameBase ?? "";
   const botCountOptions = useMemo(
     () => Array.from({ length: Math.max(availableBotSlots, 0) }, (_, index) => index + 1),
     [availableBotSlots]
@@ -112,10 +116,11 @@ export function HostControls({
       createBotNameDrafts({
         previous,
         count: resolveBotCount(botCount, availableBotSlots),
+        defaultNicknameBase: defaultBotNicknameBase,
         usedNicknames: memberNicknames
       })
     );
-  }, [availableBotSlots, botCount, memberNicknamesKey, roomId]);
+  }, [availableBotSlots, botCount, defaultBotNicknameBaseKey, memberNicknamesKey, roomId]);
 
   useEffect(() => {
     setBotStrategyDrafts((previous) =>
@@ -178,6 +183,7 @@ export function HostControls({
       createBotNameDrafts({
         previous: [],
         count: botCount,
+        defaultNicknameBase: defaultBotNicknameBase,
         usedNicknames: [...memberNicknames, ...bots.map((bot) => bot.nickname)]
       })
     );
@@ -509,6 +515,7 @@ export function HostControls({
 function createBotNameDrafts(input: {
   previous: string[];
   count: number;
+  defaultNicknameBase?: string | null;
   usedNicknames: string[];
 }) {
   const count = Math.max(0, input.count);
@@ -522,11 +529,19 @@ function createBotNameDrafts(input: {
   );
   const drafts: string[] = [];
   let fallbackIndex = 1;
+  const preferredBase = normalizeNickname(input.defaultNicknameBase);
 
   for (let index = 0; index < count; index += 1) {
     const candidate = normalizeNickname(input.previous[index]);
     if (candidate && !used.has(candidate) && !drafts.includes(candidate)) {
       drafts.push(candidate);
+      continue;
+    }
+
+    if (index === 0 && preferredBase) {
+      const preferred = uniquifyNickname(preferredBase, used, drafts);
+      drafts.push(preferred);
+      used.add(preferred);
       continue;
     }
 
@@ -554,6 +569,25 @@ function createNextDefaultNickname(used: Set<string>, drafts: string[], initialI
   }
 
   return "bot1";
+}
+
+function uniquifyNickname(rawNickname: string, used: Set<string>, drafts: string[]) {
+  const nickname = rawNickname.slice(0, 5);
+  if (!used.has(nickname) && !drafts.includes(nickname)) {
+    return nickname;
+  }
+
+  const nicknameBase = nickname.replace(/\d+$/, "") || nickname;
+  for (let suffixNumber = 2; suffixNumber < 100; suffixNumber += 1) {
+    const suffix = String(suffixNumber);
+    const prefixLength = Math.max(0, 5 - suffix.length);
+    const candidate = `${nicknameBase.slice(0, prefixLength)}${suffix}`;
+    if (!used.has(candidate) && !drafts.includes(candidate)) {
+      return candidate;
+    }
+  }
+
+  return nickname;
 }
 
 function extractBotSuffix(nickname: string) {

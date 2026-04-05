@@ -160,6 +160,10 @@ export function GameScreen({
   });
   const pingSamplesRef = useRef<Array<{ latencyMs: number; measuredAtMs: number }>>([]);
   const isHost = snapshot.room.hostPlayerId === selfPlayerId;
+  const selfMember = selfPlayerId
+    ? snapshot.members.find((member) => member.playerId === selfPlayerId)
+    : null;
+  const canSpectatorManageBotRaceBots = snapshot.room.mode === "bot_race" && !isHost;
   const canStart = snapshot.room.status === "waiting" && isHost;
   const canMove = snapshot.room.status === "waiting" || snapshot.room.status === "countdown" || snapshot.room.status === "playing";
   const displayStatus = snapshot.room.status === "countdown" ? "playing" : snapshot.room.status;
@@ -170,11 +174,15 @@ export function GameScreen({
   );
   const currentBots = snapshot.members
     .filter((member) => member.kind === "bot")
+    .filter((member) => isHost || member.creatorPlayerId === selfPlayerId)
     .map((member) => ({
       playerId: member.playerId,
       nickname: member.nickname,
       strategy: member.exploreStrategy ?? null
     }));
+  const managedBotSlots = canSpectatorManageBotRaceBots
+    ? (currentBots.length > 0 ? 0 : Math.min(availableBotSlots, 1))
+    : availableBotSlots;
   const activeMap = snapshot.match?.map ?? snapshot.previewMap;
   const serverMetrics = serverHealth ? buildServerMetrics(serverHealth, snapshot.members.length, pingMetric, metricHistory) : [];
   const fakeGoalAlertAnchor =
@@ -208,9 +216,6 @@ export function GameScreen({
   }, []);
 
   useEffect(() => {
-    const selfMember = selfPlayerId
-      ? snapshot.members.find((member) => member.playerId === selfPlayerId)
-      : null;
     const selfPosition = selfMember?.position ?? null;
     const currentTileKey = selfPosition ? toPositionKey(selfPosition) : null;
     const steppedOntoFakeGoal =
@@ -665,7 +670,7 @@ export function GameScreen({
               </div>
             </div>
           </div>
-          {isHost ? (
+          {isHost || snapshot.room.mode === "bot_race" ? (
             <div style={hostControlsWrapStyle}>
               <HostControls
                 roomId={snapshot.room.roomId}
@@ -673,9 +678,10 @@ export function GameScreen({
                 roomMode={snapshot.room.mode}
                 visibilitySize={snapshot.room.visibilitySize}
                 botSpeedMultiplier={snapshot.room.botSpeedMultiplier}
-                canEditVisibility={snapshot.room.status === "waiting"}
-                canManageBots={snapshot.room.status === "waiting"}
-                availableBotSlots={availableBotSlots}
+                canEditVisibility={snapshot.room.status === "waiting" && isHost}
+                canManageBots={snapshot.room.status === "waiting" && (isHost || canSpectatorManageBotRaceBots)}
+                availableBotSlots={managedBotSlots}
+                defaultBotNicknameBase={canSpectatorManageBotRaceBots ? selfMember?.nickname ?? null : null}
                 memberNicknames={snapshot.members.map((member) => member.nickname)}
                 currentBots={currentBots}
                 onRenameRoom={onRenameRoom}

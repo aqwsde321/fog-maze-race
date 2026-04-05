@@ -87,7 +87,7 @@ describe("HostControls", () => {
     expect(container.querySelector("select")?.disabled).toBe(true);
   });
 
-  it("prefills editable bot rows and submits per-bot strategies for the host", async () => {
+  it("starts with one editable bot row by default and lets the host expand it", async () => {
     const onAddBots = vi.fn();
 
     await act(async () => {
@@ -129,20 +129,33 @@ describe("HostControls", () => {
     expect(document.body.querySelector<HTMLElement>('[data-testid="bot-name-list"]')?.style.overflowY).toBe("auto");
     expect(document.body.querySelector<HTMLElement>('[data-testid="bot-name-list"]')?.style.maxHeight).toBe("220px");
 
-    const nameInputs = document.body.querySelectorAll<HTMLInputElement>('input[data-testid^="bot-name-input-"]');
-    expect(nameInputs).toHaveLength(2);
+    let nameInputs = document.body.querySelectorAll<HTMLInputElement>('input[data-testid^="bot-name-input-"]');
+    expect(nameInputs).toHaveLength(1);
     expect(nameInputs[0]?.value).toBe("bot1");
-    expect(nameInputs[1]?.value).toBe("bot2");
     expect(document.body.querySelector('[data-testid="bot-name-row-0"]')?.textContent).toContain("01");
-    expect(document.body.querySelector('[data-testid="bot-name-row-1"]')?.textContent).toContain("02");
-    const strategySelects = document.body.querySelectorAll<HTMLSelectElement>('select[data-testid^="bot-strategy-select-"]');
-    expect(strategySelects).toHaveLength(2);
+    let strategySelects = document.body.querySelectorAll<HTMLSelectElement>('select[data-testid^="bot-strategy-select-"]');
+    expect(strategySelects).toHaveLength(1);
     expect(strategySelects[0]?.value).toBe("frontier");
-    expect(strategySelects[1]?.value).toBe("frontier");
     expect([...strategySelects[0]!.options].map((option) => option.value)).toEqual(["frontier", "tremaux", "wall"]);
     const strategyTooltipButton = document.body.querySelector<HTMLButtonElement>('[data-testid="strategy-tooltip-button"]');
     expect(strategyTooltipButton).not.toBeNull();
     expect(document.body.querySelector('[data-testid="strategy-tooltip"]')).toBeNull();
+
+    const countSelect = document.body.querySelector<HTMLSelectElement>('#bot-count');
+    expect(countSelect).not.toBeNull();
+
+    await act(async () => {
+      countSelect!.value = "2";
+      countSelect!.dispatchEvent(new Event("change", { bubbles: true }));
+    });
+
+    nameInputs = document.body.querySelectorAll<HTMLInputElement>('input[data-testid^="bot-name-input-"]');
+    strategySelects = document.body.querySelectorAll<HTMLSelectElement>('select[data-testid^="bot-strategy-select-"]');
+    expect(nameInputs).toHaveLength(2);
+    expect(nameInputs[1]?.value).toBe("bot2");
+    expect(document.body.querySelector('[data-testid="bot-name-row-1"]')?.textContent).toContain("02");
+    expect(strategySelects).toHaveLength(2);
+    expect(strategySelects[1]?.value).toBe("frontier");
 
     await act(async () => {
       strategyTooltipButton?.click();
@@ -178,6 +191,42 @@ describe("HostControls", () => {
       ]
     });
     expect(document.body.querySelector('[data-testid="bot-panel-overlay"]')).toBeNull();
+  });
+
+  it("uses the spectator nickname as the default bot-name base when provided", async () => {
+    await act(async () => {
+      root.render(
+        <HostControls
+          roomId="room-1"
+          roomName="Alpha"
+          roomMode="bot_race"
+          visibilitySize={7}
+          botSpeedMultiplier={2}
+          canEditVisibility={false}
+          canManageBots
+          availableBotSlots={1}
+          memberNicknames={["관전1"]}
+          currentBots={[]}
+          defaultBotNicknameBase="관전1"
+          onRenameRoom={vi.fn()}
+          onSetVisibilitySize={vi.fn()}
+          onSetBotSpeedMultiplier={vi.fn()}
+          onAddBots={vi.fn()}
+          onRemoveBots={vi.fn()}
+        />
+      );
+    });
+
+    const toggleButton = container.querySelector<HTMLButtonElement>('[data-testid="toggle-bot-panel-button"]');
+    expect(toggleButton).not.toBeNull();
+
+    await act(async () => {
+      toggleButton?.click();
+    });
+
+    const nameInput = document.body.querySelector<HTMLInputElement>('[data-testid="bot-name-input-0"]');
+    expect(nameInput).not.toBeNull();
+    expect(nameInput?.value).toBe("관전2");
   });
 
   it("hides the strategy tooltip when the bot kind is not explore", async () => {
@@ -436,4 +485,5 @@ describe("HostControls", () => {
 
     expect(container.querySelector('[data-testid="bot-speed-control-row"]')).toBeNull();
   });
+
 });

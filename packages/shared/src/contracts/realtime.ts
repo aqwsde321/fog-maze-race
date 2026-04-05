@@ -183,6 +183,8 @@ export type ErrorCode =
   | "ROOM_FULL"
   | "ROOM_NOT_JOINABLE"
   | "HOST_ONLY"
+  | "BOT_LIMIT_REACHED"
+  | "BOT_OWNER_ONLY"
   | "INVALID_MOVE"
   | "RECOVERY_FAILED"
   | "NOT_IN_ROOM"

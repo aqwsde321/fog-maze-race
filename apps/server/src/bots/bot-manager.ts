@@ -68,7 +68,8 @@ export class BotManager {
     bots?: RoomBotRequest[];
   }) {
     const runtime = this.roomService.requireRuntime(input.roomId);
-    if (runtime.room.hostPlayerId !== input.requestedBy) {
+    const isHost = runtime.room.hostPlayerId === input.requestedBy;
+    if (!isHost && !canManageOwnedBotRaceBots(runtime.room, input.requestedBy)) {
       throw new Error("HOST_ONLY");
     }
 
@@ -87,6 +88,12 @@ export class BotManager {
       throw new Error("INVALID_NICKNAME");
     }
 
+    if (!isHost) {
+      if (normalizedBots.length !== 1 || countOwnedBots(runtime.room, input.requestedBy) > 0) {
+        throw new Error("BOT_LIMIT_REACHED");
+      }
+    }
+
     const sink = this.createSink(input.roomId);
 
     for (const requestedBot of normalizedBots) {
@@ -103,6 +110,7 @@ export class BotManager {
         roomId: input.roomId,
         session,
         role: "racer",
+        creatorPlayerId: input.requestedBy,
         exploreStrategy: kind === "explore" ? requestedBot.strategy ?? DEFAULT_EXPLORE_STRATEGY : null
       });
       this.roomService.sendChatMessage(input.roomId, playerId, DEFAULT_BOT_JOIN_MESSAGE);
@@ -133,7 +141,8 @@ export class BotManager {
     playerIds?: string[];
   }) {
     const runtime = this.roomService.requireRuntime(input.roomId);
-    if (runtime.room.hostPlayerId !== input.requestedBy) {
+    const isHost = runtime.room.hostPlayerId === input.requestedBy;
+    if (!isHost && !canManageOwnedBotRaceBots(runtime.room, input.requestedBy)) {
       throw new Error("HOST_ONLY");
     }
 
@@ -141,10 +150,24 @@ export class BotManager {
       throw new Error("ROOM_NOT_JOINABLE");
     }
 
-    const botPlayerIds = new Set(this.roomService.listBotPlayerIds(input.roomId));
-    const targetPlayerIds = (input.playerIds?.length ? input.playerIds : [...botPlayerIds]).filter((playerId) =>
-      botPlayerIds.has(playerId)
+    const botMembers = runtime.room.listBotMembers();
+    const botPlayerIds = new Set(botMembers.map((member) => member.playerId));
+    const ownedBotPlayerIds = new Set(
+      botMembers
+        .filter((member) => member.creatorPlayerId === input.requestedBy)
+        .map((member) => member.playerId)
     );
+    const requestedPlayerIds = input.playerIds?.length
+      ? input.playerIds
+      : isHost
+        ? [...botPlayerIds]
+        : [...ownedBotPlayerIds];
+    const requestedForeignBot = !isHost && requestedPlayerIds.some((playerId) => botPlayerIds.has(playerId) && !ownedBotPlayerIds.has(playerId));
+    if (requestedForeignBot) {
+      throw new Error("BOT_OWNER_ONLY");
+    }
+
+    const targetPlayerIds = requestedPlayerIds.filter((playerId) => (isHost ? botPlayerIds : ownedBotPlayerIds).has(playerId));
     if (targetPlayerIds.length === 0) {
       return;
     }
@@ -536,6 +559,21 @@ function rotateBots<T>(bots: T[], cursor: number) {
 
   const offset = ((cursor % bots.length) + bots.length) % bots.length;
   return bots.slice(offset).concat(bots.slice(0, offset));
+}
+
+function canManageOwnedBotRaceBots(room: { mode: RoomMode; getMember: (playerId: string) => { kind: "human" | "bot" } | undefined }, playerId: string) {
+  if (room.mode !== "bot_race") {
+    return false;
+  }
+
+  return room.getMember(playerId)?.kind === "human";
+}
+
+function countOwnedBots(
+  room: { listBotMembers: () => Array<{ creatorPlayerId?: string | null }> },
+  playerId: string
+) {
+  return room.listBotMembers().filter((member) => member.creatorPlayerId === playerId).length;
 }
 
 function normalizeRequestedBots(input: {

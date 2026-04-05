@@ -100,6 +100,7 @@ export class RoomService {
       playerId: input.session.playerId,
       nickname: input.session.nickname,
       kind: input.session.kind,
+      creatorPlayerId: null,
       exploreStrategy: null,
       color: PLAYER_COLORS[0],
       shape: shapeDeck[0] ?? nextShape(0),
@@ -132,6 +133,7 @@ export class RoomService {
     roomId: string;
     session: PlayerSession;
     role?: RoomMemberRole;
+    creatorPlayerId?: string | null;
     exploreStrategy?: RoomExploreStrategy | null;
   }): RoomJoinedPayload {
     const runtime = this.requireRuntime(input.roomId);
@@ -145,6 +147,7 @@ export class RoomService {
       playerId: input.session.playerId,
       nickname: input.session.nickname,
       kind: input.session.kind,
+      creatorPlayerId: input.creatorPlayerId ?? null,
       exploreStrategy: input.exploreStrategy ?? null,
       color: nextColor,
       shape: nextAssignedShape,
@@ -367,6 +370,7 @@ export class RoomService {
         playerId: member.playerId,
         nickname: member.nickname,
         kind: member.kind,
+        creatorPlayerId: member.creatorPlayerId ?? null,
         exploreStrategy: member.exploreStrategy,
         color: member.color,
         shape: member.shape,

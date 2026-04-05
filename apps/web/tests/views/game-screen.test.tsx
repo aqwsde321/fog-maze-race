@@ -10,6 +10,7 @@ import { GameScreen } from "../../src/views/GameScreen.js";
 
 const {
   getSocketClientMock,
+  hostControlsPropsMock,
   pingEmitMock,
   pingTimeoutMock
 } = vi.hoisted(() => {
@@ -17,6 +18,7 @@ const {
   const pingTimeoutMock = vi.fn(() => ({
     emit: pingEmitMock
   }));
+  const hostControlsPropsMock = vi.fn();
   const getSocketClientMock = vi.fn(() => ({
     connected: true,
     timeout: pingTimeoutMock
@@ -24,6 +26,7 @@ const {
 
   return {
     getSocketClientMock,
+    hostControlsPropsMock,
     pingEmitMock,
     pingTimeoutMock
   };
@@ -40,7 +43,10 @@ vi.mock("../../src/game/GameCanvas.js", () => ({
 }));
 
 vi.mock("../../src/features/rooms/HostControls.js", () => ({
-  HostControls: () => <div data-testid="host-controls" />
+  HostControls: (props: unknown) => {
+    hostControlsPropsMock(props);
+    return <div data-testid="host-controls" />;
+  }
 }));
 
 vi.mock("../../src/features/rooms/PlayerSidebar.js", () => ({
@@ -82,6 +88,7 @@ describe("GameScreen keyboard control", () => {
     pingEmitMock.mockReset();
     pingTimeoutMock.mockClear();
     getSocketClientMock.mockClear();
+    hostControlsPropsMock.mockReset();
     pingEmitMock.mockImplementation((eventName: string, payload: unknown, acknowledge?: () => void) => {
       if (eventName === "PING_CHECK") {
         acknowledge?.();
@@ -578,6 +585,79 @@ describe("GameScreen keyboard control", () => {
     });
 
     expect(container.textContent).not.toContain("시작");
+  });
+
+  it("shows bot controls to bot race spectators and limits them to one add slot", async () => {
+    await act(async () => {
+      root.render(
+        <GameScreen
+          snapshot={buildSnapshot("waiting", {
+            mode: "bot_race",
+            hostPlayerId: "player-host",
+            selfPlayerId: "player-1",
+            members: [
+              {
+                playerId: "player-1",
+                nickname: "관전1",
+                kind: "human",
+                color: "#38bdf8",
+                shape: "circle",
+                role: "spectator",
+                state: "waiting",
+                position: null,
+                finishRank: null,
+                isHost: false
+              },
+              {
+                playerId: "player-host",
+                nickname: "호1",
+                kind: "human",
+                color: "#f97316",
+                shape: "square",
+                role: "spectator",
+                state: "waiting",
+                position: null,
+                finishRank: null,
+                isHost: true
+              },
+              {
+                playerId: "bot-host",
+                nickname: "hostb",
+                kind: "bot",
+                creatorPlayerId: "player-host",
+                exploreStrategy: "frontier",
+                color: "#22c55e",
+                shape: "diamond",
+                role: "racer",
+                state: "waiting",
+                position: null,
+                finishRank: null,
+                isHost: false
+              }
+            ]
+          })}
+          selfPlayerId="player-1"
+          countdownValue={null}
+          onStartGame={vi.fn()}
+          onRenameRoom={vi.fn()}
+          onSetVisibilitySize={vi.fn()}
+          onForceEndRoom={vi.fn()}
+          onResetToWaiting={vi.fn()}
+          onLeaveRoom={vi.fn()}
+          onMove={vi.fn()}
+          onSendChatMessage={vi.fn()}
+        />
+      );
+    });
+
+    expect(container.querySelector('[data-testid="host-controls"]')).not.toBeNull();
+    expect(hostControlsPropsMock).toHaveBeenCalled();
+    expect(hostControlsPropsMock.mock.lastCall?.[0]).toMatchObject({
+      canManageBots: true,
+      availableBotSlots: 1,
+      currentBots: [],
+      defaultBotNicknameBase: "관전1"
+    });
   });
 
   it("keeps the room chat panel collapsed until the floating toggle is opened", async () => {
@@ -1098,38 +1178,42 @@ function buildSnapshot(
   status: RoomSnapshot["room"]["status"],
   overrides?: {
     hostPlayerId?: string;
+    members?: RoomSnapshot["members"];
+    mode?: RoomSnapshot["room"]["mode"];
     selfPlayerId?: string;
   }
 ): RoomSnapshot {
   const selfPlayerId = overrides?.selfPlayerId ?? "player-1";
   const hostPlayerId = overrides?.hostPlayerId ?? selfPlayerId;
+  const mode = overrides?.mode ?? "normal";
+  const members = overrides?.members ?? [
+    {
+      playerId: selfPlayerId,
+      nickname: "호1",
+      kind: "human",
+      color: "#38bdf8",
+      shape: "circle",
+      role: mode === "bot_race" ? "spectator" : "racer",
+      state: status === "playing" ? "playing" : status === "ended" ? "finished" : "waiting",
+      position: mode === "bot_race" ? null : { x: 0, y: 1 },
+      finishRank: status === "ended" ? 1 : null,
+      isHost: selfPlayerId === hostPlayerId
+    }
+  ];
 
   return {
     revision: 1,
     room: {
       roomId: "room-1",
       name: "Alpha",
-      mode: "normal",
+      mode,
       status,
       hostPlayerId,
       maxPlayers: 15,
       visibilitySize: 7,
       botSpeedMultiplier: 1
     },
-    members: [
-      {
-        playerId: selfPlayerId,
-        nickname: "호1",
-        kind: "human",
-        color: "#38bdf8",
-        shape: "circle",
-        role: "racer",
-        state: status === "playing" ? "playing" : status === "ended" ? "finished" : "waiting",
-        position: { x: 0, y: 1 },
-        finishRank: status === "ended" ? 1 : null,
-        isHost: selfPlayerId === hostPlayerId
-      }
-    ],
+    members,
     chat: [],
     previewMap: null,
     match: status === "countdown" || status === "playing" || status === "ended"
