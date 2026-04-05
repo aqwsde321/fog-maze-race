@@ -194,7 +194,7 @@ describe("US3 room administration contract", () => {
     });
   }, 15_000);
 
-  it("lets only the host change the bot speed in a bot race room", async () => {
+  it("lets only the host change the bot speed in a bot race room even while playing", async () => {
     const host = createRaceSocket();
     const guest = createRaceSocket();
 
@@ -213,6 +213,20 @@ describe("US3 room administration contract", () => {
 
     guest.emit("JOIN_ROOM", { roomId: hostJoined.roomId });
     await once(guest, "ROOM_JOINED");
+
+    host.emit("ADD_ROOM_BOTS", {
+      roomId: hostJoined.roomId,
+      bots: [{ nickname: "red", kind: "explore", strategy: "frontier" }]
+    });
+    await waitForSnapshot(
+      host,
+      (snapshot) => snapshot.members.some((member) => member.nickname === "red"),
+      1_000
+    );
+
+    const playingSnapshotPromise = waitForSnapshot(host, (snapshot) => snapshot.room.status === "playing", 2_000);
+    host.emit("START_GAME", { roomId: hostJoined.roomId });
+    await playingSnapshotPromise;
 
     guest.emit("SET_BOT_SPEED", { roomId: hostJoined.roomId, botSpeedMultiplier: 6 });
     const denied = await once(guest, "ERROR");

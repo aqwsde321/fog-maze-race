@@ -660,6 +660,36 @@ describe("GameScreen keyboard control", () => {
     });
   });
 
+  it("keeps bot speed editable for the host during a bot race while visibility stays locked", async () => {
+    await act(async () => {
+      root.render(
+        <GameScreen
+          snapshot={buildSnapshot("playing", {
+            mode: "bot_race",
+            hostPlayerId: "player-1",
+            selfPlayerId: "player-1"
+          })}
+          selfPlayerId="player-1"
+          countdownValue={null}
+          onStartGame={vi.fn()}
+          onRenameRoom={vi.fn()}
+          onSetVisibilitySize={vi.fn()}
+          onSetBotSpeedMultiplier={vi.fn()}
+          onForceEndRoom={vi.fn()}
+          onResetToWaiting={vi.fn()}
+          onLeaveRoom={vi.fn()}
+          onMove={vi.fn()}
+          onSendChatMessage={vi.fn()}
+        />
+      );
+    });
+
+    expect(hostControlsPropsMock.mock.lastCall?.[0]).toMatchObject({
+      canEditVisibility: false,
+      canEditBotSpeed: true
+    });
+  });
+
   it("keeps the room chat panel collapsed until the floating toggle is opened", async () => {
     await act(async () => {
       root.render(

@@ -486,4 +486,42 @@ describe("HostControls", () => {
     expect(container.querySelector('[data-testid="bot-speed-control-row"]')).toBeNull();
   });
 
+  it("keeps the bot speed selector enabled when visibility edits are locked", async () => {
+    const onSetBotSpeedMultiplier = vi.fn();
+
+    await act(async () => {
+      root.render(
+        <HostControls
+          roomId="room-1"
+          roomName="Alpha"
+          roomMode="bot_race"
+          visibilitySize={7}
+          botSpeedMultiplier={2}
+          canEditVisibility={false}
+          canEditBotSpeed
+          canManageBots={false}
+          availableBotSlots={0}
+          memberNicknames={["host"]}
+          currentBots={[]}
+          onRenameRoom={vi.fn()}
+          onSetVisibilitySize={vi.fn()}
+          onSetBotSpeedMultiplier={onSetBotSpeedMultiplier}
+          onAddBots={vi.fn()}
+          onRemoveBots={vi.fn()}
+        />
+      );
+    });
+
+    const speedSelect = container.querySelector<HTMLSelectElement>('#bot-speed-multiplier');
+    expect(speedSelect).not.toBeNull();
+    expect(speedSelect?.disabled).toBe(false);
+
+    await act(async () => {
+      speedSelect!.value = "5";
+      speedSelect!.dispatchEvent(new Event("change", { bubbles: true }));
+    });
+
+    expect(onSetBotSpeedMultiplier).toHaveBeenCalledWith(5);
+  });
+
 });

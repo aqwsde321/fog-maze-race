@@ -252,7 +252,7 @@ describe("RoomService", () => {
     expect(updated.previewMap?.visibilityRadius).toBe(2);
   });
 
-  it("lets only the host change the bot speed multiplier while waiting", () => {
+  it("lets only the host change the bot speed multiplier before and during a bot race", () => {
     const service = new RoomService(new RevisionSync(), new MapRegistry());
     const created = service.createRoom({
       session: new PlayerSession({
@@ -276,6 +276,15 @@ describe("RoomService", () => {
     const updated = service.setBotSpeedMultiplier(created.roomId, "host", 6);
 
     expect(updated.room.botSpeedMultiplier).toBe(6);
+
+    const runtime = service.requireRuntime(created.roomId);
+    runtime.room.beginPlaying();
+
+    const boostedWhilePlaying = service.setBotSpeedMultiplier(created.roomId, "host", 3);
+    expect(boostedWhilePlaying.room.botSpeedMultiplier).toBe(3);
+
+    runtime.room.endRound();
+    expect(() => service.setBotSpeedMultiplier(created.roomId, "host", 2)).toThrowError("ROOM_NOT_JOINABLE");
   });
 
   it("includes room chat messages in snapshots and normalizes the submitted text", () => {

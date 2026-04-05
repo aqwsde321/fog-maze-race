@@ -226,7 +226,7 @@ export class RoomService {
       throw new Error("UNKNOWN");
     }
 
-    if (runtime.room.status !== "waiting") {
+    if (runtime.room.status === "ended") {
       throw new Error("ROOM_NOT_JOINABLE");
     }
 

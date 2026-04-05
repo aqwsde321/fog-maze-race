@@ -18,6 +18,7 @@ type HostControlsProps = {
   visibilitySize: 3 | 5 | 7;
   botSpeedMultiplier: RoomBotSpeedMultiplier;
   canEditVisibility: boolean;
+  canEditBotSpeed?: boolean;
   canManageBots: boolean;
   availableBotSlots: number;
   defaultBotNicknameBase?: string | null;
@@ -41,6 +42,7 @@ export function HostControls({
   visibilitySize,
   botSpeedMultiplier,
   canEditVisibility,
+  canEditBotSpeed,
   canManageBots,
   availableBotSlots,
   defaultBotNicknameBase,
@@ -52,6 +54,7 @@ export function HostControls({
   onAddBots,
   onRemoveBots
 }: HostControlsProps) {
+  const resolvedCanEditBotSpeed = canEditBotSpeed ?? canEditVisibility;
   const [draftName, setDraftName] = useState(roomName);
   const [botKind, setBotKind] = useState<RoomBotKind>("explore");
   const [botCount, setBotCount] = useState<number>(() => resolveBotCount(DEFAULT_BOT_COUNT, availableBotSlots));
@@ -257,7 +260,7 @@ export function HostControls({
               id="bot-speed-multiplier"
               name="bot-speed-multiplier"
               value={botSpeedMultiplier}
-              disabled={!canEditVisibility}
+              disabled={!resolvedCanEditBotSpeed}
               onChange={(event) => onSetBotSpeedMultiplier(Number(event.target.value) as RoomBotSpeedMultiplier)}
               selectStyle={selectStyle}
             >

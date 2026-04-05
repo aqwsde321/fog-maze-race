@@ -679,6 +679,7 @@ export function GameScreen({
                 visibilitySize={snapshot.room.visibilitySize}
                 botSpeedMultiplier={snapshot.room.botSpeedMultiplier}
                 canEditVisibility={snapshot.room.status === "waiting" && isHost}
+                canEditBotSpeed={snapshot.room.mode === "bot_race" && isHost && snapshot.room.status !== "ended"}
                 canManageBots={snapshot.room.status === "waiting" && (isHost || canSpectatorManageBotRaceBots)}
                 availableBotSlots={managedBotSlots}
                 defaultBotNicknameBase={canSpectatorManageBotRaceBots ? selfMember?.nickname ?? null : null}
