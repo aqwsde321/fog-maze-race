@@ -175,7 +175,8 @@ function buildEndedSnapshot(
       status: "ended",
       hostPlayerId: "player-1",
       maxPlayers: 15,
-      visibilitySize: 7
+      visibilitySize: 7,
+      botSpeedMultiplier: 1
     },
     members: [
       {

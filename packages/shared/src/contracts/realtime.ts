@@ -1,5 +1,9 @@
 import type { Direction, GridPosition } from "../domain/grid-position.js";
 import {
+  ROOM_BOT_SPEED_MULTIPLIERS,
+  type RoomBotSpeedMultiplier
+} from "../domain/room-bot-speed.js";
+import {
   ROOM_EXPLORE_STRATEGIES,
   type RoomExploreStrategy
 } from "../domain/room-bot-strategy.js";
@@ -9,6 +13,8 @@ import type { RoomSnapshot } from "./snapshots.js";
 
 export { ROOM_EXPLORE_STRATEGIES };
 export type { RoomExploreStrategy };
+export { ROOM_BOT_SPEED_MULTIPLIERS };
+export type { RoomBotSpeedMultiplier };
 
 export type ConnectPayload = {
   playerId?: string;
@@ -60,6 +66,11 @@ export type RenameRoomPayload = {
 export type SetVisibilitySizePayload = {
   roomId: string;
   visibilitySize: 3 | 5 | 7;
+};
+
+export type SetBotSpeedPayload = {
+  roomId: string;
+  botSpeedMultiplier: RoomBotSpeedMultiplier;
 };
 
 export type StartGamePayload = {

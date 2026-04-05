@@ -153,7 +153,8 @@ function buildWaitingSnapshot(overrides?: { chat?: RoomSnapshot["chat"] }): Room
       status: "waiting",
       hostPlayerId: "player-1",
       maxPlayers: 15,
-      visibilitySize: 7
+      visibilitySize: 7,
+      botSpeedMultiplier: 1
     },
     members: [
       {
@@ -201,7 +202,8 @@ function buildPlayingSnapshot(): RoomSnapshot {
       status: "playing",
       hostPlayerId: "player-1",
       maxPlayers: 15,
-      visibilitySize: 7
+      visibilitySize: 7,
+      botSpeedMultiplier: 1
     },
     members: [
       {

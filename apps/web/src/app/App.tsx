@@ -9,6 +9,7 @@ import type {
   GameEndedPayload,
   RoomBotKind,
   RoomBotRequest,
+  RoomBotSpeedMultiplier,
   RoomLeftPayload,
   RoomJoinedPayload,
   RoomListItem,
@@ -302,6 +303,17 @@ export function App() {
     });
   }
 
+  function handleSetBotSpeedMultiplier(botSpeedMultiplier: RoomBotSpeedMultiplier) {
+    if (!snapshot) {
+      return;
+    }
+
+    socketRef.current.emit("SET_BOT_SPEED", {
+      roomId: snapshot.room.roomId,
+      botSpeedMultiplier
+    });
+  }
+
   function handleAddBots(input: { kind: RoomBotKind; bots: RoomBotRequest[] }) {
     if (!snapshot) {
       return;
@@ -425,6 +437,7 @@ export function App() {
           onStartGame={handleStartGame}
           onRenameRoom={handleRenameRoom}
           onSetVisibilitySize={handleSetVisibilitySize}
+          onSetBotSpeedMultiplier={handleSetBotSpeedMultiplier}
           onAddBots={handleAddBots}
           onRemoveBots={handleRemoveBots}
           onForceEndRoom={handleForceEndRoom}

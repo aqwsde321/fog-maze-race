@@ -1113,7 +1113,8 @@ function buildSnapshot(
       status,
       hostPlayerId,
       maxPlayers: 15,
-      visibilitySize: 7
+      visibilitySize: 7,
+      botSpeedMultiplier: 1
     },
     members: [
       {

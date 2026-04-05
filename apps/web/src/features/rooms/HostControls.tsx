@@ -1,7 +1,12 @@
 import { useEffect, useMemo, useState, type CSSProperties } from "react";
 import { createPortal } from "react-dom";
 
-import type { RoomBotKind, RoomBotRequest, RoomExploreStrategy } from "@fog-maze-race/shared/contracts/realtime";
+import type {
+  RoomBotKind,
+  RoomBotRequest,
+  RoomBotSpeedMultiplier,
+  RoomExploreStrategy
+} from "@fog-maze-race/shared/contracts/realtime";
 import type { RoomMode } from "@fog-maze-race/shared/domain/status";
 
 import { SelectField, baseSelectStyle } from "./SelectField.js";
@@ -11,6 +16,7 @@ type HostControlsProps = {
   roomName: string;
   roomMode: RoomMode;
   visibilitySize: 3 | 5 | 7;
+  botSpeedMultiplier: RoomBotSpeedMultiplier;
   canEditVisibility: boolean;
   canManageBots: boolean;
   availableBotSlots: number;
@@ -18,6 +24,7 @@ type HostControlsProps = {
   currentBots: Array<{ playerId: string; nickname: string; strategy?: RoomExploreStrategy | null }>;
   onRenameRoom: (name: string) => void;
   onSetVisibilitySize: (visibilitySize: 3 | 5 | 7) => void;
+  onSetBotSpeedMultiplier: (botSpeedMultiplier: RoomBotSpeedMultiplier) => void;
   onAddBots: (input: { kind: RoomBotKind; bots: RoomBotRequest[] }) => void;
   onRemoveBots: (playerIds?: string[]) => void;
 };
@@ -31,6 +38,7 @@ export function HostControls({
   roomName,
   roomMode,
   visibilitySize,
+  botSpeedMultiplier,
   canEditVisibility,
   canManageBots,
   availableBotSlots,
@@ -38,6 +46,7 @@ export function HostControls({
   currentBots,
   onRenameRoom,
   onSetVisibilitySize,
+  onSetBotSpeedMultiplier,
   onAddBots,
   onRemoveBots
 }: HostControlsProps) {
@@ -232,6 +241,29 @@ export function HostControls({
               <option value={3}>3x3</option>
           </SelectField>
         </div>
+
+        {roomMode === "bot_race" ? (
+          <div data-testid="bot-speed-control-row" style={visibilityControlRowStyle}>
+            <label htmlFor="bot-speed-multiplier" style={visibilityLabelStyle}>
+              배속
+            </label>
+            <SelectField
+              id="bot-speed-multiplier"
+              name="bot-speed-multiplier"
+              value={botSpeedMultiplier}
+              disabled={!canEditVisibility}
+              onChange={(event) => onSetBotSpeedMultiplier(Number(event.target.value) as RoomBotSpeedMultiplier)}
+              selectStyle={selectStyle}
+            >
+                <option value={1}>x1</option>
+                <option value={2}>x2</option>
+                <option value={3}>x3</option>
+                <option value={4}>x4</option>
+                <option value={5}>x5</option>
+                <option value={6}>x6</option>
+            </SelectField>
+          </div>
+        ) : null}
       </div>
 
       <div style={botToggleWrapStyle}>

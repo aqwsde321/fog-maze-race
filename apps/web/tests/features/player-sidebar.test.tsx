@@ -94,7 +94,8 @@ function buildSnapshot(): RoomSnapshot {
       status: "waiting",
       hostPlayerId: "player-1",
       maxPlayers: 15,
-      visibilitySize: 7
+      visibilitySize: 7,
+      botSpeedMultiplier: 1
     },
     members: [
       {
@@ -138,7 +139,8 @@ function buildBotRaceSnapshot(): RoomSnapshot {
       status: "waiting",
       hostPlayerId: "viewer-1",
       maxPlayers: 15,
-      visibilitySize: 7
+      visibilitySize: 7,
+      botSpeedMultiplier: 1
     },
     members: [
       {

@@ -33,6 +33,7 @@ describe("HostControls", () => {
           roomName="Alpha"
           roomMode="normal"
           visibilitySize={7}
+          botSpeedMultiplier={1}
           canEditVisibility
           canManageBots
           availableBotSlots={4}
@@ -40,6 +41,7 @@ describe("HostControls", () => {
           currentBots={[]}
           onRenameRoom={vi.fn()}
           onSetVisibilitySize={onSetVisibilitySize}
+          onSetBotSpeedMultiplier={vi.fn()}
           onAddBots={vi.fn()}
           onRemoveBots={vi.fn()}
         />
@@ -67,6 +69,7 @@ describe("HostControls", () => {
           roomName="Alpha"
           roomMode="normal"
           visibilitySize={5}
+          botSpeedMultiplier={1}
           canEditVisibility={false}
           canManageBots={false}
           availableBotSlots={0}
@@ -74,6 +77,7 @@ describe("HostControls", () => {
           currentBots={[]}
           onRenameRoom={vi.fn()}
           onSetVisibilitySize={onSetVisibilitySize}
+          onSetBotSpeedMultiplier={vi.fn()}
           onAddBots={vi.fn()}
           onRemoveBots={vi.fn()}
         />
@@ -93,6 +97,7 @@ describe("HostControls", () => {
           roomName="Alpha"
           roomMode="bot_race"
           visibilitySize={7}
+          botSpeedMultiplier={2}
           canEditVisibility
           canManageBots
           availableBotSlots={4}
@@ -100,6 +105,7 @@ describe("HostControls", () => {
           currentBots={[]}
           onRenameRoom={vi.fn()}
           onSetVisibilitySize={vi.fn()}
+          onSetBotSpeedMultiplier={vi.fn()}
           onAddBots={onAddBots}
           onRemoveBots={vi.fn()}
         />
@@ -182,6 +188,7 @@ describe("HostControls", () => {
           roomName="Alpha"
           roomMode="normal"
           visibilitySize={7}
+          botSpeedMultiplier={1}
           canEditVisibility
           canManageBots
           availableBotSlots={2}
@@ -189,6 +196,7 @@ describe("HostControls", () => {
           currentBots={[]}
           onRenameRoom={vi.fn()}
           onSetVisibilitySize={vi.fn()}
+          onSetBotSpeedMultiplier={vi.fn()}
           onAddBots={vi.fn()}
           onRemoveBots={vi.fn()}
         />
@@ -220,6 +228,7 @@ describe("HostControls", () => {
           roomName="Alpha"
           roomMode="normal"
           visibilitySize={7}
+          botSpeedMultiplier={1}
           canEditVisibility
           canManageBots
           availableBotSlots={3}
@@ -227,6 +236,7 @@ describe("HostControls", () => {
           currentBots={[]}
           onRenameRoom={vi.fn()}
           onSetVisibilitySize={vi.fn()}
+          onSetBotSpeedMultiplier={vi.fn()}
           onAddBots={vi.fn()}
           onRemoveBots={vi.fn()}
         />
@@ -251,6 +261,7 @@ describe("HostControls", () => {
           roomName="Alpha"
           roomMode="normal"
           visibilitySize={7}
+          botSpeedMultiplier={1}
           canEditVisibility
           canManageBots
           availableBotSlots={0}
@@ -258,6 +269,7 @@ describe("HostControls", () => {
           currentBots={[]}
           onRenameRoom={vi.fn()}
           onSetVisibilitySize={vi.fn()}
+          onSetBotSpeedMultiplier={vi.fn()}
           onAddBots={vi.fn()}
           onRemoveBots={vi.fn()}
         />
@@ -278,6 +290,7 @@ describe("HostControls", () => {
           roomName="Alpha"
           roomMode="bot_race"
           visibilitySize={7}
+          botSpeedMultiplier={3}
           canEditVisibility
           canManageBots
           availableBotSlots={0}
@@ -288,6 +301,7 @@ describe("HostControls", () => {
           ]}
           onRenameRoom={vi.fn()}
           onSetVisibilitySize={vi.fn()}
+          onSetBotSpeedMultiplier={vi.fn()}
           onAddBots={vi.fn()}
           onRemoveBots={onRemoveBots}
         />
@@ -330,6 +344,7 @@ describe("HostControls", () => {
           roomName="Alpha"
           roomMode="normal"
           visibilitySize={7}
+          botSpeedMultiplier={1}
           canEditVisibility
           canManageBots
           availableBotSlots={2}
@@ -337,6 +352,7 @@ describe("HostControls", () => {
           currentBots={[{ playerId: "bot-1", nickname: "bot1", strategy: "frontier" }]}
           onRenameRoom={vi.fn()}
           onSetVisibilitySize={vi.fn()}
+          onSetBotSpeedMultiplier={vi.fn()}
           onAddBots={vi.fn()}
           onRemoveBots={onRemoveBots}
         />
@@ -356,5 +372,68 @@ describe("HostControls", () => {
     });
 
     expect(onRemoveBots).toHaveBeenCalledWith(["bot-1"]);
+  });
+
+  it("shows and changes the bot speed selector only in bot race rooms", async () => {
+    const onSetBotSpeedMultiplier = vi.fn();
+
+    await act(async () => {
+      root.render(
+        <HostControls
+          roomId="room-1"
+          roomName="Alpha"
+          roomMode="bot_race"
+          visibilitySize={7}
+          botSpeedMultiplier={3}
+          canEditVisibility
+          canManageBots
+          availableBotSlots={2}
+          memberNicknames={["host"]}
+          currentBots={[]}
+          onRenameRoom={vi.fn()}
+          onSetVisibilitySize={vi.fn()}
+          onSetBotSpeedMultiplier={onSetBotSpeedMultiplier}
+          onAddBots={vi.fn()}
+          onRemoveBots={vi.fn()}
+        />
+      );
+    });
+
+    const speedRow = container.querySelector<HTMLElement>('[data-testid="bot-speed-control-row"]');
+    const speedSelect = container.querySelector<HTMLSelectElement>('#bot-speed-multiplier');
+    expect(speedRow?.textContent).toContain("배속");
+    expect(speedSelect?.value).toBe("3");
+    expect([...speedSelect!.options].map((option) => option.value)).toEqual(["1", "2", "3", "4", "5", "6"]);
+
+    await act(async () => {
+      speedSelect!.value = "6";
+      speedSelect!.dispatchEvent(new Event("change", { bubbles: true }));
+    });
+
+    expect(onSetBotSpeedMultiplier).toHaveBeenCalledWith(6);
+
+    await act(async () => {
+      root.render(
+        <HostControls
+          roomId="room-1"
+          roomName="Alpha"
+          roomMode="normal"
+          visibilitySize={7}
+          botSpeedMultiplier={1}
+          canEditVisibility
+          canManageBots
+          availableBotSlots={2}
+          memberNicknames={["host"]}
+          currentBots={[]}
+          onRenameRoom={vi.fn()}
+          onSetVisibilitySize={vi.fn()}
+          onSetBotSpeedMultiplier={onSetBotSpeedMultiplier}
+          onAddBots={vi.fn()}
+          onRemoveBots={vi.fn()}
+        />
+      );
+    });
+
+    expect(container.querySelector('[data-testid="bot-speed-control-row"]')).toBeNull();
   });
 });

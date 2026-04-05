@@ -10,6 +10,7 @@ import type {
   LeaveRoomPayload,
   PingCheckAckPayload,
   PingCheckPayload,
+  SetBotSpeedPayload,
   PlayerFinishedPayload,
   GameEndedPayload,
   JoinRoomPayload,
@@ -51,6 +52,7 @@ export type RaceSocketCommands = {
   LEAVE_ROOM: (payload: LeaveRoomPayload) => void;
   RENAME_ROOM: (payload: RenameRoomPayload) => void;
   SET_VISIBILITY_SIZE: (payload: SetVisibilitySizePayload) => void;
+  SET_BOT_SPEED: (payload: SetBotSpeedPayload) => void;
   START_GAME: (payload: StartGamePayload) => void;
   FORCE_END_ROOM: (payload: ForceEndRoomPayload) => void;
   RESET_ROOM: (payload: ResetRoomPayload) => void;

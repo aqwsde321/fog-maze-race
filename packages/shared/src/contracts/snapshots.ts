@@ -1,6 +1,7 @@
 import type { GridPosition } from "../domain/grid-position.js";
 import type { PlayerMarkerShape } from "../domain/player-marker-shape.js";
 import type { ResultEntry } from "../domain/result-entry.js";
+import type { RoomBotSpeedMultiplier } from "../domain/room-bot-speed.js";
 import type { RoomExploreStrategy } from "../domain/room-bot-strategy.js";
 import type { MatchStatus, RoomMemberKind, RoomMemberRole, RoomMode, RoomMemberState, RoomStatus } from "../domain/status.js";
 import type { ZoneBounds } from "../maps/map-definitions.js";
@@ -65,6 +66,7 @@ export type RoomSnapshot = {
     hostPlayerId: string;
     maxPlayers: number;
     visibilitySize: 3 | 5 | 7;
+    botSpeedMultiplier: RoomBotSpeedMultiplier;
   };
   members: RoomMemberView[];
   chat: RoomChatMessageView[];

@@ -9,6 +9,7 @@ import type {
   RoomLeftPayload,
   RoomListUpdatePayload,
   RoomStateUpdatePayload,
+  SetBotSpeedPayload,
   SetVisibilitySizePayload
 } from "@fog-maze-race/shared/contracts/realtime";
 import type { RoomSnapshot } from "@fog-maze-race/shared/contracts/snapshots";
@@ -22,6 +23,7 @@ type EventMap = {
   ROOM_STATE_UPDATE: RoomStateUpdatePayload;
   GAME_ENDED: GameEndedPayload;
   ERROR: ErrorPayload;
+  SET_BOT_SPEED: SetBotSpeedPayload;
   SET_VISIBILITY_SIZE: SetVisibilitySizePayload;
 };
 
@@ -190,6 +192,40 @@ describe("US3 room administration contract", () => {
       nickname: "호1",
       content: "안개 조심"
     });
+  }, 15_000);
+
+  it("lets only the host change the bot speed in a bot race room", async () => {
+    const host = createRaceSocket();
+    const guest = createRaceSocket();
+
+    host.connect();
+    guest.connect();
+
+    host.emit("CONNECT", { nickname: "호1" });
+    guest.emit("CONNECT", { nickname: "게2" });
+
+    await once(host, "CONNECTED");
+    await once(guest, "CONNECTED");
+    await delay(60);
+
+    host.emit("CREATE_ROOM", { name: "Bot Only", mode: "bot_race" });
+    const hostJoined = await once(host, "ROOM_JOINED");
+
+    guest.emit("JOIN_ROOM", { roomId: hostJoined.roomId });
+    await once(guest, "ROOM_JOINED");
+
+    guest.emit("SET_BOT_SPEED", { roomId: hostJoined.roomId, botSpeedMultiplier: 6 });
+    const denied = await once(guest, "ERROR");
+    expect(denied.code).toBe("HOST_ONLY");
+
+    host.emit("SET_BOT_SPEED", { roomId: hostJoined.roomId, botSpeedMultiplier: 6 });
+    const updated = await waitForSnapshot(
+      host,
+      (snapshot) => snapshot.room.botSpeedMultiplier === 6,
+      1_000
+    );
+
+    expect(updated.room.botSpeedMultiplier).toBe(6);
   }, 15_000);
 
   it("acknowledges ping checks so the client can measure round-trip latency", async () => {

@@ -2,7 +2,11 @@ import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { createPortal } from "react-dom";
 
 import type { ServerHealthSnapshot } from "@fog-maze-race/shared/contracts/server-health";
-import type { RoomBotKind, RoomBotRequest } from "@fog-maze-race/shared/contracts/realtime";
+import type {
+  RoomBotKind,
+  RoomBotRequest,
+  RoomBotSpeedMultiplier
+} from "@fog-maze-race/shared/contracts/realtime";
 import type { Direction } from "@fog-maze-race/shared/domain/grid-position";
 import type { RoomSnapshot } from "@fog-maze-race/shared/contracts/snapshots";
 
@@ -25,6 +29,7 @@ type GameScreenProps = {
   onStartGame: () => void;
   onRenameRoom: (name: string) => void;
   onSetVisibilitySize: (visibilitySize: 3 | 5 | 7) => void;
+  onSetBotSpeedMultiplier?: (botSpeedMultiplier: RoomBotSpeedMultiplier) => void;
   onAddBots?: (input: { kind: RoomBotKind; bots: RoomBotRequest[] }) => void;
   onRemoveBots?: (playerIds?: string[]) => void;
   onForceEndRoom: () => void;
@@ -125,6 +130,7 @@ export function GameScreen({
   onStartGame,
   onRenameRoom,
   onSetVisibilitySize,
+  onSetBotSpeedMultiplier,
   onAddBots,
   onRemoveBots,
   onForceEndRoom,
@@ -666,6 +672,7 @@ export function GameScreen({
                 roomName={snapshot.room.name}
                 roomMode={snapshot.room.mode}
                 visibilitySize={snapshot.room.visibilitySize}
+                botSpeedMultiplier={snapshot.room.botSpeedMultiplier}
                 canEditVisibility={snapshot.room.status === "waiting"}
                 canManageBots={snapshot.room.status === "waiting"}
                 availableBotSlots={availableBotSlots}
@@ -673,6 +680,7 @@ export function GameScreen({
                 currentBots={currentBots}
                 onRenameRoom={onRenameRoom}
                 onSetVisibilitySize={onSetVisibilitySize}
+                onSetBotSpeedMultiplier={onSetBotSpeedMultiplier ?? (() => undefined)}
                 onAddBots={onAddBots ?? (() => undefined)}
                 onRemoveBots={onRemoveBots ?? (() => undefined)}
               />

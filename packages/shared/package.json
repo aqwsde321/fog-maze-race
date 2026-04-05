@@ -30,6 +30,10 @@
       "types": "./dist/domain/grid-position.d.ts",
       "default": "./dist/domain/grid-position.js"
     },
+    "./domain/room-bot-speed": {
+      "types": "./dist/domain/room-bot-speed.d.ts",
+      "default": "./dist/domain/room-bot-speed.js"
+    },
     "./domain/player-marker-shape": {
       "types": "./dist/domain/player-marker-shape.d.ts",
       "default": "./dist/domain/player-marker-shape.js"
