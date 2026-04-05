@@ -767,7 +767,7 @@ function decideTremauxFrontierMove(input: {
   }
 
   const closeCandidates = rankedCandidates.filter((candidate) => candidate.score <= bestScore + getTremauxCandidateSlack(input.map));
-  const selectedCandidate = pickTremauxCandidate(closeCandidates) ?? rankedCandidates[0];
+  const selectedCandidate = pickTremauxCandidate(closeCandidates, input.seed, input.position) ?? rankedCandidates[0];
 
   return selectedCandidate?.path[0] ?? null;
 }
@@ -1226,8 +1226,8 @@ function pickSeededCandidate<T extends { pathKey: string }>(
   }
 
   const sortedCandidates = [...candidates].sort((left, right) => left.pathKey.localeCompare(right.pathKey));
-  const mixedSeed = hashText(`${normalizeSeed(seed)}:${position.x},${position.y}:${sortedCandidates.length}`);
-  const index = (((mixedSeed >>> 2) ^ mixedSeed) >>> 0) % sortedCandidates.length;
+  const mixedSeed = mixSeedStrong(seed, position, sortedCandidates.length);
+  const index = mixedSeed % sortedCandidates.length;
   return sortedCandidates[index] ?? null;
 }
 
@@ -1258,34 +1258,49 @@ function pickSeededGoalCandidate<T extends { pathKey: string }>(
   return sortedCandidates[index] ?? null;
 }
 
-function pickTremauxCandidate<T extends { path: Direction[]; pathKey: string }>(candidates: T[]) {
+function pickTremauxCandidate<T extends { path: Direction[]; pathKey: string }>(
+  candidates: T[],
+  seed: number,
+  position: GridPosition
+) {
   if (candidates.length === 0) {
     return null;
   }
 
-  return candidates.reduce<T | null>((best, candidate) => {
-    if (!best) {
-      return candidate;
+  const rankedCandidates = [...candidates].sort((left, right) => {
+    const leftTurnCount = countPathTurns(left.path);
+    const rightTurnCount = countPathTurns(right.path);
+    if (leftTurnCount !== rightTurnCount) {
+      return leftTurnCount - rightTurnCount;
     }
 
-    const bestTurnCount = countPathTurns(best.path);
-    const candidateTurnCount = countPathTurns(candidate.path);
-    if (candidateTurnCount !== bestTurnCount) {
-      return candidateTurnCount < bestTurnCount ? candidate : best;
+    const leftFirstDirectionRank = rankTremauxFirstDirection(left.path[0], seed);
+    const rightFirstDirectionRank = rankTremauxFirstDirection(right.path[0], seed);
+    if (leftFirstDirectionRank !== rightFirstDirectionRank) {
+      return leftFirstDirectionRank - rightFirstDirectionRank;
     }
 
-    const bestFirstDirectionRank = rankTremauxFirstDirection(best.path[0]);
-    const candidateFirstDirectionRank = rankTremauxFirstDirection(candidate.path[0]);
-    if (candidateFirstDirectionRank !== bestFirstDirectionRank) {
-      return candidateFirstDirectionRank < bestFirstDirectionRank ? candidate : best;
+    if (left.path.length !== right.path.length) {
+      return left.path.length - right.path.length;
     }
 
-    if (candidate.path.length !== best.path.length) {
-      return candidate.path.length < best.path.length ? candidate : best;
-    }
+    return left.pathKey.localeCompare(right.pathKey);
+  });
+  const bestCandidate = rankedCandidates[0];
+  if (!bestCandidate) {
+    return null;
+  }
 
-    return candidate.pathKey.localeCompare(best.pathKey) < 0 ? candidate : best;
-  }, null);
+  const bestTurnCount = countPathTurns(bestCandidate.path);
+  const bestFirstDirectionRank = rankTremauxFirstDirection(bestCandidate.path[0], seed);
+  const bestPathLength = bestCandidate.path.length;
+  const exactTieCandidates = rankedCandidates.filter((candidate) =>
+    countPathTurns(candidate.path) === bestTurnCount &&
+    rankTremauxFirstDirection(candidate.path[0], seed) === bestFirstDirectionRank &&
+    candidate.path.length === bestPathLength
+  );
+
+  return pickSeededCandidate(exactTieCandidates, seed, position, true) ?? bestCandidate;
 }
 
 function findKnownWalkableDirection(input: {
@@ -1546,8 +1561,12 @@ function countPathTurns(path: Direction[]) {
   return turns;
 }
 
-function rankTremauxFirstDirection(direction: Direction | undefined) {
-  const rank = direction ? TREMAUX_FIRST_DIRECTION_ORDER.indexOf(direction) : -1;
+function rankTremauxFirstDirection(direction: Direction | undefined, seed = 0) {
+  const rotation = normalizeSeed(seed) % TREMAUX_FIRST_DIRECTION_ORDER.length;
+  const rotatedOrder = TREMAUX_FIRST_DIRECTION_ORDER
+    .slice(rotation)
+    .concat(TREMAUX_FIRST_DIRECTION_ORDER.slice(0, rotation));
+  const rank = direction ? rotatedOrder.indexOf(direction) : -1;
   return rank >= 0 ? rank : TREMAUX_FIRST_DIRECTION_ORDER.length;
 }
 
@@ -1568,4 +1587,21 @@ function mixSeedLegacy(seed: number, position: GridPosition) {
     (position.x + 1) * 97 +
     (position.y + 1) * 193
   ) >>> 0;
+}
+
+function mixSeedStrong(seed: number, position: GridPosition, salt: number) {
+  let mixed = (
+    normalizeSeed(seed) +
+    Math.imul(position.x + 1, 0x9e3779b1) +
+    Math.imul(position.y + 1, 0x85ebca77) +
+    salt
+  ) >>> 0;
+
+  mixed ^= mixed >>> 16;
+  mixed = Math.imul(mixed, 0x7feb352d) >>> 0;
+  mixed ^= mixed >>> 15;
+  mixed = Math.imul(mixed, 0x846ca68b) >>> 0;
+  mixed ^= mixed >>> 16;
+
+  return mixed >>> 0;
 }
