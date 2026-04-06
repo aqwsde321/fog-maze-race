@@ -8,17 +8,18 @@ test("US3 hosts can hand off authority and force-end the next round", async ({
 }) => {
   const clients = await createRaceClients(browser, 3);
   const [host, guest, watcher] = clients;
+  const roomName = `Alpha-${Date.now().toString().slice(-4)}`;
 
   try {
     await enterLobby(host.page, "호1");
-    await createRoomFromLobby(host.page, "Alpha");
+    await createRoomFromLobby(host.page, roomName);
 
     await enterLobby(guest.page, "게2");
-    await guest.page.getByRole("button", { name: "입장 Alpha" }).click();
+    await guest.page.getByRole("button", { name: `입장 ${roomName}` }).click();
 
     await enterLobby(watcher.page, "관3");
 
-    await expect(watcher.page.getByRole("button", { name: "입장 Alpha" })).toBeVisible({
+    await expect(watcher.page.getByRole("button", { name: `입장 ${roomName}` })).toBeVisible({
       timeout: 6_000
     });
 
@@ -27,7 +28,7 @@ test("US3 hosts can hand off authority and force-end the next round", async ({
       timeout: 6_000
     });
 
-    await watcher.page.getByRole("button", { name: "입장 Alpha" }).click();
+    await watcher.page.getByRole("button", { name: `입장 ${roomName}` }).click();
 
     await guest.page.getByRole("button", { name: "시작" }).click();
     await expect(guest.page.getByTestId("room-status")).toContainText("playing", {

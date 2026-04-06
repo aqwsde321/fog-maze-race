@@ -8,7 +8,7 @@ export function buildPlaywrightConfig(env: NodeJS.ProcessEnv = process.env) {
   return {
     testDir: "./tests/e2e",
     fullyParallel: true,
-    workers: 1,
+    workers: env.CI ? 2 : 1,
     retries: env.CI ? 1 : 0,
     reporter: "list",
     webServer: [
