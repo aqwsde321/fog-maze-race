@@ -58,9 +58,17 @@ jobs:
         run: pnpm build
 
   e2e:
-    name: E2E
+    name: E2E (${{ matrix.suite }})
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - suite: core
+            command: pnpm test:e2e:core
+          - suite: heavy
+            command: pnpm test:e2e:heavy
 
     steps:
       - name: Checkout
@@ -91,7 +99,7 @@ jobs:
         run: pnpm exec playwright install --with-deps chromium
 
       - name: Run Playwright tests
-        run: pnpm test:e2e
+        run: ${{ matrix.command }}
 
   docker:
     name: Docker build

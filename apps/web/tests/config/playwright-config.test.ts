@@ -13,8 +13,8 @@ describe("playwright config", () => {
     expect(buildPlaywrightConfig({}).retries).toBe(0);
   });
 
-  it("uses two workers in CI to shorten end-to-end runtime", () => {
-    expect(buildPlaywrightConfig({ CI: "1" }).workers).toBe(2);
+  it("keeps a single worker in CI and relies on workflow sharding instead", () => {
+    expect(buildPlaywrightConfig({ CI: "1" }).workers).toBe(1);
   });
 
   it("retries flaky E2E failures once in CI", () => {
