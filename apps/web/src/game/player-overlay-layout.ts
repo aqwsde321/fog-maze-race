@@ -79,6 +79,7 @@ export function resolveRenderMembers(snapshot: RoomSnapshot) {
 
   return snapshot.members.map((member, index) => ({
     ...member,
+    // Bot-race spectators stay off the start grid until they actively join as racers.
     position:
       member.position ??
       (member.role === "racer" ? snapshot.previewMap?.startSlots[index] ?? null : null)
