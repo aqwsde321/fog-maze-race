@@ -57,11 +57,15 @@ export async function buildServer(options: BuildServerOptions = {}) {
     reply: FastifyReply
   ): Promise<ServerHealthSnapshot> => {
     reply.header("Cache-Control", "no-store, max-age=0");
+    const commitSha = process.env.RENDER_GIT_COMMIT ?? process.env.APP_COMMIT_SHA ?? null;
 
     return {
       ok: true,
       service: "fog-maze-race",
       version: process.env.APP_VERSION ?? "dev",
+      deployment: {
+        commitSha
+      },
       ...loadMonitor.getSnapshot()
     };
   };

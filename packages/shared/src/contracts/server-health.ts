@@ -2,6 +2,9 @@ export type ServerHealthSnapshot = {
   ok: boolean;
   service: string;
   version: string;
+  deployment: {
+    commitSha: string | null;
+  };
   checkedAt: string;
   uptimeSeconds: number;
   runtime: {

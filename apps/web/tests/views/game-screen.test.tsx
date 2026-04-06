@@ -1317,6 +1317,9 @@ function buildServerHealth(): ServerHealthSnapshot {
     ok: true,
     service: "fog-maze-race",
     version: "dev",
+    deployment: {
+      commitSha: null
+    },
     checkedAt: "2026-03-28T01:00:00.000Z",
     uptimeSeconds: 321,
     runtime: {
