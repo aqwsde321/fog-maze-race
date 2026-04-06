@@ -79,7 +79,9 @@ export function resolveRenderMembers(snapshot: RoomSnapshot) {
 
   return snapshot.members.map((member, index) => ({
     ...member,
-    position: member.position ?? snapshot.previewMap?.startSlots[index] ?? null
+    position:
+      member.position ??
+      (member.role === "racer" ? snapshot.previewMap?.startSlots[index] ?? null : null)
   }));
 }
 

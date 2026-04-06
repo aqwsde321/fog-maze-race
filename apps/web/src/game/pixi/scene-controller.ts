@@ -19,6 +19,7 @@ import {
   updateTileMemory
 } from "../tile-memory.js";
 import { clampOverlayCenterX, collectActivePlayerChats } from "./player-overlays.js";
+import { resolveRenderMembers } from "../player-overlay-layout.js";
 
 export type SceneController = {
   render: (snapshot: RoomSnapshot | null, selfPlayerId: string | null) => void;
@@ -87,13 +88,7 @@ export async function createSceneController(container: HTMLDivElement): Promise<
       app.renderer.resize(layout.viewportWidth, layout.viewportHeight);
       drawZonePanels(panelLayer, layout, map, mode);
 
-      const renderMembers =
-        !match && snapshot.previewMap
-          ? snapshot.members.map((member, index) => ({
-              ...member,
-              position: member.position ?? snapshot.previewMap?.startSlots[index] ?? null
-            }))
-          : snapshot.members;
+      const renderMembers = resolveRenderMembers(snapshot);
       const selfMember = renderMembers.find((member) => member.playerId === selfPlayerId) ?? null;
 
       const projection = match && selfPlayerId && selfMember?.role !== "spectator"
