@@ -197,7 +197,7 @@ describe("BotManager", () => {
       createServerStub(),
       {
         findRuntime: () => null
-      } as RoomService,
+      } as unknown as RoomService,
       {} as MatchService,
       sessions
     );

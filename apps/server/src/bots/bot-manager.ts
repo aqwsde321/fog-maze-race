@@ -5,6 +5,7 @@ import type { Server } from "socket.io";
 import type { RoomBotKind, RoomBotRequest, RoomExploreStrategy } from "@fog-maze-race/shared/contracts/realtime";
 import type { MapView } from "@fog-maze-race/shared/contracts/snapshots";
 import { samePosition, type Direction, type GridPosition } from "@fog-maze-race/shared/domain/grid-position";
+import type { RoomMode } from "@fog-maze-race/shared/domain/status";
 
 import type { ServerLoadMonitor } from "../app/server-load-monitor.js";
 import { PlayerSession } from "../core/player-session.js";
