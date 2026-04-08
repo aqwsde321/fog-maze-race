@@ -128,6 +128,19 @@ UI 기준 빠른 사용 흐름:
 
 자세한 사용법은 [Codex 레이스 봇 가이드](./docs/race-bot.md) 참고.
 
+## 아이템 맵 1차
+
+현재 아이템 맵은 `맵 플래그`로만 활성화되며, 기본 제공 맵 중 `kappa-trap`에서 사용할 수 있습니다.
+
+- 인벤토리 `1칸`
+- 아이템 보유 중 추가 박스 획득 불가
+- 게임 시작 시 레이서 수만큼 랜덤 박스 생성
+- 첫 아이템은 `ice_trap`
+- `Space`로 사용
+- 상대가 밟으면 `1500ms` 빙결
+
+자세한 규칙은 [아이템 맵 가이드](./docs/item-maps.md) 참고.
+
 ## Docker / Compose
 
 단일 컨테이너가 웹 정적 파일과 API/WebSocket 서버를 함께 제공합니다.
@@ -244,6 +257,7 @@ pnpm typecheck
 
 - [Render 배포 가이드](./docs/deploy-render.md)
 - [Codex 레이스 봇 가이드](./docs/race-bot.md)
+- [아이템 맵 가이드](./docs/item-maps.md)
 - [빠른 시작](./specs/001-fog-maze-race/quickstart.md)
 - [기능 명세](./specs/001-fog-maze-race/spec.md)
 - [실시간 이벤트 계약](./specs/001-fog-maze-race/contracts/realtime-events.md)

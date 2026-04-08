@@ -80,6 +80,10 @@ export type MovePayload = {
   inputSeq: number;
 };
 
+export type UseItemPayload = {
+  roomId: string;
+};
+
 export type SendChatMessagePayload = {
   roomId: string;
   content: string;

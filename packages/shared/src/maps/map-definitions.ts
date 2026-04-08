@@ -1,4 +1,5 @@
 import type { GridPosition } from "../domain/grid-position.js";
+import type { MapFeatureFlags } from "../domain/item.js";
 
 export type ZoneBounds = {
   minX: number;
@@ -19,6 +20,7 @@ export type MapDefinition = {
   startSlots: GridPosition[];
   connectorTiles: GridPosition[];
   fakeGoalTiles?: GridPosition[];
+  featureFlags?: MapFeatureFlags;
   visibilityRadius: number;
 };
 
@@ -26,6 +28,7 @@ export type EditableMapSource = {
   mapId: string;
   name: string;
   mazeRows: string[];
+  featureFlags?: MapFeatureFlags;
 };
 
 export const PLAYABLE_MAZE_SIZE = 25;
@@ -465,7 +468,10 @@ export const DEFAULT_MAP_SOURCES: EditableMapSource[] = [
   {
     mapId: "kappa-trap",
     name: "Kappa Trap",
-    mazeRows: KAPPA_TRAP_CORE_ROWS
+    mazeRows: KAPPA_TRAP_CORE_ROWS,
+    featureFlags: {
+      itemBoxes: true
+    }
   },
   {
     mapId: "lambda-spine",
@@ -519,6 +525,7 @@ export function buildMapDefinition(source: EditableMapSource): MapDefinition {
     startSlots: createStartSlots(),
     connectorTiles: createConnectorTiles(),
     fakeGoalTiles,
+    featureFlags: source.featureFlags,
     visibilityRadius: 3
   };
 }

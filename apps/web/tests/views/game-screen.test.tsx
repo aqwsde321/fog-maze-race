@@ -150,6 +150,7 @@ describe("GameScreen keyboard control", () => {
           onForceEndRoom={vi.fn()}
           onResetToWaiting={vi.fn()}
           onLeaveRoom={vi.fn()}
+          onUseItem={vi.fn()}
           onMove={onMove}
           onSendChatMessage={vi.fn()}
         />
@@ -183,6 +184,7 @@ describe("GameScreen keyboard control", () => {
           onForceEndRoom={vi.fn()}
           onResetToWaiting={vi.fn()}
           onLeaveRoom={vi.fn()}
+          onUseItem={vi.fn()}
           onMove={vi.fn()}
           onSendChatMessage={onSendChatMessage}
         />
@@ -234,6 +236,45 @@ describe("GameScreen keyboard control", () => {
     expect(document.activeElement).toBe(getGameShell());
   });
 
+  it("uses the held item with Space and shows the in-game item HUD", async () => {
+    const onUseItem = vi.fn();
+
+    await act(async () => {
+      root.render(
+        <GameScreen
+          snapshot={buildSnapshot("playing", {
+            heldItemType: "ice_trap"
+          })}
+          selfPlayerId="player-1"
+          countdownValue={null}
+          onStartGame={vi.fn()}
+          onRenameRoom={vi.fn()}
+          onSetVisibilitySize={vi.fn()}
+          onForceEndRoom={vi.fn()}
+          onResetToWaiting={vi.fn()}
+          onLeaveRoom={vi.fn()}
+          onUseItem={onUseItem}
+          onMove={vi.fn()}
+          onSendChatMessage={vi.fn()}
+        />
+      );
+    });
+
+    const event = new KeyboardEvent("keydown", {
+      key: " ",
+      code: "Space",
+      bubbles: true,
+      cancelable: true
+    });
+
+    getGameShell().dispatchEvent(event);
+
+    expect(event.defaultPrevented).toBe(true);
+    expect(onUseItem).toHaveBeenCalledTimes(1);
+    expect(container.querySelector('[data-testid="item-hud"]')?.textContent).toContain("얼음 함정");
+    expect(container.querySelector('[data-testid="held-item-card"]')?.textContent).toContain("Space 사용");
+  });
+
   it("shows a centered fake-goal alert when the local player steps onto a fake goal tile", async () => {
     vi.useFakeTimers();
     const initialSnapshot = buildSnapshot("playing");
@@ -282,6 +323,7 @@ describe("GameScreen keyboard control", () => {
           onForceEndRoom={vi.fn()}
           onResetToWaiting={vi.fn()}
           onLeaveRoom={vi.fn()}
+          onUseItem={vi.fn()}
           onMove={vi.fn()}
           onSendChatMessage={vi.fn()}
         />
@@ -302,6 +344,7 @@ describe("GameScreen keyboard control", () => {
           onForceEndRoom={vi.fn()}
           onResetToWaiting={vi.fn()}
           onLeaveRoom={vi.fn()}
+          onUseItem={vi.fn()}
           onMove={vi.fn()}
           onSendChatMessage={vi.fn()}
         />
@@ -385,6 +428,7 @@ describe("GameScreen keyboard control", () => {
           onForceEndRoom={vi.fn()}
           onResetToWaiting={vi.fn()}
           onLeaveRoom={vi.fn()}
+          onUseItem={vi.fn()}
           onMove={vi.fn()}
           onSendChatMessage={vi.fn()}
         />
@@ -407,6 +451,7 @@ describe("GameScreen keyboard control", () => {
           onForceEndRoom={vi.fn()}
           onResetToWaiting={vi.fn()}
           onLeaveRoom={vi.fn()}
+          onUseItem={vi.fn()}
           onMove={vi.fn()}
           onSendChatMessage={vi.fn()}
         />
@@ -433,6 +478,7 @@ describe("GameScreen keyboard control", () => {
           onForceEndRoom={vi.fn()}
           onResetToWaiting={vi.fn()}
           onLeaveRoom={vi.fn()}
+          onUseItem={vi.fn()}
           onMove={vi.fn()}
           onSendChatMessage={vi.fn()}
         />
@@ -455,6 +501,7 @@ describe("GameScreen keyboard control", () => {
           onForceEndRoom={vi.fn()}
           onResetToWaiting={vi.fn()}
           onLeaveRoom={vi.fn()}
+          onUseItem={vi.fn()}
           onMove={vi.fn()}
           onSendChatMessage={vi.fn()}
         />
@@ -492,6 +539,7 @@ describe("GameScreen keyboard control", () => {
           onForceEndRoom={vi.fn()}
           onResetToWaiting={vi.fn()}
           onLeaveRoom={vi.fn()}
+          onUseItem={vi.fn()}
           onMove={vi.fn()}
           onSendChatMessage={vi.fn()}
         />
@@ -521,6 +569,7 @@ describe("GameScreen keyboard control", () => {
           onForceEndRoom={vi.fn()}
           onResetToWaiting={vi.fn()}
           onLeaveRoom={vi.fn()}
+          onUseItem={vi.fn()}
           onMove={vi.fn()}
           onSendChatMessage={vi.fn()}
         />
@@ -546,6 +595,7 @@ describe("GameScreen keyboard control", () => {
           onForceEndRoom={vi.fn()}
           onResetToWaiting={onResetToWaiting}
           onLeaveRoom={vi.fn()}
+          onUseItem={vi.fn()}
           onMove={vi.fn()}
           onSendChatMessage={vi.fn()}
         />
@@ -574,6 +624,7 @@ describe("GameScreen keyboard control", () => {
           onForceEndRoom={vi.fn()}
           onResetToWaiting={vi.fn()}
           onLeaveRoom={vi.fn()}
+          onUseItem={vi.fn()}
           onMove={vi.fn()}
           onSendChatMessage={vi.fn()}
         />
@@ -637,6 +688,7 @@ describe("GameScreen keyboard control", () => {
           onForceEndRoom={vi.fn()}
           onResetToWaiting={vi.fn()}
           onLeaveRoom={vi.fn()}
+          onUseItem={vi.fn()}
           onMove={vi.fn()}
           onSendChatMessage={vi.fn()}
         />
@@ -668,6 +720,7 @@ describe("GameScreen keyboard control", () => {
           onForceEndRoom={vi.fn()}
           onResetToWaiting={vi.fn()}
           onLeaveRoom={vi.fn()}
+          onUseItem={vi.fn()}
           onMove={vi.fn()}
           onSendChatMessage={vi.fn()}
         />
@@ -704,6 +757,7 @@ describe("GameScreen keyboard control", () => {
           onForceEndRoom={vi.fn()}
           onResetToWaiting={vi.fn()}
           onLeaveRoom={vi.fn()}
+          onUseItem={vi.fn()}
           onMove={vi.fn()}
           onSendChatMessage={vi.fn()}
         />
@@ -749,6 +803,7 @@ describe("GameScreen keyboard control", () => {
           onForceEndRoom={vi.fn()}
           onResetToWaiting={vi.fn()}
           onLeaveRoom={vi.fn()}
+          onUseItem={vi.fn()}
           onMove={vi.fn()}
           onSendChatMessage={vi.fn()}
         />
@@ -782,6 +837,7 @@ describe("GameScreen keyboard control", () => {
           onForceEndRoom={vi.fn()}
           onResetToWaiting={vi.fn()}
           onLeaveRoom={vi.fn()}
+          onUseItem={vi.fn()}
           onMove={vi.fn()}
           onSendChatMessage={vi.fn()}
         />
@@ -814,6 +870,7 @@ describe("GameScreen keyboard control", () => {
           onForceEndRoom={vi.fn()}
           onResetToWaiting={vi.fn()}
           onLeaveRoom={vi.fn()}
+          onUseItem={vi.fn()}
           onMove={vi.fn()}
           onSendChatMessage={vi.fn()}
         />
@@ -852,6 +909,7 @@ describe("GameScreen keyboard control", () => {
           onForceEndRoom={vi.fn()}
           onResetToWaiting={vi.fn()}
           onLeaveRoom={vi.fn()}
+          onUseItem={vi.fn()}
           onMove={vi.fn()}
           onSendChatMessage={vi.fn()}
         />
@@ -901,6 +959,7 @@ describe("GameScreen keyboard control", () => {
           onForceEndRoom={vi.fn()}
           onResetToWaiting={vi.fn()}
           onLeaveRoom={vi.fn()}
+          onUseItem={vi.fn()}
           onMove={onMove}
           onSendChatMessage={vi.fn()}
         />
@@ -918,11 +977,13 @@ describe("GameScreen keyboard control", () => {
   }
 });
 
-function buildSnapshot(
+  function buildSnapshot(
   status: RoomSnapshot["room"]["status"],
   overrides?: {
     hostPlayerId?: string;
     selfPlayerId?: string;
+    heldItemType?: "ice_trap" | null;
+    frozenUntil?: string | null;
   }
 ): RoomSnapshot {
   const selfPlayerId = overrides?.selfPlayerId ?? "player-1";
@@ -950,6 +1011,8 @@ function buildSnapshot(
         state: status === "playing" ? "playing" : status === "ended" ? "finished" : "waiting",
         position: { x: 0, y: 1 },
         finishRank: status === "ended" ? 1 : null,
+        heldItemType: overrides?.heldItemType ?? null,
+        frozenUntil: overrides?.frozenUntil ?? null,
         isHost: selfPlayerId === hostPlayerId
       }
     ],

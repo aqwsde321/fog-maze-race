@@ -1,4 +1,5 @@
 import type { GridPosition } from "@fog-maze-race/shared/domain/grid-position";
+import type { MatchItemType } from "@fog-maze-race/shared/domain/item";
 import type { PlayerMarkerShape } from "@fog-maze-race/shared/domain/player-marker-shape";
 import type { RoomExploreStrategy } from "@fog-maze-race/shared/domain/room-bot-strategy";
 import type {
@@ -22,6 +23,8 @@ export type RoomMemberRecord = {
   position: GridPosition | null;
   finishedAt: number | null;
   finishRank: number | null;
+  heldItemType: MatchItemType | null;
+  frozenUntil: number | null;
 };
 
 export type RoomChatMessageRecord = {
@@ -59,7 +62,10 @@ export class RoomAggregate {
     this.revision = 0;
   }
 
-  join(input: Omit<RoomMemberRecord, "joinOrder" | "finishedAt" | "finishRank">) {
+  join(
+    input: Omit<RoomMemberRecord, "joinOrder" | "finishedAt" | "finishRank" | "heldItemType" | "frozenUntil"> &
+      Partial<Pick<RoomMemberRecord, "heldItemType" | "frozenUntil">>
+  ) {
     if (this.status !== "waiting") {
       throw new Error("ROOM_NOT_JOINABLE");
     }
@@ -77,7 +83,9 @@ export class RoomAggregate {
       ...input,
       joinOrder: this.nextJoinOrder,
       finishedAt: null,
-      finishRank: null
+      finishRank: null,
+      heldItemType: input.heldItemType ?? null,
+      frozenUntil: input.frozenUntil ?? null
     };
 
     this.members.set(member.playerId, member);
@@ -173,6 +181,8 @@ export class RoomAggregate {
       member.state = "waiting";
       member.finishRank = null;
       member.finishedAt = null;
+      member.heldItemType = null;
+      member.frozenUntil = null;
     });
 
     this.bumpRevision();
@@ -182,6 +192,7 @@ export class RoomAggregate {
     for (const member of this.members.values()) {
       if (member.role === "racer" && member.state !== "left") {
         member.state = "playing";
+        member.frozenUntil = null;
         continue;
       }
 
@@ -200,6 +211,28 @@ export class RoomAggregate {
     }
 
     member.position = position;
+    this.bumpRevision();
+    return member;
+  }
+
+  setHeldItem(playerId: string, heldItemType: MatchItemType | null) {
+    const member = this.members.get(playerId);
+    if (!member) {
+      throw new Error("NOT_IN_ROOM");
+    }
+
+    member.heldItemType = heldItemType;
+    this.bumpRevision();
+    return member;
+  }
+
+  setFrozenUntil(playerId: string, frozenUntil: number | null) {
+    const member = this.members.get(playerId);
+    if (!member) {
+      throw new Error("NOT_IN_ROOM");
+    }
+
+    member.frozenUntil = frozenUntil;
     this.bumpRevision();
     return member;
   }
@@ -234,6 +267,8 @@ export class RoomAggregate {
       member.finishRank = null;
       member.finishedAt = null;
       member.position = null;
+      member.heldItemType = null;
+      member.frozenUntil = null;
     }
     this.bumpRevision();
   }

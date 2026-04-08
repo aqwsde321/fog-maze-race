@@ -361,6 +361,16 @@ export function App() {
     });
   }
 
+  function handleUseItem() {
+    if (!snapshot) {
+      return;
+    }
+
+    socketRef.current.emit("USE_ITEM", {
+      roomId: snapshot.room.roomId
+    });
+  }
+
   function handleSendChatMessage(content: string) {
     if (!snapshot) {
       return;
@@ -423,6 +433,7 @@ export function App() {
           onForceEndRoom={handleForceEndRoom}
           onResetToWaiting={handleResetToWaiting}
           onLeaveRoom={handleLeaveRoom}
+                onUseItem={handleUseItem}
                 onMove={handleMove}
                 onSendChatMessage={handleSendChatMessage}
               />

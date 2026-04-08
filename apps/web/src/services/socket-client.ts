@@ -24,7 +24,8 @@ import type {
   RoomStateUpdatePayload,
   SendChatMessagePayload,
   SetVisibilitySizePayload,
-  StartGamePayload
+  StartGamePayload,
+  UseItemPayload
 } from "@fog-maze-race/shared/contracts/realtime";
 import { io, type Socket } from "socket.io-client";
 
@@ -55,6 +56,7 @@ export type RaceSocketCommands = {
   FORCE_END_ROOM: (payload: ForceEndRoomPayload) => void;
   RESET_ROOM: (payload: ResetRoomPayload) => void;
   MOVE: (payload: MovePayload) => void;
+  USE_ITEM: (payload: UseItemPayload) => void;
   SEND_CHAT_MESSAGE: (payload: SendChatMessagePayload) => void;
   PING_CHECK: (payload: PingCheckPayload, acknowledge: (payload: PingCheckAckPayload) => void) => void;
 };

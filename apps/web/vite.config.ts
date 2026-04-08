@@ -1,7 +1,12 @@
+import { fileURLToPath } from "node:url";
+
 import react from "@vitejs/plugin-react";
 import { defineConfig, type UserConfig } from "vite";
 
 type EnvLike = Record<string, string | undefined>;
+
+const sharedIndexPath = fileURLToPath(new URL("../../packages/shared/src/index.ts", import.meta.url));
+const sharedSrcPath = fileURLToPath(new URL("../../packages/shared/src", import.meta.url));
 
 export function resolveAllowedHosts(env: EnvLike) {
   if (env.VITE_ALLOW_ALL_HOSTS !== "false") {
@@ -24,6 +29,18 @@ export function buildViteConfig(env: EnvLike = process.env): UserConfig {
 
   return {
     plugins: [react()],
+    resolve: {
+      alias: [
+        {
+          find: /^@fog-maze-race\/shared$/,
+          replacement: sharedIndexPath
+        },
+        {
+          find: /^@fog-maze-race\/shared\/(.+)$/,
+          replacement: `${sharedSrcPath}/$1.ts`
+        }
+      ]
+    },
     server: {
       host: webHost,
       port: webPort,

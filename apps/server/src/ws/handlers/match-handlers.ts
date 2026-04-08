@@ -1,7 +1,8 @@
 import type { Server, Socket } from "socket.io";
 import type {
   MovePayload,
-  StartGamePayload
+  StartGamePayload,
+  UseItemPayload
 } from "@fog-maze-race/shared/contracts/realtime";
 
 import type { ServerLoadMonitor } from "../../app/server-load-monitor.js";
@@ -53,6 +54,20 @@ export function registerMatchHandlers({
           direction: payload.direction,
           inputSeq: payload.inputSeq
         },
+        createRoomEventSink(io, roomService, payload.roomId, loadMonitor)
+      );
+    } catch (error) {
+      emitError(socket, error);
+    }
+  });
+
+  socket.on("USE_ITEM", (payload: UseItemPayload) => {
+    try {
+      const session = requireSession(socket, sessions);
+
+      matchService.useItem(
+        payload.roomId,
+        session.playerId,
         createRoomEventSink(io, roomService, payload.roomId, loadMonitor)
       );
     } catch (error) {

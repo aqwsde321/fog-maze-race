@@ -1,4 +1,5 @@
 import type { GridPosition } from "../domain/grid-position.js";
+import type { MapFeatureFlags, MatchItemType, MatchTrapState } from "../domain/item.js";
 import type { PlayerMarkerShape } from "../domain/player-marker-shape.js";
 import type { ResultEntry } from "../domain/result-entry.js";
 import type { RoomExploreStrategy } from "../domain/room-bot-strategy.js";
@@ -16,6 +17,8 @@ export type RoomMemberView = {
   state: RoomMemberState;
   position: GridPosition | null;
   finishRank: number | null;
+  heldItemType?: MatchItemType | null;
+  frozenUntil?: string | null;
   isHost: boolean;
 };
 
@@ -39,7 +42,21 @@ export type MapView = {
   startSlots: GridPosition[];
   connectorTiles: GridPosition[];
   fakeGoalTiles?: GridPosition[];
+  featureFlags?: MapFeatureFlags;
   visibilityRadius: number;
+};
+
+export type MatchItemBoxView = {
+  boxId: string;
+  position: GridPosition;
+  itemType: MatchItemType;
+};
+
+export type MatchTrapView = {
+  trapId: string;
+  ownerPlayerId: string;
+  position: GridPosition;
+  state: MatchTrapState;
 };
 
 export type MatchView = {
@@ -52,6 +69,8 @@ export type MatchView = {
   resultsDurationMs: number | null;
   finishOrder: string[];
   results: ResultEntry[];
+  itemBoxes?: MatchItemBoxView[];
+  traps?: MatchTrapView[];
   map: MapView;
 };
 

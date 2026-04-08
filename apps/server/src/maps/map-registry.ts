@@ -53,13 +53,16 @@ export class MapRegistry {
     try {
       const file = JSON.parse(await readFile(this.storePath, "utf8")) as PersistedMapFile;
       for (const record of file.maps ?? []) {
+        const defaultSource = this.defaultSources.get(record.mapId);
+        const mergedSource: EditableMapSource = {
+          mapId: record.mapId,
+          name: record.name,
+          mazeRows: record.mazeRows,
+          featureFlags: record.featureFlags ?? defaultSource?.featureFlags
+        };
         this.entries.set(record.mapId, {
-          map: buildMapDefinition(record),
-          source: {
-            mapId: record.mapId,
-            name: record.name,
-            mazeRows: record.mazeRows
-          },
+          map: buildMapDefinition(mergedSource),
+          source: mergedSource,
           origin: this.defaultIds.has(record.mapId) ? "override" : "custom",
           updatedAt: record.updatedAt
         });
@@ -160,10 +163,12 @@ export class MapRegistry {
     }
 
     const updatedAt = new Date().toISOString();
+    const defaultSource = this.defaultSources.get(input.mapId);
     const source: EditableMapSource = {
       mapId: normalizeMapId(input.mapId),
       name: input.name.trim(),
-      mazeRows: input.mazeRows.map((row) => row.trim())
+      mazeRows: input.mazeRows.map((row) => row.trim()),
+      featureFlags: defaultSource?.featureFlags
     };
 
     const entry: RegistryEntry = {
@@ -190,6 +195,7 @@ export class MapRegistry {
           mapId: entry.source.mapId,
           name: entry.source.name,
           mazeRows: entry.source.mazeRows,
+          featureFlags: entry.source.featureFlags,
           updatedAt: entry.updatedAt ?? new Date().toISOString()
         }))
     };

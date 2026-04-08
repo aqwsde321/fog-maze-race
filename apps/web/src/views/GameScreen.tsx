@@ -28,6 +28,7 @@ type GameScreenProps = {
   onForceEndRoom: () => void;
   onResetToWaiting: () => void;
   onLeaveRoom: () => void;
+  onUseItem: () => void;
   onMove: (direction: Direction) => void;
   onSendChatMessage: (content: string) => void;
 };
@@ -110,6 +111,7 @@ export function GameScreen({
   onForceEndRoom,
   onResetToWaiting,
   onLeaveRoom,
+  onUseItem,
   onMove,
   onSendChatMessage
 }: GameScreenProps) {
@@ -133,8 +135,20 @@ export function GameScreen({
   });
   const pingSamplesRef = useRef<Array<{ latencyMs: number; measuredAtMs: number }>>([]);
   const isHost = snapshot.room.hostPlayerId === selfPlayerId;
+  const selfMember = selfPlayerId
+    ? snapshot.members.find((member) => member.playerId === selfPlayerId) ?? null
+    : null;
   const canStart = snapshot.room.status === "waiting" && isHost;
   const canMove = snapshot.room.status === "waiting" || snapshot.room.status === "countdown" || snapshot.room.status === "playing";
+  const isFrozen =
+    Boolean(selfMember?.frozenUntil) && new Date(selfMember!.frozenUntil!).getTime() > Date.now();
+  const canUseItem =
+    snapshot.room.status === "playing" &&
+    selfMember?.role === "racer" &&
+    selfMember.state === "playing" &&
+    !isFrozen &&
+    selfMember.heldItemType === "ice_trap";
+  const heldItemLabel = selfMember?.heldItemType === "ice_trap" ? "얼음 함정" : null;
   const displayStatus = snapshot.room.status === "countdown" ? "playing" : snapshot.room.status;
   const currentRacerCount = snapshot.members.filter((member) => member.role === "racer").length;
   const availableBotSlots = Math.max(
@@ -289,6 +303,19 @@ export function GameScreen({
         return;
       }
 
+      if ((event.code === "Space" || event.key === " ") && !isBlockedGlobalKeyTarget(event.target)) {
+        if (!canUseItem) {
+          return;
+        }
+
+        event.preventDefault();
+        event.stopPropagation();
+        resetViewportScroll();
+        onUseItem();
+        requestAnimationFrame(resetViewportScroll);
+        return;
+      }
+
       const direction = toDirection(event.key);
       if (!direction) {
         return;
@@ -326,7 +353,7 @@ export function GameScreen({
       window.removeEventListener("keydown", handleKeyDown, { capture: true });
       window.removeEventListener("keyup", handleKeyUp, { capture: true });
     };
-  }, [canMove, onMove]);
+  }, [canMove, canUseItem, onMove, onUseItem]);
 
   useEffect(() => {
     if (!isServerPanelOpen) {
@@ -497,6 +524,25 @@ export function GameScreen({
           tabIndex={0}
         >
           <GameCanvas snapshot={snapshot} selfPlayerId={selfPlayerId} />
+          {snapshot.room.status === "playing" && (heldItemLabel || isFrozen) ? (
+            <div data-testid="item-hud" style={itemHudWrapStyle}>
+              {heldItemLabel ? (
+                <div data-testid="held-item-card" style={itemCardStyle}>
+                  <div style={itemCardIconStyle}>❄</div>
+                  <div style={itemCardBodyStyle}>
+                    <span style={itemCardLabelStyle}>보유 아이템</span>
+                    <strong style={itemCardValueStyle}>{heldItemLabel}</strong>
+                    <span style={itemCardHintStyle}>Space 사용</span>
+                  </div>
+                </div>
+              ) : null}
+              {isFrozen ? (
+                <div data-testid="frozen-status-card" style={frozenCardStyle}>
+                  빙결 상태
+                </div>
+              ) : null}
+            </div>
+          ) : null}
           {isQuickChatOpen ? (
             <div
               data-testid="quick-chat-composer"
@@ -1277,6 +1323,77 @@ function quickChatComposerWrapStyle(placement: QuickChatPlacement | null): CSSPr
     pointerEvents: "auto"
   };
 }
+
+const itemHudWrapStyle: CSSProperties = {
+  position: "absolute",
+  left: "18px",
+  top: "18px",
+  zIndex: 6,
+  display: "grid",
+  gap: "8px",
+  pointerEvents: "none"
+};
+
+const itemCardStyle: CSSProperties = {
+  minWidth: "156px",
+  display: "grid",
+  gridTemplateColumns: "34px minmax(0, 1fr)",
+  gap: "10px",
+  alignItems: "center",
+  padding: "10px 12px",
+  borderRadius: "16px",
+  background: "linear-gradient(180deg, rgba(10, 21, 39, 0.92), rgba(12, 26, 45, 0.9))",
+  border: "1px solid rgba(125, 211, 252, 0.22)",
+  boxShadow: "0 18px 36px rgba(2, 6, 23, 0.28)"
+};
+
+const itemCardIconStyle: CSSProperties = {
+  width: "34px",
+  height: "34px",
+  display: "grid",
+  placeItems: "center",
+  borderRadius: "12px",
+  background: "linear-gradient(180deg, rgba(14, 165, 233, 0.26), rgba(59, 130, 246, 0.16))",
+  color: "#e0f2fe",
+  fontSize: "1rem",
+  fontWeight: 800
+};
+
+const itemCardBodyStyle: CSSProperties = {
+  display: "grid",
+  gap: "2px"
+};
+
+const itemCardLabelStyle: CSSProperties = {
+  color: "#93c5fd",
+  fontSize: "0.68rem",
+  fontWeight: 700,
+  letterSpacing: "0.12em",
+  textTransform: "uppercase"
+};
+
+const itemCardValueStyle: CSSProperties = {
+  color: "#f8fafc",
+  fontSize: "0.95rem",
+  fontWeight: 800
+};
+
+const itemCardHintStyle: CSSProperties = {
+  color: "#cbd5e1",
+  fontSize: "0.72rem",
+  fontWeight: 600
+};
+
+const frozenCardStyle: CSSProperties = {
+  justifySelf: "start",
+  padding: "7px 10px",
+  borderRadius: "999px",
+  background: "rgba(8, 47, 73, 0.92)",
+  border: "1px solid rgba(103, 232, 249, 0.28)",
+  color: "#e0f2fe",
+  fontSize: "0.74rem",
+  fontWeight: 700
+};
 
 const quickChatComposerStyle: CSSProperties = {
   position: "relative",

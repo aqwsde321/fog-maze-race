@@ -40,7 +40,10 @@ export type MatchServiceOptions = {
   resultsDurationMs: number;
   forcedMapId?: string | null;
   recoveryGraceMs?: number;
+  random?: () => number;
 };
+
+const ICE_TRAP_FROZEN_MS = 1_500;
 
 type TimerBucket = {
   countdown: ReturnType<typeof setTimeout>[];
@@ -137,10 +140,22 @@ export class MatchService {
       return;
     }
 
+    const now = Date.now();
+    if (member.frozenUntil && member.frozenUntil > now) {
+      return;
+    }
+    if (member.frozenUntil && member.frozenUntil <= now) {
+      runtime.room.setFrozenUntil(playerId, null);
+    }
+
     const nextPosition = match.applyMove(member.position, input.direction);
     if (!match.hasPositionChanged(member.position, nextPosition)) {
       return;
     }
+
+    const previousPosition = member.position;
+    match.armTrapForOwner(playerId, previousPosition, nextPosition, now);
+    runtime.room.updateMemberPosition(playerId, nextPosition);
 
     const finishedRank = match.isGoal(nextPosition)
       ? match.markFinished({
@@ -148,10 +163,8 @@ export class MatchService {
           nickname: member.nickname,
           color: member.color,
           position: nextPosition
-        })
+        }, now)
       : null;
-
-    runtime.room.updateMemberPosition(playerId, nextPosition);
 
     if (finishedRank) {
       runtime.room.markMemberFinished(playerId, finishedRank);
@@ -174,7 +187,68 @@ export class MatchService {
       return;
     }
 
-    this.emitPositionUpdate(roomId, playerId, nextPosition, input.inputSeq, sink);
+    if (member.heldItemType === null) {
+      const claimedItemType = match.claimItemBoxAt(nextPosition);
+      if (claimedItemType) {
+        runtime.room.setHeldItem(playerId, claimedItemType);
+      }
+    }
+
+    const triggeredTrap = match.triggerTrapAt(playerId, nextPosition, now);
+    if (triggeredTrap) {
+      runtime.room.setFrozenUntil(playerId, now + ICE_TRAP_FROZEN_MS);
+    }
+
+    this.roomService.syncRoomRevision(roomId);
+    const snapshot = this.roomService.getSnapshot(roomId);
+
+    sink.emitPlayerMoved({
+      roomId,
+      playerId,
+      position: nextPosition,
+      inputSeq: input.inputSeq,
+      revision: snapshot.revision
+    });
+    sink.emitRoomState({
+      roomId,
+      snapshot
+    });
+  }
+
+  useItem(roomId: string, playerId: string, sink: MatchEventSink) {
+    const runtime = this.roomService.findRuntime(roomId);
+    if (!runtime || !runtime.match || runtime.room.status !== "playing") {
+      return;
+    }
+
+    const member = runtime.room.getMember(playerId);
+    if (!member || member.role !== "racer" || member.state !== "playing" || !member.position) {
+      return;
+    }
+
+    const now = Date.now();
+    if (member.frozenUntil && member.frozenUntil > now) {
+      return;
+    }
+    if (member.frozenUntil && member.frozenUntil <= now) {
+      runtime.room.setFrozenUntil(playerId, null);
+    }
+
+    if (member.heldItemType !== "ice_trap") {
+      return;
+    }
+
+    const placedTrap = runtime.match.placeIceTrap(playerId, member.position);
+    if (!placedTrap) {
+      return;
+    }
+
+    runtime.room.setHeldItem(playerId, null);
+    this.roomService.syncRoomRevision(roomId);
+    sink.emitRoomState({
+      roomId,
+      snapshot: this.roomService.getSnapshot(roomId)
+    });
   }
 
   dispose() {
@@ -288,6 +362,10 @@ export class MatchService {
         if (value === 0) {
           runtime.room.beginPlaying();
           runtime.room.markMembersPlaying();
+          match.spawnItemBoxes(
+            runtime.room.listMembers().filter((member) => member.role === "racer" && member.state === "playing").length,
+            this.options.random ?? Math.random
+          );
           this.roomService.syncRoomRevision(roomId);
         } else {
           this.roomService.bumpStreamRevision(roomId);

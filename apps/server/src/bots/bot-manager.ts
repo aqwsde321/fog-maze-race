@@ -3,8 +3,9 @@ import { randomUUID } from "node:crypto";
 import type { Server } from "socket.io";
 
 import type { RoomBotKind, RoomBotRequest, RoomExploreStrategy } from "@fog-maze-race/shared/contracts/realtime";
-import type { MapView } from "@fog-maze-race/shared/contracts/snapshots";
+import type { MapView, RoomMemberView, RoomSnapshot } from "@fog-maze-race/shared/contracts/snapshots";
 import { samePosition, type Direction, type GridPosition } from "@fog-maze-race/shared/domain/grid-position";
+import { isInsideZone } from "@fog-maze-race/shared/maps/map-definitions";
 
 import type { ServerLoadMonitor } from "../app/server-load-monitor.js";
 import { PlayerSession } from "../core/player-session.js";
@@ -198,6 +199,7 @@ export class BotManager {
     }
 
     const snapshot = this.roomService.getSnapshot(roomId);
+    const snapshotMember = snapshot.members.find((candidate) => candidate.playerId === bot.playerId) ?? null;
     const sink = this.createSink(roomId);
     const currentMatchId = snapshot.match?.matchId ?? null;
     if (bot.activeMatchId !== currentMatchId) {
@@ -234,6 +236,12 @@ export class BotManager {
     const now = Date.now();
     const moveIntervalMs = bot.kind === "join" ? BOT_JOIN_MOVE_INTERVAL_MS : BOT_EXPLORE_MOVE_INTERVAL_MS;
     if (now - bot.lastActionAt < moveIntervalMs) {
+      return;
+    }
+
+    if (snapshotMember && shouldUseHeldItem(snapshot, snapshotMember)) {
+      bot.lastActionAt = now;
+      this.matchService.useItem(roomId, bot.playerId, sink);
       return;
     }
 
@@ -337,6 +345,22 @@ export class BotManager {
     });
     sink.emitRoomListUpdate();
   }
+}
+
+function shouldUseHeldItem(
+  snapshot: RoomSnapshot,
+  member: RoomMemberView
+) {
+  if (member.kind !== "bot" || member.role !== "racer" || member.heldItemType !== "ice_trap" || !member.position) {
+    return false;
+  }
+
+  const match = snapshot.match;
+  if (!match || !isInsideZone(match.map.mazeZone, member.position)) {
+    return false;
+  }
+
+  return !match.traps?.some((trap) => samePosition(trap.position, member.position));
 }
 
 function findPathToGoal(map: MapView, start: GridPosition) {

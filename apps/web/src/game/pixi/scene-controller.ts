@@ -159,6 +159,24 @@ export async function createSceneController(container: HTMLDivElement): Promise<
         }
       }
 
+      if (match) {
+        for (const box of match.itemBoxes ?? []) {
+          if (!projection.showFullMap && !visibleTileSet.has(toTileKey(box.position))) {
+            continue;
+          }
+
+          drawItemBox(tileLayer, layout, box.position);
+        }
+
+        for (const trap of match.traps ?? []) {
+          if (!projection.showFullMap && !visibleTileSet.has(toTileKey(trap.position))) {
+            continue;
+          }
+
+          drawIceTrap(tileLayer, layout, trap.position, trap.state);
+        }
+      }
+
       for (const member of getPlayerRenderOrder(renderMembers, selfPlayerId)) {
         if (!member.position || (!projection.showFullMap && !visiblePlayerSet.has(member.playerId))) {
           continue;
@@ -336,6 +354,65 @@ function drawPlayerNicknameLabel(layer: Container, input: {
   text.x = clampedCenterX - text.width / 2;
   text.y = input.centerY + input.markerRadius + 6;
   layer.addChild(text);
+}
+
+function drawItemBox(
+  graphics: Graphics,
+  layout: ReturnType<typeof createBoardLayout>,
+  position: { x: number; y: number }
+) {
+  const tileX = layout.offsetX + position.x * layout.tileSize;
+  const tileY = layout.offsetY + position.y * layout.tileSize;
+  const inset = Math.max(5, Math.floor(layout.tileSize * 0.18));
+  const size = layout.tileSize - inset * 2 - 2;
+  const x = tileX + inset;
+  const y = tileY + inset;
+
+  graphics
+    .roundRect(x, y, size, size, Math.max(6, Math.floor(size * 0.22)))
+    .fill({ color: 0x0b2540, alpha: 0.96 })
+    .stroke({ color: 0x7dd3fc, alpha: 0.9, width: 1.4 });
+
+  graphics
+    .circle(x + size * 0.34, y + size * 0.38, Math.max(2, size * 0.07))
+    .fill({ color: 0xe0f2fe, alpha: 0.9 })
+    .circle(x + size * 0.66, y + size * 0.38, Math.max(2, size * 0.07))
+    .fill({ color: 0xe0f2fe, alpha: 0.9 });
+
+  graphics
+    .moveTo(x + size * 0.28, y + size * 0.63)
+    .lineTo(x + size * 0.5, y + size * 0.82)
+    .lineTo(x + size * 0.72, y + size * 0.63)
+    .stroke({ color: 0x67e8f9, alpha: 0.9, width: Math.max(2, size * 0.08) });
+}
+
+function drawIceTrap(
+  graphics: Graphics,
+  layout: ReturnType<typeof createBoardLayout>,
+  position: { x: number; y: number },
+  state: "arming" | "armed" | "triggered"
+) {
+  const tileX = layout.offsetX + position.x * layout.tileSize;
+  const tileY = layout.offsetY + position.y * layout.tileSize;
+  const centerX = tileX + layout.tileSize / 2;
+  const centerY = tileY + layout.tileSize / 2;
+  const radius = Math.max(8, layout.tileSize * 0.22);
+  const glowAlpha = state === "armed" ? 0.9 : state === "triggered" ? 0.45 : 0.6;
+  const fillColor = state === "armed" ? 0x67e8f9 : state === "triggered" ? 0xbfdbfe : 0x38bdf8;
+
+  graphics
+    .circle(centerX, centerY, radius + 3)
+    .fill({ color: 0x082f49, alpha: 0.22 })
+    .stroke({ color: 0xe0f2fe, alpha: glowAlpha, width: 1.1 });
+
+  for (const angle of [0, Math.PI / 4]) {
+    const cos = Math.cos(angle);
+    const sin = Math.sin(angle);
+    graphics
+      .moveTo(centerX - cos * radius, centerY - sin * radius)
+      .lineTo(centerX + cos * radius, centerY + sin * radius)
+      .stroke({ color: fillColor, alpha: glowAlpha, width: Math.max(2, layout.tileSize * 0.08) });
+  }
 }
 
 function drawPlaceholder(graphics: Graphics) {

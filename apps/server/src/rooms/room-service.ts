@@ -100,7 +100,9 @@ export class RoomService {
       shape: shapeDeck[0] ?? nextShape(0),
       role: creatorRole,
       state: "waiting",
-      position: creatorRole === "racer" ? getSharedStartPosition(previewMap) : null
+      position: creatorRole === "racer" ? getSharedStartPosition(previewMap) : null,
+      heldItemType: null,
+      frozenUntil: null
     });
 
     this.rooms.set(roomId, {
@@ -144,7 +146,9 @@ export class RoomService {
       shape: nextAssignedShape,
       role,
       state: "waiting",
-      position: role === "racer" ? getSharedStartPosition(previewMap) : null
+      position: role === "racer" ? getSharedStartPosition(previewMap) : null,
+      heldItemType: null,
+      frozenUntil: null
     });
     runtime.shapeCursor += 1;
 
@@ -344,6 +348,8 @@ export class RoomService {
         state: member.state,
         position: member.position,
         finishRank: member.finishRank,
+        heldItemType: member.heldItemType,
+        frozenUntil: toIso(member.frozenUntil),
         isHost: member.playerId === runtime.room.hostPlayerId
       })),
       chat: runtime.room.listChatMessages().map((message) => ({
@@ -366,6 +372,17 @@ export class RoomService {
             resultsDurationMs: runtime.match.endedAt ? this.resultsDurationMs : null,
             finishOrder: [...runtime.match.finishOrder],
             results: [...runtime.match.results],
+            itemBoxes: runtime.match.itemBoxes.map((box) => ({
+              boxId: box.boxId,
+              position: box.position,
+              itemType: box.itemType
+            })),
+            traps: runtime.match.traps.map((trap) => ({
+              trapId: trap.trapId,
+              ownerPlayerId: trap.ownerPlayerId,
+              position: trap.position,
+              state: trap.state
+            })),
             map: serializeMap(runtime.match.map, this.getVisibilityRadius(roomId))
           }
         : null
@@ -451,6 +468,7 @@ function serializeMap(map: MapDefinition, visibilityRadius = map.visibilityRadiu
     startSlots: [...map.startSlots],
     connectorTiles: [...map.connectorTiles],
     fakeGoalTiles: [...(map.fakeGoalTiles ?? [])],
+    featureFlags: map.featureFlags,
     visibilityRadius
   };
 }

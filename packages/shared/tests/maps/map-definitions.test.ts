@@ -117,6 +117,27 @@ describe("MAP_DEFINITIONS", () => {
     });
   });
 
+  it("preserves item-map feature flags on definitions", () => {
+    const itemMap = getMapById("kappa-trap");
+    const normalMap = getMapById("alpha-run");
+
+    expect(itemMap?.featureFlags?.itemBoxes).toBe(true);
+    expect(normalMap?.featureFlags?.itemBoxes ?? false).toBe(false);
+
+    const blankItemMap = buildMapDefinition({
+      mapId: "item-feature-test",
+      name: "Item Feature Test",
+      mazeRows: createBlankMazeRows(),
+      featureFlags: {
+        itemBoxes: true
+      }
+    });
+
+    expect(blankItemMap.featureFlags).toEqual({
+      itemBoxes: true
+    });
+  });
+
   it("includes ten hard-tier mazes with dense walls and long optimal routes", () => {
     for (const mapId of HARD_MAP_IDS) {
       const map = getMapById(mapId);
