@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState, type CSSProperties } from "react";
 
 import type { AdminMapRecord, UpsertAdminMapPayload } from "@fog-maze-race/shared/contracts/admin-maps";
+import { DEFAULT_ITEM_BOX_SPAWN_RULE, type MapFeatureFlags } from "@fog-maze-race/shared/domain/item";
 import { PLAYABLE_MAZE_SIZE, createBlankMazeRows } from "@fog-maze-race/shared/maps/map-definitions";
 
 type SaveMode = "create" | "update";
@@ -10,6 +11,7 @@ type DraftMap = {
   mapId: string;
   name: string;
   mazeRows: string[];
+  featureFlags: Required<MapFeatureFlags>;
 };
 
 const TOOLS: Array<{
@@ -107,7 +109,8 @@ export function AdminMapsPage() {
     setDraft({
       mapId: map.mapId,
       name: map.name,
-      mazeRows: normalizeMazeRows(map.mazeRows)
+      mazeRows: normalizeMazeRows(map.mazeRows),
+      featureFlags: normalizeFeatureFlags(map.featureFlags)
     });
     if (!preserveStatusMessage) {
       setStatusMessage(null);
@@ -133,7 +136,14 @@ export function AdminMapsPage() {
     const payload: UpsertAdminMapPayload = {
       mapId: mode === "create" ? createGeneratedMapId(name) : draft.mapId.trim(),
       name,
-      mazeRows: draft.mazeRows
+      mazeRows: draft.mazeRows,
+      featureFlags: {
+        itemBoxes: draft.featureFlags.itemBoxes,
+        itemBoxSpawn: {
+          mode: draft.featureFlags.itemBoxSpawn.mode,
+          value: Math.max(1, Math.floor(draft.featureFlags.itemBoxSpawn.value))
+        }
+      }
     };
 
     try {
@@ -149,7 +159,8 @@ export function AdminMapsPage() {
               ? payload
               : {
                   name: payload.name,
-                  mazeRows: payload.mazeRows
+                  mazeRows: payload.mazeRows,
+                  featureFlags: payload.featureFlags
                 }
           )
         }
@@ -305,6 +316,98 @@ export function AdminMapsPage() {
             </div>
           </div>
 
+          <div style={itemSettingsRowStyle}>
+            <label style={checkboxFieldStyle}>
+              <input
+                aria-label="아이템 박스 사용"
+                type="checkbox"
+                checked={draft.featureFlags.itemBoxes}
+                onChange={(event) =>
+                  setDraft((current) => ({
+                    ...current,
+                    featureFlags: {
+                      ...current.featureFlags,
+                      itemBoxes: event.target.checked
+                    }
+                  }))
+                }
+              />
+              <span>아이템 박스 사용</span>
+            </label>
+
+            <div style={spawnRuleGroupStyle}>
+              <span style={fieldLabelCaptionStyle}>생성 규칙</span>
+              <div style={spawnRuleOptionsStyle}>
+                <label style={radioFieldStyle}>
+                  <input
+                    aria-label="참가자 수 배수"
+                    type="radio"
+                    name="item-box-spawn-mode"
+                    checked={draft.featureFlags.itemBoxSpawn.mode === "per_racer"}
+                    onChange={() =>
+                      setDraft((current) => ({
+                        ...current,
+                        featureFlags: {
+                          ...current.featureFlags,
+                          itemBoxSpawn: {
+                            ...current.featureFlags.itemBoxSpawn,
+                            mode: "per_racer"
+                          }
+                        }
+                      }))
+                    }
+                  />
+                  <span>참가자 수 배수</span>
+                </label>
+                <label style={radioFieldStyle}>
+                  <input
+                    aria-label="고정 개수"
+                    type="radio"
+                    name="item-box-spawn-mode"
+                    checked={draft.featureFlags.itemBoxSpawn.mode === "fixed"}
+                    onChange={() =>
+                      setDraft((current) => ({
+                        ...current,
+                        featureFlags: {
+                          ...current.featureFlags,
+                          itemBoxSpawn: {
+                            ...current.featureFlags.itemBoxSpawn,
+                            mode: "fixed"
+                          }
+                        }
+                      }))
+                    }
+                  />
+                  <span>고정 개수</span>
+                </label>
+              </div>
+            </div>
+
+            <label style={fieldLabelStyle}>
+              {draft.featureFlags.itemBoxSpawn.mode === "per_racer" ? "배수" : "생성 개수"}
+              <input
+                aria-label="생성 개수"
+                type="number"
+                min={1}
+                step={1}
+                value={draft.featureFlags.itemBoxSpawn.value}
+                onChange={(event) =>
+                  setDraft((current) => ({
+                    ...current,
+                    featureFlags: {
+                      ...current.featureFlags,
+                      itemBoxSpawn: {
+                        ...current.featureFlags.itemBoxSpawn,
+                        value: Number(event.target.value || 1)
+                      }
+                    }
+                  }))
+                }
+                style={inputStyle}
+              />
+            </label>
+          </div>
+
           <div style={toolRowStyle}>
             {TOOLS.map((tool) => (
               <button
@@ -361,7 +464,18 @@ function createDraft(): DraftMap {
   return {
     mapId: "",
     name: "",
-    mazeRows: createBlankMazeRows()
+    mazeRows: createBlankMazeRows(),
+    featureFlags: normalizeFeatureFlags()
+  };
+}
+
+function normalizeFeatureFlags(featureFlags?: MapFeatureFlags): Required<MapFeatureFlags> {
+  return {
+    itemBoxes: featureFlags?.itemBoxes ?? false,
+    itemBoxSpawn: {
+      mode: featureFlags?.itemBoxSpawn?.mode ?? DEFAULT_ITEM_BOX_SPAWN_RULE.mode,
+      value: featureFlags?.itemBoxSpawn?.value ?? DEFAULT_ITEM_BOX_SPAWN_RULE.value
+    }
   };
 }
 
@@ -727,6 +841,49 @@ const fieldLabelStyle: CSSProperties = {
   minWidth: "280px",
   fontSize: "0.86rem",
   color: "#cbd5e1"
+};
+
+const itemSettingsRowStyle: CSSProperties = {
+  display: "grid",
+  gridTemplateColumns: "minmax(180px, 220px) minmax(260px, 1fr) minmax(140px, 180px)",
+  gap: "16px",
+  marginTop: "16px",
+  marginBottom: "14px",
+  alignItems: "end"
+};
+
+const checkboxFieldStyle: CSSProperties = {
+  display: "inline-flex",
+  alignItems: "center",
+  gap: "10px",
+  minHeight: "40px",
+  color: "#cbd5e1",
+  fontSize: "0.86rem"
+};
+
+const spawnRuleGroupStyle: CSSProperties = {
+  display: "grid",
+  gap: "8px"
+};
+
+const fieldLabelCaptionStyle: CSSProperties = {
+  color: "#cbd5e1",
+  fontSize: "0.84rem"
+};
+
+const spawnRuleOptionsStyle: CSSProperties = {
+  display: "flex",
+  alignItems: "center",
+  gap: "14px",
+  flexWrap: "wrap"
+};
+
+const radioFieldStyle: CSSProperties = {
+  display: "inline-flex",
+  alignItems: "center",
+  gap: "8px",
+  color: "#cbd5e1",
+  fontSize: "0.84rem"
 };
 
 const inputStyle: CSSProperties = {

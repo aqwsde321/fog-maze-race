@@ -63,7 +63,7 @@ describe("AdminMapsPage", () => {
     });
 
     const inputs = container.querySelectorAll("input");
-    expect(inputs).toHaveLength(1);
+    expect(inputs.length).toBeGreaterThanOrEqual(1);
     expect(container.querySelector("textarea")).toBeNull();
 
     await act(async () => {
@@ -97,11 +97,25 @@ describe("AdminMapsPage", () => {
       mapId: string;
       name: string;
       mazeRows: string[];
+      featureFlags: {
+        itemBoxes: boolean;
+        itemBoxSpawn: {
+          mode: string;
+          value: number;
+        };
+      };
     };
     expect(body.mapId).toMatch(/^gamma-lock-[a-z0-9]+$/);
     expect(body.name).toBe("Gamma Lock");
     expect(body.mazeRows).toHaveLength(25);
     expect(body.mazeRows[1]?.[1]).toBe(".");
+    expect(body.featureFlags).toEqual({
+      itemBoxes: false,
+      itemBoxSpawn: {
+        mode: "per_racer",
+        value: 2
+      }
+    });
   });
 
   it("deletes a custom map from the editor", async () => {
@@ -241,9 +255,82 @@ describe("AdminMapsPage", () => {
 
     expect(body.mazeRows[1]?.[1]).toBe("F");
   });
+
+  it("lets the admin enable item boxes and choose a fixed spawn count", async () => {
+    const baseMap = buildAdminMap({
+      mapId: "alpha-run",
+      name: "Alpha Run",
+      origin: "default"
+    });
+    const updatedMap = buildAdminMap({
+      mapId: "alpha-run",
+      name: "Alpha Run",
+      origin: "override",
+      featureFlags: {
+        itemBoxes: true,
+        itemBoxSpawn: {
+          mode: "fixed",
+          value: 9
+        }
+      }
+    });
+
+    fetchMock
+      .mockResolvedValueOnce(jsonResponse({ maps: [baseMap] }))
+      .mockResolvedValueOnce(jsonResponse({ map: updatedMap }))
+      .mockResolvedValueOnce(jsonResponse({ maps: [updatedMap] }));
+
+    await act(async () => {
+      root.render(<AdminMapsPage />);
+    });
+    await flush();
+
+    const itemToggle = container.querySelector('input[aria-label="아이템 박스 사용"]') as HTMLInputElement | null;
+    const fixedMode = container.querySelector('input[aria-label="고정 개수"]') as HTMLInputElement | null;
+    const countInput = container.querySelector('input[aria-label="생성 개수"]') as HTMLInputElement | null;
+    const saveButton = [...container.querySelectorAll("button")].find((button) => button.textContent?.includes("변경 저장"));
+
+    expect(itemToggle).toBeTruthy();
+    expect(fixedMode).toBeTruthy();
+    expect(countInput).toBeTruthy();
+    expect(saveButton).toBeTruthy();
+
+    await act(async () => {
+      itemToggle!.click();
+      fixedMode!.click();
+      setElementValue(countInput!, "9");
+    });
+
+    await act(async () => {
+      saveButton!.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    });
+    await flush();
+
+    const body = JSON.parse(fetchMock.mock.calls[1]![1]!.body as string) as {
+      name: string;
+      mazeRows: string[];
+      featureFlags: {
+        itemBoxes: boolean;
+        itemBoxSpawn: {
+          mode: string;
+          value: number;
+        };
+      };
+    };
+
+    expect(body.featureFlags).toEqual({
+      itemBoxes: true,
+      itemBoxSpawn: {
+        mode: "fixed",
+        value: 9
+      }
+    });
+  });
 });
 
-function buildAdminMap(input: Pick<AdminMapRecord, "mapId" | "name" | "origin">): AdminMapRecord {
+function buildAdminMap(
+  input: Pick<AdminMapRecord, "mapId" | "name" | "origin"> & Pick<Partial<AdminMapRecord>, "featureFlags">
+): AdminMapRecord {
   return {
     mapId: input.mapId,
     name: input.name,
@@ -252,7 +339,8 @@ function buildAdminMap(input: Pick<AdminMapRecord, "mapId" | "name" | "origin">)
     height: 25,
     origin: input.origin,
     editable: true,
-    updatedAt: null
+    updatedAt: null,
+    featureFlags: input.featureFlags
   };
 }
 

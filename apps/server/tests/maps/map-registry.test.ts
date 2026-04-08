@@ -45,6 +45,12 @@ describe("MapRegistry", () => {
     const registry = new MapRegistry({ storePath: mapStorePath });
     await registry.load();
 
-    expect(registry.get("kappa-trap")?.featureFlags).toEqual({ itemBoxes: true });
+    expect(registry.get("kappa-trap")?.featureFlags).toEqual({
+      itemBoxes: true,
+      itemBoxSpawn: {
+        mode: "per_racer",
+        value: 2
+      }
+    });
   });
 });

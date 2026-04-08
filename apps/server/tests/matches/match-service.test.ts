@@ -192,7 +192,7 @@ describe("MatchService start-zone movement", () => {
     const snapshot = roomService.getSnapshot(created.roomId);
     expect(snapshot.room.status).toBe("playing");
     expect(snapshot.match?.map.featureFlags?.itemBoxes).toBe(true);
-    expect(snapshot.match?.itemBoxes).toHaveLength(2);
+    expect(snapshot.match?.itemBoxes).toHaveLength(4);
   });
 
   it("keeps a one-slot inventory and freezes another racer after an ice trap triggers", () => {

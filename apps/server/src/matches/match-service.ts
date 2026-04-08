@@ -12,6 +12,7 @@ import {
   movePosition,
   samePosition
 } from "@fog-maze-race/shared/domain/grid-position";
+import { DEFAULT_ITEM_BOX_SPAWN_RULE, type MapFeatureFlags } from "@fog-maze-race/shared/domain/item";
 import {
   isInsideZone,
   isWalkableTile
@@ -363,7 +364,10 @@ export class MatchService {
           runtime.room.beginPlaying();
           runtime.room.markMembersPlaying();
           match.spawnItemBoxes(
-            runtime.room.listMembers().filter((member) => member.role === "racer" && member.state === "playing").length,
+            resolveItemBoxSpawnCount(
+              match.map.featureFlags,
+              runtime.room.listMembers().filter((member) => member.role === "racer" && member.state === "playing").length
+            ),
             this.options.random ?? Math.random
           );
           this.roomService.syncRoomRevision(roomId);
@@ -514,4 +518,19 @@ export class MatchService {
   private getInitialCountdownDelay() {
     return Math.min(20, this.options.countdownStepMs);
   }
+}
+
+function resolveItemBoxSpawnCount(featureFlags: MapFeatureFlags | undefined, activeRacerCount: number) {
+  if (!featureFlags?.itemBoxes) {
+    return 0;
+  }
+
+  const spawnRule = featureFlags.itemBoxSpawn ?? DEFAULT_ITEM_BOX_SPAWN_RULE;
+  const normalizedValue = Math.max(1, Math.floor(spawnRule.value));
+
+  if (spawnRule.mode === "fixed") {
+    return normalizedValue;
+  }
+
+  return activeRacerCount * normalizedValue;
 }

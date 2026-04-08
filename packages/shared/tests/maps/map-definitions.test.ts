@@ -122,6 +122,10 @@ describe("MAP_DEFINITIONS", () => {
     const normalMap = getMapById("alpha-run");
 
     expect(itemMap?.featureFlags?.itemBoxes).toBe(true);
+    expect(itemMap?.featureFlags?.itemBoxSpawn).toEqual({
+      mode: "per_racer",
+      value: 2
+    });
     expect(normalMap?.featureFlags?.itemBoxes ?? false).toBe(false);
 
     const blankItemMap = buildMapDefinition({
@@ -129,12 +133,20 @@ describe("MAP_DEFINITIONS", () => {
       name: "Item Feature Test",
       mazeRows: createBlankMazeRows(),
       featureFlags: {
-        itemBoxes: true
+        itemBoxes: true,
+        itemBoxSpawn: {
+          mode: "fixed",
+          value: 7
+        }
       }
     });
 
     expect(blankItemMap.featureFlags).toEqual({
-      itemBoxes: true
+      itemBoxes: true,
+      itemBoxSpawn: {
+        mode: "fixed",
+        value: 7
+      }
     });
   });
 

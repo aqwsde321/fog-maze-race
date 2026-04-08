@@ -35,12 +35,26 @@ describe("admin map routes", () => {
       payload: {
         mapId: "gamma-lock",
         name: "Gamma Lock",
-        mazeRows: baseRows
+        mazeRows: baseRows,
+        featureFlags: {
+          itemBoxes: true,
+          itemBoxSpawn: {
+            mode: "fixed",
+            value: 9
+          }
+        }
       }
     });
 
     expect(createResponse.statusCode).toBe(201);
     expect(createResponse.json().map.origin).toBe("custom");
+    expect(createResponse.json().map.featureFlags).toEqual({
+      itemBoxes: true,
+      itemBoxSpawn: {
+        mode: "fixed",
+        value: 9
+      }
+    });
 
     const updateRows = [...baseRows];
     updateRows[2] = `${".".repeat(4)}${baseRows[2]!.slice(4)}`;
@@ -50,13 +64,27 @@ describe("admin map routes", () => {
       url: "/api/admin/maps/alpha-run",
       payload: {
         name: "Alpha Override",
-        mazeRows: updateRows
+        mazeRows: updateRows,
+        featureFlags: {
+          itemBoxes: true,
+          itemBoxSpawn: {
+            mode: "per_racer",
+            value: 3
+          }
+        }
       }
     });
 
     expect(updateResponse.statusCode).toBe(200);
     expect(updateResponse.json().map.origin).toBe("override");
     expect(updateResponse.json().map.name).toBe("Alpha Override");
+    expect(updateResponse.json().map.featureFlags).toEqual({
+      itemBoxes: true,
+      itemBoxSpawn: {
+        mode: "per_racer",
+        value: 3
+      }
+    });
 
     const listResponse = await app.inject({
       method: "GET",

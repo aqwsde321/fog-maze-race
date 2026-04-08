@@ -122,7 +122,8 @@ export class MapRegistry {
       {
         mapId,
         name: input.name,
-        mazeRows: input.mazeRows
+        mazeRows: input.mazeRows,
+        featureFlags: input.featureFlags
       },
       this.defaultIds.has(mapId) ? "override" : "custom"
     );
@@ -168,7 +169,7 @@ export class MapRegistry {
       mapId: normalizeMapId(input.mapId),
       name: input.name.trim(),
       mazeRows: input.mazeRows.map((row) => row.trim()),
-      featureFlags: defaultSource?.featureFlags
+      featureFlags: input.featureFlags ?? defaultSource?.featureFlags
     };
 
     const entry: RegistryEntry = {
@@ -213,7 +214,8 @@ export class MapRegistry {
       height: entry.map.mazeZone.maxY - entry.map.mazeZone.minY + 1,
       origin: entry.origin,
       editable: entry.map.mapId !== "training-lap",
-      updatedAt: entry.updatedAt
+      updatedAt: entry.updatedAt,
+      featureFlags: entry.source.featureFlags
     };
   }
 
