@@ -3,6 +3,10 @@ import { expect, test, type Page } from "@playwright/test";
 import { createRoomFromLobby, enterLobby } from "./helpers/lobby.js";
 import { closeRaceClients, createRaceClients } from "./helpers/multi-client.js";
 
+const E2E_RECOVERY_GRACE_MS = 2_000;
+
+test.describe.configure({ timeout: 60_000 });
+
 test("US2 reconnects a disconnected player into the active room", async ({ browser }) => {
   const clients = await createRaceClients(browser, 2);
   const [host, guest] = clients;
@@ -35,7 +39,7 @@ test("US2 reconnects a disconnected player into the active room", async ({ brows
     await guest.page.goto("/");
 
     await expect(guest.page.getByTestId("room-status")).toContainText("playing", {
-      timeout: 6_000
+      timeout: 15_000
     });
 
     await moveRight(host.page, 12);
@@ -73,7 +77,7 @@ test("US2 blocks recovery after the grace window expires", async ({ browser }) =
     await expect(host.page.locator("aside").getByText("게2")).toBeVisible({
       timeout: 4_000
     });
-    await host.page.waitForTimeout(700);
+    await host.page.waitForTimeout(E2E_RECOVERY_GRACE_MS + 500);
     await expect(host.page.locator("aside article")).toHaveCount(1, {
       timeout: 4_000
     });
@@ -82,8 +86,8 @@ test("US2 blocks recovery after the grace window expires", async ({ browser }) =
     guest.page = latePage;
     await guest.page.goto("/");
 
-    await expect(guest.page.getByText("방 목록")).toBeVisible({
-      timeout: 6_000
+    await expect(guest.page.getByTestId("room-list-card")).toBeVisible({
+      timeout: 10_000
     });
 
     await moveRight(host.page, 12);

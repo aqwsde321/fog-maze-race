@@ -35,6 +35,7 @@ describe("HostControls", () => {
           roomMode="normal"
           gameMode="normal"
           visibilitySize={7}
+          botSpeedMultiplier={1}
           canEditVisibility
           canEditGameMode
           canManageBots
@@ -44,6 +45,7 @@ describe("HostControls", () => {
           onRenameRoom={vi.fn()}
           onSetGameMode={onSetGameMode}
           onSetVisibilitySize={onSetVisibilitySize}
+          onSetBotSpeedMultiplier={vi.fn()}
           onAddBots={vi.fn()}
           onRemoveBots={vi.fn()}
         />
@@ -82,6 +84,7 @@ describe("HostControls", () => {
           roomMode="normal"
           gameMode="item"
           visibilitySize={5}
+          botSpeedMultiplier={1}
           canEditVisibility={false}
           canEditGameMode={false}
           canManageBots={false}
@@ -91,6 +94,7 @@ describe("HostControls", () => {
           onRenameRoom={vi.fn()}
           onSetGameMode={onSetGameMode}
           onSetVisibilitySize={onSetVisibilitySize}
+          onSetBotSpeedMultiplier={vi.fn()}
           onAddBots={vi.fn()}
           onRemoveBots={vi.fn()}
         />
@@ -101,7 +105,7 @@ describe("HostControls", () => {
     expect(container.querySelector<HTMLSelectElement>('#game-mode')?.disabled).toBe(true);
   });
 
-  it("prefills editable bot rows and submits per-bot strategies for the host", async () => {
+  it("starts with one editable bot row by default and lets the host expand it", async () => {
     const onAddBots = vi.fn();
 
     await act(async () => {
@@ -111,6 +115,7 @@ describe("HostControls", () => {
           roomName="Alpha"
           roomMode="bot_race"
           visibilitySize={7}
+          botSpeedMultiplier={2}
           canEditVisibility
           canManageBots
           availableBotSlots={4}
@@ -118,6 +123,7 @@ describe("HostControls", () => {
           currentBots={[]}
           onRenameRoom={vi.fn()}
           onSetVisibilitySize={vi.fn()}
+          onSetBotSpeedMultiplier={vi.fn()}
           onAddBots={onAddBots}
           onRemoveBots={vi.fn()}
         />
@@ -141,20 +147,33 @@ describe("HostControls", () => {
     expect(document.body.querySelector<HTMLElement>('[data-testid="bot-name-list"]')?.style.overflowY).toBe("auto");
     expect(document.body.querySelector<HTMLElement>('[data-testid="bot-name-list"]')?.style.maxHeight).toBe("220px");
 
-    const nameInputs = document.body.querySelectorAll<HTMLInputElement>('input[data-testid^="bot-name-input-"]');
-    expect(nameInputs).toHaveLength(2);
+    let nameInputs = document.body.querySelectorAll<HTMLInputElement>('input[data-testid^="bot-name-input-"]');
+    expect(nameInputs).toHaveLength(1);
     expect(nameInputs[0]?.value).toBe("bot1");
-    expect(nameInputs[1]?.value).toBe("bot2");
     expect(document.body.querySelector('[data-testid="bot-name-row-0"]')?.textContent).toContain("01");
-    expect(document.body.querySelector('[data-testid="bot-name-row-1"]')?.textContent).toContain("02");
-    const strategySelects = document.body.querySelectorAll<HTMLSelectElement>('select[data-testid^="bot-strategy-select-"]');
-    expect(strategySelects).toHaveLength(2);
+    let strategySelects = document.body.querySelectorAll<HTMLSelectElement>('select[data-testid^="bot-strategy-select-"]');
+    expect(strategySelects).toHaveLength(1);
     expect(strategySelects[0]?.value).toBe("frontier");
-    expect(strategySelects[1]?.value).toBe("frontier");
     expect([...strategySelects[0]!.options].map((option) => option.value)).toEqual(["frontier", "tremaux", "wall"]);
     const strategyTooltipButton = document.body.querySelector<HTMLButtonElement>('[data-testid="strategy-tooltip-button"]');
     expect(strategyTooltipButton).not.toBeNull();
     expect(document.body.querySelector('[data-testid="strategy-tooltip"]')).toBeNull();
+
+    const countSelect = document.body.querySelector<HTMLSelectElement>('#bot-count');
+    expect(countSelect).not.toBeNull();
+
+    await act(async () => {
+      countSelect!.value = "2";
+      countSelect!.dispatchEvent(new Event("change", { bubbles: true }));
+    });
+
+    nameInputs = document.body.querySelectorAll<HTMLInputElement>('input[data-testid^="bot-name-input-"]');
+    strategySelects = document.body.querySelectorAll<HTMLSelectElement>('select[data-testid^="bot-strategy-select-"]');
+    expect(nameInputs).toHaveLength(2);
+    expect(nameInputs[1]?.value).toBe("bot2");
+    expect(document.body.querySelector('[data-testid="bot-name-row-1"]')?.textContent).toContain("02");
+    expect(strategySelects).toHaveLength(2);
+    expect(strategySelects[1]?.value).toBe("frontier");
 
     await act(async () => {
       strategyTooltipButton?.click();
@@ -192,6 +211,42 @@ describe("HostControls", () => {
     expect(document.body.querySelector('[data-testid="bot-panel-overlay"]')).toBeNull();
   });
 
+  it("uses the spectator nickname as the default bot-name base when provided", async () => {
+    await act(async () => {
+      root.render(
+        <HostControls
+          roomId="room-1"
+          roomName="Alpha"
+          roomMode="bot_race"
+          visibilitySize={7}
+          botSpeedMultiplier={2}
+          canEditVisibility={false}
+          canManageBots
+          availableBotSlots={1}
+          memberNicknames={["관전1"]}
+          currentBots={[]}
+          defaultBotNicknameBase="관전1"
+          onRenameRoom={vi.fn()}
+          onSetVisibilitySize={vi.fn()}
+          onSetBotSpeedMultiplier={vi.fn()}
+          onAddBots={vi.fn()}
+          onRemoveBots={vi.fn()}
+        />
+      );
+    });
+
+    const toggleButton = container.querySelector<HTMLButtonElement>('[data-testid="toggle-bot-panel-button"]');
+    expect(toggleButton).not.toBeNull();
+
+    await act(async () => {
+      toggleButton?.click();
+    });
+
+    const nameInput = document.body.querySelector<HTMLInputElement>('[data-testid="bot-name-input-0"]');
+    expect(nameInput).not.toBeNull();
+    expect(nameInput?.value).toBe("관전2");
+  });
+
   it("hides the strategy tooltip when the bot kind is not explore", async () => {
     await act(async () => {
       root.render(
@@ -200,6 +255,7 @@ describe("HostControls", () => {
           roomName="Alpha"
           roomMode="normal"
           visibilitySize={7}
+          botSpeedMultiplier={1}
           canEditVisibility
           canManageBots
           availableBotSlots={2}
@@ -207,6 +263,7 @@ describe("HostControls", () => {
           currentBots={[]}
           onRenameRoom={vi.fn()}
           onSetVisibilitySize={vi.fn()}
+          onSetBotSpeedMultiplier={vi.fn()}
           onAddBots={vi.fn()}
           onRemoveBots={vi.fn()}
         />
@@ -238,6 +295,7 @@ describe("HostControls", () => {
           roomName="Alpha"
           roomMode="normal"
           visibilitySize={7}
+          botSpeedMultiplier={1}
           canEditVisibility
           canManageBots
           availableBotSlots={3}
@@ -245,6 +303,7 @@ describe("HostControls", () => {
           currentBots={[]}
           onRenameRoom={vi.fn()}
           onSetVisibilitySize={vi.fn()}
+          onSetBotSpeedMultiplier={vi.fn()}
           onAddBots={vi.fn()}
           onRemoveBots={vi.fn()}
         />
@@ -269,6 +328,7 @@ describe("HostControls", () => {
           roomName="Alpha"
           roomMode="normal"
           visibilitySize={7}
+          botSpeedMultiplier={1}
           canEditVisibility
           canManageBots
           availableBotSlots={0}
@@ -276,6 +336,7 @@ describe("HostControls", () => {
           currentBots={[]}
           onRenameRoom={vi.fn()}
           onSetVisibilitySize={vi.fn()}
+          onSetBotSpeedMultiplier={vi.fn()}
           onAddBots={vi.fn()}
           onRemoveBots={vi.fn()}
         />
@@ -296,6 +357,7 @@ describe("HostControls", () => {
           roomName="Alpha"
           roomMode="bot_race"
           visibilitySize={7}
+          botSpeedMultiplier={3}
           canEditVisibility
           canManageBots
           availableBotSlots={0}
@@ -306,6 +368,7 @@ describe("HostControls", () => {
           ]}
           onRenameRoom={vi.fn()}
           onSetVisibilitySize={vi.fn()}
+          onSetBotSpeedMultiplier={vi.fn()}
           onAddBots={vi.fn()}
           onRemoveBots={onRemoveBots}
         />
@@ -348,6 +411,7 @@ describe("HostControls", () => {
           roomName="Alpha"
           roomMode="normal"
           visibilitySize={7}
+          botSpeedMultiplier={1}
           canEditVisibility
           canManageBots
           availableBotSlots={2}
@@ -355,6 +419,7 @@ describe("HostControls", () => {
           currentBots={[{ playerId: "bot-1", nickname: "bot1", strategy: "frontier" }]}
           onRenameRoom={vi.fn()}
           onSetVisibilitySize={vi.fn()}
+          onSetBotSpeedMultiplier={vi.fn()}
           onAddBots={vi.fn()}
           onRemoveBots={onRemoveBots}
         />
@@ -375,4 +440,106 @@ describe("HostControls", () => {
 
     expect(onRemoveBots).toHaveBeenCalledWith(["bot-1"]);
   });
+
+  it("shows and changes the bot speed selector only in bot race rooms", async () => {
+    const onSetBotSpeedMultiplier = vi.fn();
+
+    await act(async () => {
+      root.render(
+        <HostControls
+          roomId="room-1"
+          roomName="Alpha"
+          roomMode="bot_race"
+          visibilitySize={7}
+          botSpeedMultiplier={3}
+          canEditVisibility
+          canManageBots
+          availableBotSlots={2}
+          memberNicknames={["host"]}
+          currentBots={[]}
+          onRenameRoom={vi.fn()}
+          onSetVisibilitySize={vi.fn()}
+          onSetBotSpeedMultiplier={onSetBotSpeedMultiplier}
+          onAddBots={vi.fn()}
+          onRemoveBots={vi.fn()}
+        />
+      );
+    });
+
+    const speedRow = container.querySelector<HTMLElement>('[data-testid="bot-speed-control-row"]');
+    const speedSelect = container.querySelector<HTMLSelectElement>('#bot-speed-multiplier');
+    expect(speedRow?.textContent).toContain("배속");
+    expect(speedSelect?.value).toBe("3");
+    expect([...speedSelect!.options].map((option) => option.value)).toEqual(["1", "2", "3", "4", "5", "6"]);
+
+    await act(async () => {
+      speedSelect!.value = "6";
+      speedSelect!.dispatchEvent(new Event("change", { bubbles: true }));
+    });
+
+    expect(onSetBotSpeedMultiplier).toHaveBeenCalledWith(6);
+
+    await act(async () => {
+      root.render(
+        <HostControls
+          roomId="room-1"
+          roomName="Alpha"
+          roomMode="normal"
+          visibilitySize={7}
+          botSpeedMultiplier={1}
+          canEditVisibility
+          canManageBots
+          availableBotSlots={2}
+          memberNicknames={["host"]}
+          currentBots={[]}
+          onRenameRoom={vi.fn()}
+          onSetVisibilitySize={vi.fn()}
+          onSetBotSpeedMultiplier={onSetBotSpeedMultiplier}
+          onAddBots={vi.fn()}
+          onRemoveBots={vi.fn()}
+        />
+      );
+    });
+
+    expect(container.querySelector('[data-testid="bot-speed-control-row"]')).toBeNull();
+  });
+
+  it("keeps the bot speed selector enabled when visibility edits are locked", async () => {
+    const onSetBotSpeedMultiplier = vi.fn();
+
+    await act(async () => {
+      root.render(
+        <HostControls
+          roomId="room-1"
+          roomName="Alpha"
+          roomMode="bot_race"
+          visibilitySize={7}
+          botSpeedMultiplier={2}
+          canEditVisibility={false}
+          canEditBotSpeed
+          canManageBots={false}
+          availableBotSlots={0}
+          memberNicknames={["host"]}
+          currentBots={[]}
+          onRenameRoom={vi.fn()}
+          onSetVisibilitySize={vi.fn()}
+          onSetBotSpeedMultiplier={onSetBotSpeedMultiplier}
+          onAddBots={vi.fn()}
+          onRemoveBots={vi.fn()}
+        />
+      );
+    });
+
+    const speedSelect = container.querySelector<HTMLSelectElement>('#bot-speed-multiplier');
+    expect(speedSelect).not.toBeNull();
+    expect(speedSelect?.disabled).toBe(false);
+
+    await act(async () => {
+      speedSelect!.value = "5";
+      speedSelect!.dispatchEvent(new Event("change", { bubbles: true }));
+    });
+
+    expect(onSetBotSpeedMultiplier).toHaveBeenCalledWith(5);
+  });
+
 });

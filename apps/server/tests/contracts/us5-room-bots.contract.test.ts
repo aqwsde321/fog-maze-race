@@ -166,6 +166,105 @@ describe("US5 room bots contract", () => {
     expect(ended.results.map((entry) => entry.rank).sort()).toEqual([1, 2]);
   }, 15_000);
 
+  it("lets bot race spectators add one owned bot and remove only their own bot", async () => {
+    const host = createRaceSocket();
+    const viewerOne = createRaceSocket();
+    const viewerTwo = createRaceSocket();
+
+    host.connect();
+    viewerOne.connect();
+    viewerTwo.connect();
+    host.emit("CONNECT", { nickname: "호1" });
+    viewerOne.emit("CONNECT", { nickname: "관전1" });
+    viewerTwo.emit("CONNECT", { nickname: "관전2" });
+
+    await once(host, "CONNECTED");
+    const viewerOneConnected = await once(viewerOne, "CONNECTED");
+    const viewerTwoConnected = await once(viewerTwo, "CONNECTED");
+
+    host.emit("CREATE_ROOM", { name: "Bot Only", mode: "bot_race" });
+    const joined = await once(host, "ROOM_JOINED");
+
+    viewerOne.emit("JOIN_ROOM", { roomId: joined.roomId });
+    viewerTwo.emit("JOIN_ROOM", { roomId: joined.roomId });
+    await once(viewerOne, "ROOM_JOINED");
+    await once(viewerTwo, "ROOM_JOINED");
+
+    viewerOne.emit("ADD_ROOM_BOTS", {
+      roomId: joined.roomId,
+      bots: [{ nickname: "red", kind: "explore", strategy: "tremaux" }]
+    });
+
+    const withViewerOneBot = await waitForSnapshot(
+      host,
+      (snapshot) => snapshot.members.some((member) => member.nickname === "red"),
+      2_000
+    );
+    expect(withViewerOneBot.members.find((member) => member.nickname === "red")).toMatchObject({
+      kind: "bot",
+      role: "racer",
+      exploreStrategy: "tremaux",
+      creatorPlayerId: viewerOneConnected.playerId
+    });
+
+    viewerOne.emit("ADD_ROOM_BOTS", {
+      roomId: joined.roomId,
+      bots: [{ nickname: "blue", kind: "join" }]
+    });
+    const viewerOneLimited = await once(viewerOne, "ERROR");
+    expect(viewerOneLimited.code).toBe("BOT_LIMIT_REACHED");
+
+    viewerTwo.emit("ADD_ROOM_BOTS", {
+      roomId: joined.roomId,
+      bots: [
+        { nickname: "b1", kind: "join" },
+        { nickname: "b2", kind: "join" }
+      ]
+    });
+    const viewerTwoLimited = await once(viewerTwo, "ERROR");
+    expect(viewerTwoLimited.code).toBe("BOT_LIMIT_REACHED");
+
+    viewerTwo.emit("ADD_ROOM_BOTS", {
+      roomId: joined.roomId,
+      bots: [{ nickname: "solo", kind: "explore", strategy: "wall" }]
+    });
+
+    const withViewerTwoBot = await waitForSnapshot(
+      host,
+      (snapshot) => snapshot.members.some((member) => member.nickname === "solo"),
+      2_000
+    );
+    const viewerTwoBot = withViewerTwoBot.members.find((member) => member.nickname === "solo");
+    expect(viewerTwoBot).toMatchObject({
+      creatorPlayerId: viewerTwoConnected.playerId,
+      exploreStrategy: "wall"
+    });
+
+    viewerOne.emit("REMOVE_ROOM_BOTS", {
+      roomId: joined.roomId,
+      playerIds: [viewerTwoBot!.playerId]
+    });
+    const removalDenied = await once(viewerOne, "ERROR");
+    expect(removalDenied.code).toBe("BOT_OWNER_ONLY");
+
+    const viewerOneBot = withViewerTwoBot.members.find((member) => member.nickname === "red");
+    expect(viewerOneBot).toBeDefined();
+
+    viewerOne.emit("REMOVE_ROOM_BOTS", {
+      roomId: joined.roomId,
+      playerIds: [viewerOneBot!.playerId]
+    });
+
+    const afterRemoval = await waitForSnapshot(
+      host,
+      (snapshot) =>
+        !snapshot.members.some((member) => member.nickname === "red") &&
+        snapshot.members.some((member) => member.nickname === "solo"),
+      2_000
+    );
+    expect(afterRemoval.members.some((member) => member.nickname === "red")).toBe(false);
+  }, 15_000);
+
   it("lets the host remove selected bots from a waiting room", async () => {
     const host = createRaceSocket();
 

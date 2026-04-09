@@ -6,6 +6,7 @@ import type { RoomBotKind, RoomBotRequest, RoomExploreStrategy } from "@fog-maze
 import type { MapView, RoomMemberView, RoomSnapshot } from "@fog-maze-race/shared/contracts/snapshots";
 import { samePosition, type Direction, type GridPosition } from "@fog-maze-race/shared/domain/grid-position";
 import { isInsideZone } from "@fog-maze-race/shared/maps/map-definitions";
+import type { RoomMode } from "@fog-maze-race/shared/domain/status";
 
 import type { ServerLoadMonitor } from "../app/server-load-monitor.js";
 import { PlayerSession } from "../core/player-session.js";
@@ -14,7 +15,6 @@ import { RoomService } from "../rooms/room-service.js";
 import { createRoomEventSink } from "../ws/handlers/recovery-handlers.js";
 import {
   createExplorerMemory,
-  createExplorerSeed,
   decideExplorerMove,
   rememberBlockedMove,
   updateExplorerMemory
@@ -25,7 +25,7 @@ const DEFAULT_EXPLORE_STRATEGY: RoomExploreStrategy = "frontier";
 const DEFAULT_BOT_JOIN_MESSAGE = "들어왔다.";
 const DEFAULT_BOT_FINISH_MESSAGE = "도착했다.";
 const BOT_LOOP_INTERVAL_MS = 30;
-const BOT_JOIN_MOVE_INTERVAL_MS = 120;
+const BOT_JOIN_MOVE_INTERVAL_MS = 180;
 const BOT_EXPLORE_MOVE_INTERVAL_MS = 180;
 
 type BotRuntime = {
@@ -37,11 +37,14 @@ type BotRuntime = {
   finishAnnouncedMatchId: string | null;
   activeMatchId: string | null;
   explorerSeed: number;
+  tickOrderSeed: number;
   explorerMemory: ReturnType<typeof createExplorerMemory>;
 };
 
 export class BotManager {
   private readonly bots = new Map<string, BotRuntime>();
+  private readonly roomTickCursors = new Map<string, number>();
+  private readonly roomSeededMatches = new Map<string, string>();
   private readonly loopHandle: ReturnType<typeof setInterval>;
 
   constructor(
@@ -49,7 +52,8 @@ export class BotManager {
     private readonly roomService: RoomService,
     private readonly matchService: MatchService,
     private readonly sessions: Map<string, PlayerSession>,
-    private readonly loadMonitor?: ServerLoadMonitor
+    private readonly loadMonitor?: ServerLoadMonitor,
+    private readonly random: () => number = Math.random
   ) {
     this.loopHandle = setInterval(() => {
       this.tickBots();
@@ -66,7 +70,8 @@ export class BotManager {
     bots?: RoomBotRequest[];
   }) {
     const runtime = this.roomService.requireRuntime(input.roomId);
-    if (runtime.room.hostPlayerId !== input.requestedBy) {
+    const isHost = runtime.room.hostPlayerId === input.requestedBy;
+    if (!isHost && !canManageOwnedBotRaceBots(runtime.room, input.requestedBy)) {
       throw new Error("HOST_ONLY");
     }
 
@@ -85,6 +90,12 @@ export class BotManager {
       throw new Error("INVALID_NICKNAME");
     }
 
+    if (!isHost) {
+      if (normalizedBots.length !== 1 || countOwnedBots(runtime.room, input.requestedBy) > 0) {
+        throw new Error("BOT_LIMIT_REACHED");
+      }
+    }
+
     const sink = this.createSink(input.roomId);
 
     for (const requestedBot of normalizedBots) {
@@ -101,6 +112,7 @@ export class BotManager {
         roomId: input.roomId,
         session,
         role: "racer",
+        creatorPlayerId: input.requestedBy,
         exploreStrategy: kind === "explore" ? requestedBot.strategy ?? DEFAULT_EXPLORE_STRATEGY : null
       });
       this.roomService.sendChatMessage(input.roomId, playerId, DEFAULT_BOT_JOIN_MESSAGE);
@@ -112,7 +124,8 @@ export class BotManager {
         lastActionAt: 0,
         finishAnnouncedMatchId: null,
         activeMatchId: null,
-        explorerSeed: createExplorerSeed(nickname),
+        explorerSeed: 0,
+        tickOrderSeed: 0,
         explorerMemory: createExplorerMemory()
       });
     }
@@ -130,7 +143,8 @@ export class BotManager {
     playerIds?: string[];
   }) {
     const runtime = this.roomService.requireRuntime(input.roomId);
-    if (runtime.room.hostPlayerId !== input.requestedBy) {
+    const isHost = runtime.room.hostPlayerId === input.requestedBy;
+    if (!isHost && !canManageOwnedBotRaceBots(runtime.room, input.requestedBy)) {
       throw new Error("HOST_ONLY");
     }
 
@@ -138,10 +152,24 @@ export class BotManager {
       throw new Error("ROOM_NOT_JOINABLE");
     }
 
-    const botPlayerIds = new Set(this.roomService.listBotPlayerIds(input.roomId));
-    const targetPlayerIds = (input.playerIds?.length ? input.playerIds : [...botPlayerIds]).filter((playerId) =>
-      botPlayerIds.has(playerId)
+    const botMembers = runtime.room.listBotMembers();
+    const botPlayerIds = new Set(botMembers.map((member) => member.playerId));
+    const ownedBotPlayerIds = new Set(
+      botMembers
+        .filter((member) => member.creatorPlayerId === input.requestedBy)
+        .map((member) => member.playerId)
     );
+    const requestedPlayerIds = input.playerIds?.length
+      ? input.playerIds
+      : isHost
+        ? [...botPlayerIds]
+        : [...ownedBotPlayerIds];
+    const requestedForeignBot = !isHost && requestedPlayerIds.some((playerId) => botPlayerIds.has(playerId) && !ownedBotPlayerIds.has(playerId));
+    if (requestedForeignBot) {
+      throw new Error("BOT_OWNER_ONLY");
+    }
+
+    const targetPlayerIds = requestedPlayerIds.filter((playerId) => (isHost ? botPlayerIds : ownedBotPlayerIds).has(playerId));
     if (targetPlayerIds.length === 0) {
       return;
     }
@@ -169,16 +197,72 @@ export class BotManager {
   }
 
   private tickBots() {
+    const now = Date.now();
+    const botsByRoom = new Map<string, BotRuntime[]>();
+    const orphanBots: BotRuntime[] = [];
+
     for (const bot of this.bots.values()) {
+      const roomId = this.sessions.get(bot.playerId)?.currentRoomId;
+      if (!roomId) {
+        orphanBots.push(bot);
+        continue;
+      }
+
+      const roomBots = botsByRoom.get(roomId);
+      if (roomBots) {
+        roomBots.push(bot);
+        continue;
+      }
+
+      botsByRoom.set(roomId, [bot]);
+    }
+
+    for (const bot of orphanBots) {
       try {
-        this.tickBot(bot);
+        this.tickBot(bot, now);
       } catch {
         continue;
       }
     }
+
+    for (const [roomId, roomBots] of botsByRoom) {
+      this.assignRoomMatchSeeds(roomId, roomBots);
+
+      const orderedBots = [...roomBots].sort((left, right) => {
+        if (left.tickOrderSeed !== right.tickOrderSeed) {
+          return left.tickOrderSeed - right.tickOrderSeed;
+        }
+
+        return left.playerId.localeCompare(right.playerId);
+      });
+      const cursor = this.roomTickCursors.get(roomId) ?? 0;
+      const rotatedBots = rotateBots(orderedBots, cursor);
+
+      for (const bot of rotatedBots) {
+        try {
+          this.tickBot(bot, now);
+        } catch {
+          continue;
+        }
+      }
+
+      this.roomTickCursors.set(roomId, orderedBots.length <= 1 ? 0 : (cursor + 1) % orderedBots.length);
+    }
+
+    for (const roomId of this.roomTickCursors.keys()) {
+      if (!botsByRoom.has(roomId)) {
+        this.roomTickCursors.delete(roomId);
+      }
+    }
+
+    for (const roomId of this.roomSeededMatches.keys()) {
+      if (!botsByRoom.has(roomId)) {
+        this.roomSeededMatches.delete(roomId);
+      }
+    }
   }
 
-  private tickBot(bot: BotRuntime) {
+  private tickBot(bot: BotRuntime, now = Date.now()) {
     const session = this.sessions.get(bot.playerId);
     const roomId = session?.currentRoomId;
     if (!session || !roomId) {
@@ -233,8 +317,10 @@ export class BotManager {
       return;
     }
 
-    const now = Date.now();
-    const moveIntervalMs = bot.kind === "join" ? BOT_JOIN_MOVE_INTERVAL_MS : BOT_EXPLORE_MOVE_INTERVAL_MS;
+    const moveIntervalMs = resolveBotMoveIntervalMs(
+      bot.kind === "join" ? BOT_JOIN_MOVE_INTERVAL_MS : BOT_EXPLORE_MOVE_INTERVAL_MS,
+      this.roomService.getBotSpeedMultiplier(roomId)
+    );
     if (now - bot.lastActionAt < moveIntervalMs) {
       return;
     }
@@ -277,6 +363,33 @@ export class BotManager {
         direction: nextDirection
       });
     }
+  }
+
+  private assignRoomMatchSeeds(roomId: string, roomBots: BotRuntime[]) {
+    const runtime = this.roomService.findRuntime(roomId);
+    const currentMatchId = runtime?.match?.matchId ?? null;
+    if (!currentMatchId) {
+      this.roomSeededMatches.delete(roomId);
+      return;
+    }
+
+    if (this.roomSeededMatches.get(roomId) === currentMatchId) {
+      return;
+    }
+
+    const roomSeed = createMatchExplorerSeed(this.random);
+    const exploreBots = roomBots.filter((bot) => bot.kind === "explore");
+    const shuffledOffsets = createShuffledSeedOffsets(exploreBots.length, this.random);
+
+    for (const bot of roomBots) {
+      bot.tickOrderSeed = createTickOrderSeed(roomSeed, bot.playerId);
+    }
+
+    for (const [index, bot] of exploreBots.entries()) {
+      bot.explorerSeed = roomSeed + (shuffledOffsets[index] ?? 0);
+    }
+
+    this.roomSeededMatches.set(roomId, currentMatchId);
   }
 
   private decideNextDirection(
@@ -433,6 +546,59 @@ function tileAt(map: MapView, x: number, y: number) {
   }
 
   return row[x] ?? "#";
+}
+
+function resolveBotMoveIntervalMs(baseIntervalMs: number, botSpeedMultiplier: number) {
+  return Math.max(BOT_LOOP_INTERVAL_MS, Math.floor(baseIntervalMs / botSpeedMultiplier));
+}
+
+function createMatchExplorerSeed(random: () => number) {
+  return Math.floor(random() * 0x1_0000_0000) >>> 0;
+}
+
+function createTickOrderSeed(seed: number, playerId: string) {
+  let hash = seed >>> 0;
+  for (const character of playerId) {
+    hash = Math.imul(hash ^ character.charCodeAt(0), 16_777_619) >>> 0;
+  }
+
+  return hash >>> 0;
+}
+
+function createShuffledSeedOffsets(count: number, random: () => number) {
+  const offsets = Array.from({ length: count }, (_value, index) => index);
+  for (let index = offsets.length - 1; index > 0; index -= 1) {
+    const swapIndex = Math.floor(random() * (index + 1));
+    const current = offsets[index]!;
+    offsets[index] = offsets[swapIndex]!;
+    offsets[swapIndex] = current;
+  }
+
+  return offsets;
+}
+
+function rotateBots<T>(bots: T[], cursor: number) {
+  if (bots.length <= 1) {
+    return bots;
+  }
+
+  const offset = ((cursor % bots.length) + bots.length) % bots.length;
+  return bots.slice(offset).concat(bots.slice(0, offset));
+}
+
+function canManageOwnedBotRaceBots(room: { mode: RoomMode; getMember: (playerId: string) => { kind: "human" | "bot" } | undefined }, playerId: string) {
+  if (room.mode !== "bot_race") {
+    return false;
+  }
+
+  return room.getMember(playerId)?.kind === "human";
+}
+
+function countOwnedBots(
+  room: { listBotMembers: () => Array<{ creatorPlayerId?: string | null }> },
+  playerId: string
+) {
+  return room.listBotMembers().filter((member) => member.creatorPlayerId === playerId).length;
 }
 
 function normalizeRequestedBots(input: {

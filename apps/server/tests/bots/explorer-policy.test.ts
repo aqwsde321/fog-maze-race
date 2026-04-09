@@ -189,6 +189,48 @@ describe("explorer-policy", () => {
     expect(bot1Trace).not.toEqual(bot6Trace);
   });
 
+  it("keeps balanced explorer seed packs from collapsing onto too few alpha-run frontier traces", () => {
+    const map = MAP_DEFINITIONS.find((entry) => entry.mapId === "alpha-run");
+    expect(map).toBeDefined();
+
+    const runtimeMap = {
+      ...map!,
+      visibilityRadius: 2
+    };
+    const traces = Array.from({ length: 15 }, (_, seed) =>
+      collectTrace({
+        map: runtimeMap,
+        seed,
+        strategy: "frontier",
+        steps: 12
+      }).join(",")
+    );
+    const uniqueTraceCount = new Set(traces).size;
+
+    expect(uniqueTraceCount).toBeGreaterThanOrEqual(11);
+  });
+
+  it("keeps balanced explorer seed packs from collapsing onto too few alpha-run tremaux traces", () => {
+    const map = MAP_DEFINITIONS.find((entry) => entry.mapId === "alpha-run");
+    expect(map).toBeDefined();
+
+    const runtimeMap = {
+      ...map!,
+      visibilityRadius: 2
+    };
+    const traces = Array.from({ length: 15 }, (_, seed) =>
+      collectTrace({
+        map: runtimeMap,
+        seed,
+        strategy: "tremaux",
+        steps: 12
+      }).join(",")
+    );
+    const uniqueTraceCount = new Set(traces).size;
+
+    expect(uniqueTraceCount).toBeGreaterThanOrEqual(10);
+  });
+
   it("diverges frontier and tremaux traces on eta-gauntlet before the midgame", () => {
     const map = MAP_DEFINITIONS.find((entry) => entry.mapId === "eta-gauntlet");
     expect(map).toBeDefined();
@@ -745,7 +787,8 @@ function createSnapshot(input: {
       status: "playing" as const,
       hostPlayerId: "self",
       maxPlayers: 15,
-      visibilitySize: 3 as const
+      visibilitySize: 3 as const,
+      botSpeedMultiplier: 1 as const
     },
     members: [
       {

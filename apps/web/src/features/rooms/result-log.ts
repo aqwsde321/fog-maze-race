@@ -1,5 +1,7 @@
 import type { ResultEntry } from "@fog-maze-race/shared/domain/result-entry";
 
+export type GameResultLogResult = Pick<ResultEntry, "playerId" | "nickname" | "outcome" | "rank" | "elapsedMs">;
+
 export type GameResultLogEntry = {
   id: string;
   roomId: string;
@@ -7,6 +9,7 @@ export type GameResultLogEntry = {
   hostNickname: string;
   endedAt: string;
   result: string;
+  results: GameResultLogResult[];
 };
 
 export function summarizeGameResult(results: readonly ResultEntry[]): string {
@@ -14,19 +17,7 @@ export function summarizeGameResult(results: readonly ResultEntry[]): string {
     return "완주자 없음";
   }
 
-  const rankedResults = [...results]
-    .sort((left, right) => {
-      if (left.rank === null && right.rank === null) {
-        return 0;
-      }
-      if (left.rank === null) {
-        return 1;
-      }
-      if (right.rank === null) {
-        return -1;
-      }
-      return left.rank - right.rank;
-    });
+  const rankedResults = sortRankedResults(results);
 
   return rankedResults
     .map((entry) => {
@@ -38,6 +29,21 @@ export function summarizeGameResult(results: readonly ResultEntry[]): string {
       return `나감 ${entry.nickname}`;
     })
     .join(" / ");
+}
+
+export function sortRankedResults<T extends { rank: number | null }>(results: readonly T[]): T[] {
+  return [...results].sort((left, right) => {
+    if (left.rank === null && right.rank === null) {
+      return 0;
+    }
+    if (left.rank === null) {
+      return 1;
+    }
+    if (right.rank === null) {
+      return -1;
+    }
+    return left.rank - right.rank;
+  });
 }
 
 export function formatElapsedTime(elapsedMs: number) {

@@ -1,5 +1,6 @@
 export * from "./domain/grid-position.js";
 export * from "./domain/item.js";
+export * from "./domain/room-bot-speed.js";
 export * from "./domain/room-bot-strategy.js";
 export * from "./domain/result-entry.js";
 export * from "./domain/status.js";

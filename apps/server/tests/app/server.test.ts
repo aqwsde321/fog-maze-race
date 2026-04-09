@@ -30,6 +30,8 @@ describe("buildServer", () => {
     if (app) {
       await app.close();
     }
+    delete process.env.RENDER_GIT_COMMIT;
+    delete process.env.APP_COMMIT_SHA;
     await rm(tempDir, { recursive: true, force: true });
   });
 
@@ -80,6 +82,9 @@ describe("buildServer", () => {
       ok: boolean;
       service: string;
       version: string;
+      deployment: {
+        commitSha: string | null;
+      };
       checkedAt: string;
       uptimeSeconds: number;
       runtime: {
@@ -127,6 +132,7 @@ describe("buildServer", () => {
     expect(payload.ok).toBe(true);
     expect(payload.service).toBe("fog-maze-race");
     expect(payload.version).toBeTypeOf("string");
+    expect(payload.deployment.commitSha).toBeNull();
     expect(new Date(payload.checkedAt).toString()).not.toBe("Invalid Date");
     expect(payload.uptimeSeconds).toBeGreaterThanOrEqual(0);
     expect(payload.runtime.nodeVersion).toMatch(/^v\d+/);
@@ -148,5 +154,21 @@ describe("buildServer", () => {
     expect(payload.load.eventLoopLagMaxMs).toBeGreaterThanOrEqual(0);
     expect(payload.recent.avgCpuPercent10s).toBeGreaterThanOrEqual(0);
     expect(payload.recent.peakEventLoopLagMs10s).toBeGreaterThanOrEqual(0);
+  });
+
+  it("returns the deployed commit sha when the runtime provides it", async () => {
+    process.env.RENDER_GIT_COMMIT = "ee3f00fdadb548f6f2f21eab016372f3b0ea1ff0";
+
+    const response = await app.inject({
+      method: "GET",
+      url: "/health"
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toMatchObject({
+      deployment: {
+        commitSha: "ee3f00fdadb548f6f2f21eab016372f3b0ea1ff0"
+      }
+    });
   });
 });

@@ -17,10 +17,12 @@
     "docker:remove": "bash ./scripts/docker/remove.sh",
     "docker:logs": "bash ./scripts/docker/logs.sh",
     "docker:ps": "bash ./scripts/docker/status.sh",
-    "test": "pnpm --filter @fog-maze-race/shared test && pnpm --filter @fog-maze-race/server test && pnpm --filter @fog-maze-race/web test && pnpm test:scripts",
+    "test": "pnpm --filter @fog-maze-race/shared build && pnpm --filter @fog-maze-race/shared test && pnpm --filter @fog-maze-race/server test && pnpm --filter @fog-maze-race/web test && pnpm test:scripts",
     "test:scripts": "node --test tests/scripts/docker-scripts.test.mjs tests/scripts/race-bot.test.mjs tests/scripts/race-bot-explorer.test.mjs tests/scripts/race-bot-fill.test.mjs",
     "typecheck": "pnpm --filter @fog-maze-race/shared typecheck && pnpm --filter @fog-maze-race/server typecheck && pnpm --filter @fog-maze-race/web typecheck",
-    "test:e2e": "playwright test"
+    "test:e2e": "pnpm --filter @fog-maze-race/shared build && playwright test",
+    "test:e2e:core": "pnpm --filter @fog-maze-race/shared build && playwright test tests/e2e/admin-maps.spec.ts tests/e2e/nickname-edit.spec.ts tests/e2e/results-overlay-elapsed-time.spec.ts tests/e2e/us1-race-flow.spec.ts tests/e2e/us2-reconnect.spec.ts tests/e2e/us3-room-admin.spec.ts",
+    "test:e2e:heavy": "pnpm --filter @fog-maze-race/shared build && playwright test tests/e2e/perf-smoke.spec.ts tests/e2e/results-overlay-15players.spec.ts"
   },
   "devDependencies": {
     "@playwright/test": "^1.55.0",

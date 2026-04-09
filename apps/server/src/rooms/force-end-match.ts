@@ -3,7 +3,7 @@ import type { RoomAggregate } from "../core/room.js";
 
 export function forceEndMatch(room: RoomAggregate, match: MatchAggregate) {
   for (const member of room.listMembers()) {
-    if (member.finishRank !== null || member.state === "left") {
+    if (member.role !== "racer" || member.finishRank !== null || member.state === "left") {
       continue;
     }
 

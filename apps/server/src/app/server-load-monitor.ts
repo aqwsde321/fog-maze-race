@@ -191,7 +191,7 @@ export class ServerLoadMonitor {
     this.resetCounters();
   }
 
-  getSnapshot(): Omit<ServerHealthSnapshot, "ok" | "service" | "version"> {
+  getSnapshot(): Omit<ServerHealthSnapshot, "ok" | "service" | "version" | "deployment"> {
     const current = this.latestSample;
     const recentSamples = this.samples.slice(-10);
 

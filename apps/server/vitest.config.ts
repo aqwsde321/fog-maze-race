@@ -21,6 +21,7 @@ export default defineConfig({
   test: {
     name: "server",
     environment: "node",
-    include: ["tests/**/*.test.ts"]
+    include: ["tests/**/*.test.ts"],
+    fileParallelism: false
   }
 });

@@ -74,6 +74,8 @@ function toErrorCode(code: string): ErrorPayload["code"] {
     case "ROOM_FULL":
     case "ROOM_NOT_JOINABLE":
     case "HOST_ONLY":
+    case "BOT_LIMIT_REACHED":
+    case "BOT_OWNER_ONLY":
     case "INVALID_MOVE":
     case "RECOVERY_FAILED":
     case "NOT_IN_ROOM":
@@ -103,6 +105,10 @@ function toMessage(code: string) {
       return "현재 입장할 수 없는 방입니다.";
     case "HOST_ONLY":
       return "방장만 해당 작업을 수행할 수 있습니다.";
+    case "BOT_LIMIT_REACHED":
+      return "봇 전용 방에서는 관전자당 봇을 1개만 만들 수 있습니다.";
+    case "BOT_OWNER_ONLY":
+      return "자신이 만든 봇만 제거할 수 있습니다.";
     case "NOT_IN_ROOM":
       return "방에 입장한 플레이어만 이동할 수 있습니다.";
     case "RECOVERY_FAILED":

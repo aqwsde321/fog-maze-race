@@ -19,10 +19,13 @@ test("connected players can update their nickname from the lobby header", async 
     await createRoomFromLobby(host.page, roomName);
 
     await enterLobby(guest.page, "게2");
-    await expect(guest.page.getByText("방장 만두")).toBeVisible({
+    const joinButton = guest.page.getByRole("button", { name: `입장 ${roomName}` });
+    const roomCard = guest.page.locator("article", { has: joinButton });
+
+    await expect(roomCard).toContainText("방장 만두", {
       timeout: 6_000
     });
-    await expect(guest.page.getByRole("button", { name: `입장 ${roomName}` })).toBeVisible({
+    await expect(joinButton).toBeVisible({
       timeout: 6_000
     });
   } finally {

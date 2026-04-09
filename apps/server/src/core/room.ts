@@ -14,6 +14,7 @@ export type RoomMemberRecord = {
   playerId: string;
   nickname: string;
   kind: RoomMemberKind;
+  creatorPlayerId?: string | null;
   exploreStrategy?: RoomExploreStrategy | null;
   color: string;
   shape: PlayerMarkerShape;

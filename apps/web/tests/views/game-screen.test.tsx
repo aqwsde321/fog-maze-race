@@ -10,6 +10,7 @@ import { GameScreen } from "../../src/views/GameScreen.js";
 
 const {
   getSocketClientMock,
+  hostControlsPropsMock,
   pingEmitMock,
   pingTimeoutMock
 } = vi.hoisted(() => {
@@ -17,6 +18,7 @@ const {
   const pingTimeoutMock = vi.fn(() => ({
     emit: pingEmitMock
   }));
+  const hostControlsPropsMock = vi.fn();
   const getSocketClientMock = vi.fn(() => ({
     connected: true,
     timeout: pingTimeoutMock
@@ -24,6 +26,7 @@ const {
 
   return {
     getSocketClientMock,
+    hostControlsPropsMock,
     pingEmitMock,
     pingTimeoutMock
   };
@@ -40,7 +43,10 @@ vi.mock("../../src/game/GameCanvas.js", () => ({
 }));
 
 vi.mock("../../src/features/rooms/HostControls.js", () => ({
-  HostControls: () => <div data-testid="host-controls" />
+  HostControls: (props: unknown) => {
+    hostControlsPropsMock(props);
+    return <div data-testid="host-controls" />;
+  }
 }));
 
 vi.mock("../../src/features/rooms/PlayerSidebar.js", () => ({
@@ -82,6 +88,7 @@ describe("GameScreen keyboard control", () => {
     pingEmitMock.mockReset();
     pingTimeoutMock.mockClear();
     getSocketClientMock.mockClear();
+    hostControlsPropsMock.mockReset();
     pingEmitMock.mockImplementation((eventName: string, payload: unknown, acknowledge?: () => void) => {
       if (eventName === "PING_CHECK") {
         acknowledge?.();
@@ -364,11 +371,20 @@ describe("GameScreen keyboard control", () => {
 
     expect(container.querySelector('[data-testid="fake-goal-alert"]')?.textContent).toContain("가짜 골");
     expect(fakeGoalWord?.getAttribute("aria-label")).toBe("쿠!");
-    expect(fakeGoalWord?.style.gridTemplateColumns).toBe("repeat(11, 18px)");
-    expect(fakeGoalWord?.style.gridTemplateRows).toBe("repeat(8, 18px)");
-    expect(fakeGoalCard?.style.position).toBe("relative");
+    expect(fakeGoalWord?.style.gridTemplateColumns).toBe("repeat(11, 22px)");
+    expect(fakeGoalWord?.style.gridTemplateRows).toBe("repeat(8, 22px)");
+    expect(fakeGoalCard?.style.position).toBe("absolute");
+    expect(fakeGoalCard?.style.left).toBe("50%");
+    expect(fakeGoalCard?.style.top).toBe("calc(50% - 32px)");
+    expect(fakeGoalCard?.style.width).toBe("0px");
+    expect(fakeGoalCard?.style.height).toBe("0px");
+    expect(fakeGoalWord?.style.position).toBe("absolute");
+    expect(fakeGoalWord?.style.left).toBe("0px");
+    expect(fakeGoalWord?.style.top).toBe("0px");
+    expect(fakeGoalWord?.style.transform).toBe("translate(-128px, -102px)");
     expect(fakeGoalCaption?.style.position).toBe("absolute");
-    expect(fakeGoalCaption?.style.top).toBe("calc(100% + 10px)");
+    expect(fakeGoalCaption?.style.left).toBe("0px");
+    expect(fakeGoalCaption?.style.top).toBe("118px");
     expect(fakeGoalPixels).toHaveLength(28);
     expect(topKiyeokColumns).toEqual(["2", "3", "4", "5", "6", "10"]);
     expect(bottomStrokeColumns).toEqual(["1", "2", "3", "4", "5", "6", "7", "10"]);
@@ -384,6 +400,137 @@ describe("GameScreen keyboard control", () => {
     });
 
     expect(container.querySelector('[data-testid="fake-goal-alert"]')).toBeNull();
+  });
+
+  it("positions the fake-goal alert at the center of the measured game canvas", async () => {
+    const clientWidthSpy = vi.spyOn(HTMLElement.prototype, "clientWidth", "get").mockImplementation(function (
+      this: HTMLElement
+    ) {
+      const testId = this.getAttribute("data-testid");
+      if (testId === "game-shell") {
+        return 1280;
+      }
+
+      if (testId === "game-canvas") {
+        return 960;
+      }
+
+      return 0;
+    });
+    const clientHeightSpy = vi.spyOn(HTMLElement.prototype, "clientHeight", "get").mockImplementation(function (
+      this: HTMLElement
+    ) {
+      const testId = this.getAttribute("data-testid");
+      if (testId === "game-shell") {
+        return 720;
+      }
+
+      if (testId === "game-canvas") {
+        return 540;
+      }
+
+      return 0;
+    });
+    const offsetLeftSpy = vi.spyOn(HTMLElement.prototype, "offsetLeft", "get").mockImplementation(function (
+      this: HTMLElement
+    ) {
+      return this.getAttribute("data-testid") === "game-canvas" ? 140 : 0;
+    });
+    const offsetTopSpy = vi.spyOn(HTMLElement.prototype, "offsetTop", "get").mockImplementation(function (
+      this: HTMLElement
+    ) {
+      return this.getAttribute("data-testid") === "game-canvas" ? 36 : 0;
+    });
+    const initialSnapshot = buildSnapshot("playing");
+    const movedSnapshot: RoomSnapshot = {
+      ...initialSnapshot,
+      revision: initialSnapshot.revision + 1,
+      members: initialSnapshot.members.map((member) => (
+        member.playerId === "player-1"
+          ? {
+              ...member,
+              position: { x: 4, y: 1 }
+            }
+          : member
+      )),
+      match: initialSnapshot.match
+        ? {
+            ...initialSnapshot.match,
+            map: {
+              ...initialSnapshot.match.map,
+              fakeGoalTiles: [{ x: 4, y: 1 }]
+            }
+          }
+        : null
+    };
+
+    try {
+      await act(async () => {
+        root.render(
+          <GameScreen
+            snapshot={{
+              ...initialSnapshot,
+              match: initialSnapshot.match
+                ? {
+                    ...initialSnapshot.match,
+                    map: {
+                      ...initialSnapshot.match.map,
+                      fakeGoalTiles: [{ x: 4, y: 1 }]
+                    }
+                  }
+                : null
+            }}
+            selfPlayerId="player-1"
+            countdownValue={null}
+            onStartGame={vi.fn()}
+            onRenameRoom={vi.fn()}
+            onSetVisibilitySize={vi.fn()}
+            onForceEndRoom={vi.fn()}
+            onResetToWaiting={vi.fn()}
+            onLeaveRoom={vi.fn()}
+            onUseItem={vi.fn()}
+            onMove={vi.fn()}
+            onSendChatMessage={vi.fn()}
+          />
+        );
+      });
+
+      await act(async () => {
+        root.render(
+          <GameScreen
+            snapshot={movedSnapshot}
+            selfPlayerId="player-1"
+            countdownValue={null}
+            onStartGame={vi.fn()}
+            onRenameRoom={vi.fn()}
+            onSetVisibilitySize={vi.fn()}
+            onForceEndRoom={vi.fn()}
+            onResetToWaiting={vi.fn()}
+            onLeaveRoom={vi.fn()}
+            onUseItem={vi.fn()}
+            onMove={vi.fn()}
+            onSendChatMessage={vi.fn()}
+          />
+        );
+      });
+
+      const overlay = container.querySelector<HTMLElement>('[data-testid="fake-goal-alert"]');
+      const card = container.querySelector<HTMLElement>('[data-testid="fake-goal-alert-card"]');
+
+      expect(overlay).not.toBeNull();
+      expect(overlay?.style.left).toBe("140px");
+      expect(overlay?.style.top).toBe("36px");
+      expect(overlay?.style.width).toBe("960px");
+      expect(overlay?.style.height).toBe("540px");
+      expect(overlay?.style.inset).toBe("");
+      expect(card?.style.left).toBe("648px");
+      expect(card?.style.top).toBe("238px");
+    } finally {
+      clientWidthSpy.mockRestore();
+      clientHeightSpy.mockRestore();
+      offsetLeftSpy.mockRestore();
+      offsetTopSpy.mockRestore();
+    }
   });
 
   it("does not show the fake-goal alert when another player stands on a fake goal tile", async () => {
@@ -486,6 +633,111 @@ describe("GameScreen keyboard control", () => {
     });
 
     expect(container.textContent).not.toContain("시작");
+  });
+
+  it("shows bot controls to bot race spectators and limits them to one add slot", async () => {
+    await act(async () => {
+      root.render(
+        <GameScreen
+          snapshot={buildSnapshot("waiting", {
+            mode: "bot_race",
+            hostPlayerId: "player-host",
+            selfPlayerId: "player-1",
+            members: [
+              {
+                playerId: "player-1",
+                nickname: "관전1",
+                kind: "human",
+                color: "#38bdf8",
+                shape: "circle",
+                role: "spectator",
+                state: "waiting",
+                position: null,
+                finishRank: null,
+                isHost: false
+              },
+              {
+                playerId: "player-host",
+                nickname: "호1",
+                kind: "human",
+                color: "#f97316",
+                shape: "square",
+                role: "spectator",
+                state: "waiting",
+                position: null,
+                finishRank: null,
+                isHost: true
+              },
+              {
+                playerId: "bot-host",
+                nickname: "hostb",
+                kind: "bot",
+                creatorPlayerId: "player-host",
+                exploreStrategy: "frontier",
+                color: "#22c55e",
+                shape: "diamond",
+                role: "racer",
+                state: "waiting",
+                position: null,
+                finishRank: null,
+                isHost: false
+              }
+            ]
+          })}
+          selfPlayerId="player-1"
+          countdownValue={null}
+          onStartGame={vi.fn()}
+          onRenameRoom={vi.fn()}
+          onSetVisibilitySize={vi.fn()}
+          onForceEndRoom={vi.fn()}
+          onResetToWaiting={vi.fn()}
+          onLeaveRoom={vi.fn()}
+          onUseItem={vi.fn()}
+          onMove={vi.fn()}
+          onSendChatMessage={vi.fn()}
+        />
+      );
+    });
+
+    expect(container.querySelector('[data-testid="host-controls"]')).not.toBeNull();
+    expect(hostControlsPropsMock).toHaveBeenCalled();
+    expect(hostControlsPropsMock.mock.lastCall?.[0]).toMatchObject({
+      canManageBots: true,
+      availableBotSlots: 1,
+      currentBots: [],
+      defaultBotNicknameBase: "관전1"
+    });
+  });
+
+  it("keeps bot speed editable for the host during a bot race while visibility stays locked", async () => {
+    await act(async () => {
+      root.render(
+        <GameScreen
+          snapshot={buildSnapshot("playing", {
+            mode: "bot_race",
+            hostPlayerId: "player-1",
+            selfPlayerId: "player-1"
+          })}
+          selfPlayerId="player-1"
+          countdownValue={null}
+          onStartGame={vi.fn()}
+          onRenameRoom={vi.fn()}
+          onSetVisibilitySize={vi.fn()}
+          onSetBotSpeedMultiplier={vi.fn()}
+          onForceEndRoom={vi.fn()}
+          onResetToWaiting={vi.fn()}
+          onLeaveRoom={vi.fn()}
+          onUseItem={vi.fn()}
+          onMove={vi.fn()}
+          onSendChatMessage={vi.fn()}
+        />
+      );
+    });
+
+    expect(hostControlsPropsMock.mock.lastCall?.[0]).toMatchObject({
+      canEditVisibility: false,
+      canEditBotSpeed: true
+    });
   });
 
   it("keeps the room chat panel collapsed until the floating toggle is opened", async () => {
@@ -609,6 +861,45 @@ describe("GameScreen keyboard control", () => {
     });
 
     expect(onResetToWaiting).toHaveBeenCalledTimes(1);
+  });
+
+  it("opens the race history sheet from the room header when logs are available", async () => {
+    await act(async () => {
+      root.render(
+        <GameScreen
+          snapshot={buildSnapshot("waiting")}
+          selfPlayerId="player-1"
+          gameResultLogs={buildGameResultLogs()}
+          countdownValue={null}
+          onStartGame={vi.fn()}
+          onRenameRoom={vi.fn()}
+          onSetVisibilitySize={vi.fn()}
+          onForceEndRoom={vi.fn()}
+          onResetToWaiting={vi.fn()}
+          onLeaveRoom={vi.fn()}
+          onUseItem={vi.fn()}
+          onMove={vi.fn()}
+          onSendChatMessage={vi.fn()}
+        />
+      );
+    });
+
+    const toggle = container.querySelector<HTMLButtonElement>('[data-testid="results-history-toggle"]');
+    const actionPanel = container.querySelector<HTMLElement>('[data-testid="room-action-panel"]');
+    const roomHeader = container.querySelector<HTMLElement>('[data-testid="room-header-row"]');
+
+    expect(toggle?.textContent).toContain("로그");
+    expect(toggle?.textContent).toContain("2경기");
+    expect(actionPanel?.contains(toggle ?? null)).toBe(true);
+    expect(roomHeader?.contains(toggle ?? null)).toBe(false);
+    expect(document.body.querySelector('[data-testid="results-history-panel"]')).toBeNull();
+
+    await act(async () => {
+      toggle?.click();
+    });
+
+    expect(document.body.querySelector('[data-testid="results-history-panel"]')?.textContent).toContain("bot2");
+    expect(document.body.querySelector('[data-testid="results-history-panel"]')?.textContent).toContain("00:25.368");
   });
 
   it("keeps server diagnostics collapsed until the floating toggle is opened", async () => {
@@ -981,6 +1272,8 @@ describe("GameScreen keyboard control", () => {
   status: RoomSnapshot["room"]["status"],
   overrides?: {
     hostPlayerId?: string;
+    members?: RoomSnapshot["members"];
+    mode?: RoomSnapshot["room"]["mode"];
     selfPlayerId?: string;
     heldItemType?: "ice_trap" | null;
     frozenUntil?: string | null;
@@ -988,35 +1281,44 @@ describe("GameScreen keyboard control", () => {
 ): RoomSnapshot {
   const selfPlayerId = overrides?.selfPlayerId ?? "player-1";
   const hostPlayerId = overrides?.hostPlayerId ?? selfPlayerId;
+  const mode = overrides?.mode ?? "normal";
+  const members = overrides?.members ?? [
+    {
+      playerId: selfPlayerId,
+      nickname: "호1",
+      kind: "human",
+      color: "#38bdf8",
+      shape: "circle",
+      role: mode === "bot_race" ? "spectator" : "racer",
+      state: status === "playing" ? "playing" : status === "ended" ? "finished" : "waiting",
+      position: mode === "bot_race" ? null : { x: 0, y: 1 },
+      finishRank: status === "ended" ? 1 : null,
+      isHost: selfPlayerId === hostPlayerId
+    }
+  ];
 
   return {
     revision: 1,
     room: {
       roomId: "room-1",
       name: "Alpha",
-      mode: "normal",
       gameMode: "normal",
+      mode,
       status,
       hostPlayerId,
       maxPlayers: 15,
-      visibilitySize: 7
+      visibilitySize: 7,
+      botSpeedMultiplier: 1
     },
-    members: [
-      {
-        playerId: selfPlayerId,
-        nickname: "호1",
-        kind: "human",
-        color: "#38bdf8",
-        shape: "circle",
-        role: "racer",
-        state: status === "playing" ? "playing" : status === "ended" ? "finished" : "waiting",
-        position: { x: 0, y: 1 },
-        finishRank: status === "ended" ? 1 : null,
-        heldItemType: overrides?.heldItemType ?? null,
-        frozenUntil: overrides?.frozenUntil ?? null,
-        isHost: selfPlayerId === hostPlayerId
-      }
-    ],
+    members: members.map((member) =>
+      member.playerId === selfPlayerId
+        ? {
+            ...member,
+            heldItemType: overrides?.heldItemType ?? member.heldItemType ?? null,
+            frozenUntil: overrides?.frozenUntil ?? member.frozenUntil ?? null
+          }
+        : member
+    ),
     chat: [],
     previewMap: null,
     match: status === "countdown" || status === "playing" || status === "ended"
@@ -1090,6 +1392,9 @@ function buildServerHealth(): ServerHealthSnapshot {
     ok: true,
     service: "fog-maze-race",
     version: "dev",
+    deployment: {
+      commitSha: null
+    },
     checkedAt: "2026-03-28T01:00:00.000Z",
     uptimeSeconds: 321,
     runtime: {
@@ -1133,6 +1438,52 @@ function buildServerHealth(): ServerHealthSnapshot {
       avgFanoutPerSecond10s: 750
     }
   };
+}
+
+function buildGameResultLogs() {
+  return [
+    {
+      id: "room-1:2",
+      roomId: "room-1",
+      roomName: "Alpha",
+      hostNickname: "호1",
+      endedAt: "2026-03-31T12:59:12.334Z",
+      result: "1위 bot2(00:25.368) / 2위 bot8(00:26.883)",
+      results: [
+        {
+          playerId: "bot-2",
+          nickname: "bot2",
+          outcome: "finished" as const,
+          rank: 1,
+          elapsedMs: 25_368
+        },
+        {
+          playerId: "bot-8",
+          nickname: "bot8",
+          outcome: "finished" as const,
+          rank: 2,
+          elapsedMs: 26_883
+        }
+      ]
+    },
+    {
+      id: "room-1:1",
+      roomId: "room-1",
+      roomName: "Alpha",
+      hostNickname: "호1",
+      endedAt: "2026-03-31T12:58:12.334Z",
+      result: "1위 bot3(00:28.120)",
+      results: [
+        {
+          playerId: "bot-3",
+          nickname: "bot3",
+          outcome: "finished" as const,
+          rank: 1,
+          elapsedMs: 28_120
+        }
+      ]
+    }
+  ];
 }
 
 function jsonResponse(payload: unknown) {

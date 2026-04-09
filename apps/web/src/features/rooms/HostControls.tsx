@@ -1,7 +1,12 @@
 import { useEffect, useMemo, useState, type CSSProperties } from "react";
 import { createPortal } from "react-dom";
 
-import type { RoomBotKind, RoomBotRequest, RoomExploreStrategy } from "@fog-maze-race/shared/contracts/realtime";
+import type {
+  RoomBotKind,
+  RoomBotRequest,
+  RoomBotSpeedMultiplier,
+  RoomExploreStrategy
+} from "@fog-maze-race/shared/contracts/realtime";
 import type { RoomGameMode, RoomMode } from "@fog-maze-race/shared/domain/status";
 
 import { SelectField, baseSelectStyle } from "./SelectField.js";
@@ -12,20 +17,24 @@ type HostControlsProps = {
   roomMode: RoomMode;
   gameMode?: RoomGameMode;
   visibilitySize: 3 | 5 | 7;
+  botSpeedMultiplier: RoomBotSpeedMultiplier;
   canEditVisibility: boolean;
   canEditGameMode?: boolean;
+  canEditBotSpeed?: boolean;
   canManageBots: boolean;
   availableBotSlots: number;
+  defaultBotNicknameBase?: string | null;
   memberNicknames: string[];
   currentBots: Array<{ playerId: string; nickname: string; strategy?: RoomExploreStrategy | null }>;
   onRenameRoom: (name: string) => void;
   onSetGameMode?: (gameMode: RoomGameMode) => void;
   onSetVisibilitySize: (visibilitySize: 3 | 5 | 7) => void;
+  onSetBotSpeedMultiplier: (botSpeedMultiplier: RoomBotSpeedMultiplier) => void;
   onAddBots: (input: { kind: RoomBotKind; bots: RoomBotRequest[] }) => void;
   onRemoveBots: (playerIds?: string[]) => void;
 };
 
-const DEFAULT_BOT_COUNT = 2;
+const DEFAULT_BOT_COUNT = 1;
 const DEFAULT_EXPLORE_STRATEGY: RoomExploreStrategy = "frontier";
 const SCROLLABLE_PANEL_CLASS = "host-controls-scrollable";
 
@@ -35,18 +44,23 @@ export function HostControls({
   roomMode,
   gameMode = "normal",
   visibilitySize,
+  botSpeedMultiplier,
   canEditVisibility,
   canEditGameMode = false,
+  canEditBotSpeed,
   canManageBots,
   availableBotSlots,
+  defaultBotNicknameBase,
   memberNicknames,
   currentBots,
   onRenameRoom,
   onSetGameMode = () => undefined,
   onSetVisibilitySize,
+  onSetBotSpeedMultiplier,
   onAddBots,
   onRemoveBots
 }: HostControlsProps) {
+  const resolvedCanEditBotSpeed = canEditBotSpeed ?? canEditVisibility;
   const [draftName, setDraftName] = useState(roomName);
   const [botKind, setBotKind] = useState<RoomBotKind>("explore");
   const [botCount, setBotCount] = useState<number>(() => resolveBotCount(DEFAULT_BOT_COUNT, availableBotSlots));
@@ -56,6 +70,7 @@ export function HostControls({
     createBotNameDrafts({
       previous: [],
       count: resolveBotCount(DEFAULT_BOT_COUNT, availableBotSlots),
+      defaultNicknameBase: defaultBotNicknameBase,
       usedNicknames: memberNicknames
     })
   );
@@ -63,6 +78,7 @@ export function HostControls({
     createBotStrategyDrafts([], resolveBotCount(DEFAULT_BOT_COUNT, availableBotSlots))
   );
   const memberNicknamesKey = useMemo(() => memberNicknames.join("|"), [memberNicknames]);
+  const defaultBotNicknameBaseKey = defaultBotNicknameBase ?? "";
   const botCountOptions = useMemo(
     () => Array.from({ length: Math.max(availableBotSlots, 0) }, (_, index) => index + 1),
     [availableBotSlots]
@@ -109,10 +125,11 @@ export function HostControls({
       createBotNameDrafts({
         previous,
         count: resolveBotCount(botCount, availableBotSlots),
+        defaultNicknameBase: defaultBotNicknameBase,
         usedNicknames: memberNicknames
       })
     );
-  }, [availableBotSlots, botCount, memberNicknamesKey, roomId]);
+  }, [availableBotSlots, botCount, defaultBotNicknameBaseKey, memberNicknamesKey, roomId]);
 
   useEffect(() => {
     setBotStrategyDrafts((previous) =>
@@ -175,6 +192,7 @@ export function HostControls({
       createBotNameDrafts({
         previous: [],
         count: botCount,
+        defaultNicknameBase: defaultBotNicknameBase,
         usedNicknames: [...memberNicknames, ...bots.map((bot) => bot.nickname)]
       })
     );
@@ -255,6 +273,29 @@ export function HostControls({
               <option value={3}>3x3</option>
           </SelectField>
         </div>
+
+        {roomMode === "bot_race" ? (
+          <div data-testid="bot-speed-control-row" style={visibilityControlRowStyle}>
+            <label htmlFor="bot-speed-multiplier" style={visibilityLabelStyle}>
+              배속
+            </label>
+            <SelectField
+              id="bot-speed-multiplier"
+              name="bot-speed-multiplier"
+              value={botSpeedMultiplier}
+              disabled={!resolvedCanEditBotSpeed}
+              onChange={(event) => onSetBotSpeedMultiplier(Number(event.target.value) as RoomBotSpeedMultiplier)}
+              selectStyle={selectStyle}
+            >
+                <option value={1}>x1</option>
+                <option value={2}>x2</option>
+                <option value={3}>x3</option>
+                <option value={4}>x4</option>
+                <option value={5}>x5</option>
+                <option value={6}>x6</option>
+            </SelectField>
+          </div>
+        ) : null}
       </div>
 
       <div style={botToggleWrapStyle}>
@@ -500,6 +541,7 @@ export function HostControls({
 function createBotNameDrafts(input: {
   previous: string[];
   count: number;
+  defaultNicknameBase?: string | null;
   usedNicknames: string[];
 }) {
   const count = Math.max(0, input.count);
@@ -513,11 +555,19 @@ function createBotNameDrafts(input: {
   );
   const drafts: string[] = [];
   let fallbackIndex = 1;
+  const preferredBase = normalizeNickname(input.defaultNicknameBase);
 
   for (let index = 0; index < count; index += 1) {
     const candidate = normalizeNickname(input.previous[index]);
     if (candidate && !used.has(candidate) && !drafts.includes(candidate)) {
       drafts.push(candidate);
+      continue;
+    }
+
+    if (index === 0 && preferredBase) {
+      const preferred = uniquifyNickname(preferredBase, used, drafts);
+      drafts.push(preferred);
+      used.add(preferred);
       continue;
     }
 
@@ -545,6 +595,25 @@ function createNextDefaultNickname(used: Set<string>, drafts: string[], initialI
   }
 
   return "bot1";
+}
+
+function uniquifyNickname(rawNickname: string, used: Set<string>, drafts: string[]) {
+  const nickname = rawNickname.slice(0, 5);
+  if (!used.has(nickname) && !drafts.includes(nickname)) {
+    return nickname;
+  }
+
+  const nicknameBase = nickname.replace(/\d+$/, "") || nickname;
+  for (let suffixNumber = 2; suffixNumber < 100; suffixNumber += 1) {
+    const suffix = String(suffixNumber);
+    const prefixLength = Math.max(0, 5 - suffix.length);
+    const candidate = `${nicknameBase.slice(0, prefixLength)}${suffix}`;
+    if (!used.has(candidate) && !drafts.includes(candidate)) {
+      return candidate;
+    }
+  }
+
+  return nickname;
 }
 
 function extractBotSuffix(nickname: string) {

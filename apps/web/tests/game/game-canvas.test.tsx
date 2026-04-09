@@ -115,6 +115,16 @@ describe("GameCanvas preview layout", () => {
     expect(container.querySelector('[data-testid="preview-player-chat"]')).toBeNull();
   });
 
+  it("does not place bot-race spectators into the preview start zone", async () => {
+    await act(async () => {
+      root.render(<GameCanvas snapshot={buildBotRaceWaitingSnapshot()} selfPlayerId="host" />);
+    });
+
+    const renderedMarkers = container.querySelectorAll('[data-marker-shape]');
+
+    expect(renderedMarkers).toHaveLength(1);
+  });
+
   it("rerenders the live Pixi scene when the canvas container is resized after the game starts", async () => {
     const controller = {
       render: vi.fn(),
@@ -154,7 +164,8 @@ function buildWaitingSnapshot(overrides?: { chat?: RoomSnapshot["chat"] }): Room
       status: "waiting",
       hostPlayerId: "player-1",
       maxPlayers: 15,
-      visibilitySize: 7
+      visibilitySize: 7,
+      botSpeedMultiplier: 1
     },
     members: [
       {
@@ -203,7 +214,8 @@ function buildPlayingSnapshot(): RoomSnapshot {
       status: "playing",
       hostPlayerId: "player-1",
       maxPlayers: 15,
-      visibilitySize: 7
+      visibilitySize: 7,
+      botSpeedMultiplier: 1
     },
     members: [
       {
@@ -244,5 +256,79 @@ function buildPlayingSnapshot(): RoomSnapshot {
         visibilityRadius: map.visibilityRadius
       }
     }
+  };
+}
+
+function buildBotRaceWaitingSnapshot(): RoomSnapshot {
+  const map = getMapById("alpha-run");
+  if (!map) {
+    throw new Error("alpha-run map not found");
+  }
+
+  return {
+    revision: 3,
+    room: {
+      roomId: "room-bot",
+      name: "Bot Only",
+      mode: "bot_race",
+      gameMode: "normal",
+      status: "waiting",
+      hostPlayerId: "host",
+      maxPlayers: 15,
+      visibilitySize: 7,
+      botSpeedMultiplier: 1
+    },
+    members: [
+      {
+        playerId: "host",
+        nickname: "호스트",
+        kind: "human",
+        color: "#fb7185",
+        shape: "circle",
+        role: "spectator",
+        state: "waiting",
+        position: null,
+        finishRank: null,
+        isHost: true
+      },
+      {
+        playerId: "bot-1",
+        nickname: "bot1",
+        kind: "bot",
+        color: "#38bdf8",
+        shape: "square",
+        role: "racer",
+        state: "waiting",
+        position: null,
+        finishRank: null,
+        isHost: false
+      },
+      {
+        playerId: "viewer",
+        nickname: "관전",
+        kind: "human",
+        color: "#22c55e",
+        shape: "diamond",
+        role: "spectator",
+        state: "waiting",
+        position: null,
+        finishRank: null,
+        isHost: false
+      }
+    ],
+    chat: [],
+    previewMap: {
+      mapId: map.mapId,
+      width: map.width,
+      height: map.height,
+      tiles: map.tiles,
+      startZone: map.startZone,
+      mazeZone: map.mazeZone,
+      goalZone: map.goalZone,
+      startSlots: map.startSlots,
+      connectorTiles: map.connectorTiles,
+      visibilityRadius: map.visibilityRadius
+    },
+    match: null
   };
 }

@@ -72,7 +72,8 @@ function buildSnapshot(matchId: string) {
       status: "playing" as const,
       hostPlayerId: "player-1",
       maxPlayers: 15,
-      visibilitySize: 7 as const
+      visibilitySize: 7 as const,
+      botSpeedMultiplier: 1 as const
     },
     members: [],
     chat: [],

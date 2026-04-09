@@ -9,6 +9,10 @@ import {
   PLAYER_MARKER_SHAPES,
   type PlayerMarkerShape
 } from "@fog-maze-race/shared/domain/player-marker-shape";
+import {
+  ROOM_BOT_SPEED_MULTIPLIERS,
+  type RoomBotSpeedMultiplier
+} from "@fog-maze-race/shared/domain/room-bot-speed";
 import type { RoomExploreStrategy } from "@fog-maze-race/shared/domain/room-bot-strategy";
 import type { MatchStatus, RoomGameMode, RoomMemberRole, RoomMode, RoomMemberState } from "@fog-maze-race/shared/domain/status";
 import {
@@ -51,6 +55,7 @@ export type RoomRuntime = {
   previewMapId: string;
   fakeGoalTiles: GridPosition[];
   visibilitySize: 3 | 5 | 7;
+  botSpeedMultiplier: RoomBotSpeedMultiplier;
   shapeDeck: PlayerMarkerShape[];
   shapeCursor: number;
 };
@@ -97,6 +102,7 @@ export class RoomService {
       playerId: input.session.playerId,
       nickname: input.session.nickname,
       kind: input.session.kind,
+      creatorPlayerId: null,
       exploreStrategy: null,
       color: PLAYER_COLORS[0],
       shape: shapeDeck[0] ?? nextShape(0),
@@ -114,6 +120,7 @@ export class RoomService {
       previewMapId,
       fakeGoalTiles: createFakeGoalTiles(previewMap, mode, this.random),
       visibilitySize: 5,
+      botSpeedMultiplier: 1,
       shapeDeck,
       shapeCursor: 1
     });
@@ -131,6 +138,7 @@ export class RoomService {
     roomId: string;
     session: PlayerSession;
     role?: RoomMemberRole;
+    creatorPlayerId?: string | null;
     exploreStrategy?: RoomExploreStrategy | null;
   }): RoomJoinedPayload {
     const runtime = this.requireRuntime(input.roomId);
@@ -144,6 +152,7 @@ export class RoomService {
       playerId: input.session.playerId,
       nickname: input.session.nickname,
       kind: input.session.kind,
+      creatorPlayerId: input.creatorPlayerId ?? null,
       exploreStrategy: input.exploreStrategy ?? null,
       color: nextColor,
       shape: nextAssignedShape,
@@ -235,6 +244,29 @@ export class RoomService {
 
   getVisibilityRadius(roomId: string) {
     return toVisibilityRadius(this.requireRuntime(roomId).visibilitySize);
+  }
+
+  setBotSpeedMultiplier(roomId: string, requestedBy: string, botSpeedMultiplier: RoomBotSpeedMultiplier) {
+    const runtime = this.requireRuntime(roomId);
+    if (runtime.room.hostPlayerId !== requestedBy) {
+      throw new Error("HOST_ONLY");
+    }
+
+    if (!ROOM_BOT_SPEED_MULTIPLIERS.includes(botSpeedMultiplier)) {
+      throw new Error("UNKNOWN");
+    }
+
+    if (runtime.room.status === "ended") {
+      throw new Error("ROOM_NOT_JOINABLE");
+    }
+
+    runtime.botSpeedMultiplier = botSpeedMultiplier;
+    this.syncRoomRevision(roomId);
+    return this.getSnapshot(roomId);
+  }
+
+  getBotSpeedMultiplier(roomId: string) {
+    return this.requireRuntime(roomId).botSpeedMultiplier;
   }
 
   renameRoom(roomId: string, requestedBy: string, name: string) {
@@ -362,12 +394,14 @@ export class RoomService {
         status: runtime.room.status,
         hostPlayerId: runtime.room.hostPlayerId,
         maxPlayers: runtime.room.maxPlayers,
-        visibilitySize: runtime.visibilitySize
+        visibilitySize: runtime.visibilitySize,
+        botSpeedMultiplier: runtime.botSpeedMultiplier
       },
       members: runtime.room.listMembers().map((member) => ({
         playerId: member.playerId,
         nickname: member.nickname,
         kind: member.kind,
+        creatorPlayerId: member.creatorPlayerId ?? null,
         exploreStrategy: member.exploreStrategy,
         color: member.color,
         shape: member.shape,

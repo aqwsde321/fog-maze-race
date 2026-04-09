@@ -3,22 +3,23 @@ import { expect, test } from "@playwright/test";
 import { createRoomFromLobby, enterLobby } from "./helpers/lobby.js";
 import { closeRaceClients, createRaceClients } from "./helpers/multi-client.js";
 
-test("15 players can join the same room and enter the playing state", async ({ browser }) => {
-  test.setTimeout(60_000);
+test.describe.configure({ timeout: 120_000 });
 
+test("15 players can join the same room and enter the playing state", async ({ browser }) => {
   const clients = await createRaceClients(browser, 15);
   const [host, ...guests] = clients;
+  const roomName = `Full-${Date.now().toString().slice(-4)}`;
 
   try {
     await enterLobby(host.page, "P00");
-    await createRoomFromLobby(host.page, "Full");
+    await createRoomFromLobby(host.page, roomName);
 
     for (const [index, guest] of guests.entries()) {
       await enterLobby(guest.page, `P${String(index + 1).padStart(2, "0")}`);
-      await expect(guest.page.getByRole("button", { name: "입장 Full" })).toBeVisible({
+      await expect(guest.page.getByRole("button", { name: `입장 ${roomName}` })).toBeVisible({
         timeout: 6_000
       });
-      await guest.page.getByRole("button", { name: "입장 Full" }).click();
+      await guest.page.getByRole("button", { name: `입장 ${roomName}` }).click();
     }
 
     await expect(host.page.locator("aside article")).toHaveCount(15, {

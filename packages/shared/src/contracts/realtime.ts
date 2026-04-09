@@ -1,5 +1,9 @@
 import type { Direction, GridPosition } from "../domain/grid-position.js";
 import {
+  ROOM_BOT_SPEED_MULTIPLIERS,
+  type RoomBotSpeedMultiplier
+} from "../domain/room-bot-speed.js";
+import {
   ROOM_EXPLORE_STRATEGIES,
   type RoomExploreStrategy
 } from "../domain/room-bot-strategy.js";
@@ -9,6 +13,8 @@ import type { RoomSnapshot } from "./snapshots.js";
 
 export { ROOM_EXPLORE_STRATEGIES };
 export type { RoomExploreStrategy };
+export { ROOM_BOT_SPEED_MULTIPLIERS };
+export type { RoomBotSpeedMultiplier };
 
 export type ConnectPayload = {
   playerId?: string;
@@ -65,6 +71,11 @@ export type SetVisibilitySizePayload = {
 export type SetRoomGameModePayload = {
   roomId: string;
   gameMode: RoomGameMode;
+};
+
+export type SetBotSpeedPayload = {
+  roomId: string;
+  botSpeedMultiplier: RoomBotSpeedMultiplier;
 };
 
 export type StartGamePayload = {
@@ -181,6 +192,8 @@ export type ErrorCode =
   | "ROOM_FULL"
   | "ROOM_NOT_JOINABLE"
   | "HOST_ONLY"
+  | "BOT_LIMIT_REACHED"
+  | "BOT_OWNER_ONLY"
   | "INVALID_MOVE"
   | "RECOVERY_FAILED"
   | "NOT_IN_ROOM"

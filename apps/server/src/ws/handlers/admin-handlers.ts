@@ -7,6 +7,7 @@ import type {
   ResetRoomPayload,
   RenameRoomPayload,
   SetRoomGameModePayload,
+  SetBotSpeedPayload,
   SetVisibilitySizePayload
 } from "@fog-maze-race/shared/contracts/realtime";
 
@@ -91,6 +92,20 @@ export function registerAdminHandlers({
     try {
       const session = requireSession(socket, sessions);
       const snapshot = roomService.setGameMode(payload.roomId, session.playerId, payload.gameMode);
+
+      emitRoomState(io, payload.roomId, {
+        roomId: payload.roomId,
+        snapshot
+      }, loadMonitor);
+    } catch (error) {
+      emitError(socket, error);
+    }
+  });
+
+  socket.on("SET_BOT_SPEED", (payload: SetBotSpeedPayload) => {
+    try {
+      const session = requireSession(socket, sessions);
+      const snapshot = roomService.setBotSpeedMultiplier(payload.roomId, session.playerId, payload.botSpeedMultiplier);
 
       emitRoomState(io, payload.roomId, {
         roomId: payload.roomId,

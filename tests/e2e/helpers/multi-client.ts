@@ -21,5 +21,28 @@ export async function createRaceClients(
 }
 
 export async function closeRaceClients(clients: RaceClient[]): Promise<void> {
-  await Promise.all(clients.map((client) => client.context.close()));
+  const results = await Promise.allSettled(clients.map((client) => closeContext(client.context)));
+  const failures = results.filter((result) => result.status === "rejected");
+
+  if (failures.length > 0) {
+    throw failures[0].reason;
+  }
+}
+
+async function closeContext(context: BrowserContext) {
+  try {
+    await context.close();
+  } catch (error) {
+    if (isIgnorableCloseError(error)) {
+      return;
+    }
+
+    throw error;
+  }
+}
+
+function isIgnorableCloseError(error: unknown) {
+  const message = error instanceof Error ? error.message : String(error);
+
+  return message.includes("ENOENT") || message.includes("Target page, context or browser has been closed");
 }

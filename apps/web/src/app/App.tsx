@@ -9,6 +9,7 @@ import type {
   GameEndedPayload,
   RoomBotKind,
   RoomBotRequest,
+  RoomBotSpeedMultiplier,
   RoomLeftPayload,
   RoomJoinedPayload,
   RoomListItem,
@@ -173,7 +174,14 @@ export function App() {
         roomName: currentSnapshot.room.name,
         hostNickname: host?.nickname ?? "방장",
         endedAt: currentSnapshot.match?.endedAt ?? new Date().toISOString(),
-        result: summarizeGameResult(payload.results)
+        result: summarizeGameResult(payload.results),
+        results: payload.results.map((entry) => ({
+          playerId: entry.playerId,
+          nickname: entry.nickname,
+          outcome: entry.outcome,
+          rank: entry.rank,
+          elapsedMs: entry.elapsedMs
+        }))
       };
 
       setGameResultLogs((previous) =>
@@ -303,6 +311,17 @@ export function App() {
     socketRef.current.emit("SET_ROOM_GAME_MODE", {
       roomId: snapshot.room.roomId,
       gameMode
+    });
+  }
+
+  function handleSetBotSpeedMultiplier(botSpeedMultiplier: RoomBotSpeedMultiplier) {
+    if (!snapshot) {
+      return;
+    }
+
+    socketRef.current.emit("SET_BOT_SPEED", {
+      roomId: snapshot.room.roomId,
+      botSpeedMultiplier
     });
   }
 
@@ -440,6 +459,7 @@ export function App() {
           onRenameRoom={handleRenameRoom}
           onSetGameMode={handleSetGameMode}
           onSetVisibilitySize={handleSetVisibilitySize}
+          onSetBotSpeedMultiplier={handleSetBotSpeedMultiplier}
           onAddBots={handleAddBots}
           onRemoveBots={handleRemoveBots}
           onForceEndRoom={handleForceEndRoom}
