@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState, type CSSProperties } from "react";
 import { createPortal } from "react-dom";
 
 import type { RoomBotKind, RoomBotRequest, RoomExploreStrategy } from "@fog-maze-race/shared/contracts/realtime";
-import type { RoomMode } from "@fog-maze-race/shared/domain/status";
+import type { RoomGameMode, RoomMode } from "@fog-maze-race/shared/domain/status";
 
 import { SelectField, baseSelectStyle } from "./SelectField.js";
 
@@ -10,13 +10,16 @@ type HostControlsProps = {
   roomId: string;
   roomName: string;
   roomMode: RoomMode;
+  gameMode?: RoomGameMode;
   visibilitySize: 3 | 5 | 7;
   canEditVisibility: boolean;
+  canEditGameMode?: boolean;
   canManageBots: boolean;
   availableBotSlots: number;
   memberNicknames: string[];
   currentBots: Array<{ playerId: string; nickname: string; strategy?: RoomExploreStrategy | null }>;
   onRenameRoom: (name: string) => void;
+  onSetGameMode?: (gameMode: RoomGameMode) => void;
   onSetVisibilitySize: (visibilitySize: 3 | 5 | 7) => void;
   onAddBots: (input: { kind: RoomBotKind; bots: RoomBotRequest[] }) => void;
   onRemoveBots: (playerIds?: string[]) => void;
@@ -30,13 +33,16 @@ export function HostControls({
   roomId,
   roomName,
   roomMode,
+  gameMode = "normal",
   visibilitySize,
   canEditVisibility,
+  canEditGameMode = false,
   canManageBots,
   availableBotSlots,
   memberNicknames,
   currentBots,
   onRenameRoom,
+  onSetGameMode = () => undefined,
   onSetVisibilitySize,
   onAddBots,
   onRemoveBots
@@ -215,6 +221,23 @@ export function HostControls({
       </style>
 
       <div style={cardStyle}>
+        <div data-testid="game-mode-control-row" style={visibilityControlRowStyle}>
+          <label htmlFor="game-mode" style={visibilityLabelStyle}>
+            경기
+          </label>
+          <SelectField
+            id="game-mode"
+            name="game-mode"
+            value={gameMode}
+            disabled={!canEditGameMode}
+            onChange={(event) => onSetGameMode(event.target.value as RoomGameMode)}
+            selectStyle={selectStyle}
+          >
+              <option value="normal">일반전</option>
+              <option value="item">아이템전</option>
+          </SelectField>
+        </div>
+
         <div data-testid="visibility-control-row" style={visibilityControlRowStyle}>
           <label htmlFor="visibility-size" style={visibilityLabelStyle}>
             시야

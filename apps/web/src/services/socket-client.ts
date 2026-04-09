@@ -23,6 +23,7 @@ import type {
   RoomListUpdatePayload,
   RoomStateUpdatePayload,
   SendChatMessagePayload,
+  SetRoomGameModePayload,
   SetVisibilitySizePayload,
   StartGamePayload,
   UseItemPayload
@@ -52,6 +53,7 @@ export type RaceSocketCommands = {
   LEAVE_ROOM: (payload: LeaveRoomPayload) => void;
   RENAME_ROOM: (payload: RenameRoomPayload) => void;
   SET_VISIBILITY_SIZE: (payload: SetVisibilitySizePayload) => void;
+  SET_ROOM_GAME_MODE: (payload: SetRoomGameModePayload) => void;
   START_GAME: (payload: StartGamePayload) => void;
   FORCE_END_ROOM: (payload: ForceEndRoomPayload) => void;
   RESET_ROOM: (payload: ResetRoomPayload) => void;

@@ -995,6 +995,7 @@ describe("GameScreen keyboard control", () => {
       roomId: "room-1",
       name: "Alpha",
       mode: "normal",
+      gameMode: "normal",
       status,
       hostPlayerId,
       maxPlayers: 15,

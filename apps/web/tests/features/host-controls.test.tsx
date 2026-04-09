@@ -25,6 +25,7 @@ describe("HostControls", () => {
 
   it("changes the visibility size and disables the selector outside waiting", async () => {
     const onSetVisibilitySize = vi.fn();
+    const onSetGameMode = vi.fn();
 
     await act(async () => {
       root.render(
@@ -32,13 +33,16 @@ describe("HostControls", () => {
           roomId="room-1"
           roomName="Alpha"
           roomMode="normal"
+          gameMode="normal"
           visibilitySize={7}
           canEditVisibility
+          canEditGameMode
           canManageBots
           availableBotSlots={4}
           memberNicknames={["host"]}
           currentBots={[]}
           onRenameRoom={vi.fn()}
+          onSetGameMode={onSetGameMode}
           onSetVisibilitySize={onSetVisibilitySize}
           onAddBots={vi.fn()}
           onRemoveBots={vi.fn()}
@@ -47,7 +51,7 @@ describe("HostControls", () => {
     });
 
     const visibilityRow = container.querySelector<HTMLElement>('[data-testid="visibility-control-row"]');
-    const select = container.querySelector("select");
+    const select = container.querySelector<HTMLSelectElement>('#visibility-size');
     expect(visibilityRow).not.toBeNull();
     expect(visibilityRow?.textContent).toContain("시야");
     expect(select).not.toBeNull();
@@ -60,19 +64,32 @@ describe("HostControls", () => {
 
     expect(onSetVisibilitySize).toHaveBeenCalledWith(5);
 
+    const gameModeSelect = container.querySelector<HTMLSelectElement>('#game-mode');
+    expect(gameModeSelect).not.toBeNull();
+
+    await act(async () => {
+      gameModeSelect!.value = "item";
+      gameModeSelect!.dispatchEvent(new Event("change", { bubbles: true }));
+    });
+
+    expect(onSetGameMode).toHaveBeenCalledWith("item");
+
     await act(async () => {
       root.render(
         <HostControls
           roomId="room-1"
           roomName="Alpha"
           roomMode="normal"
+          gameMode="item"
           visibilitySize={5}
           canEditVisibility={false}
+          canEditGameMode={false}
           canManageBots={false}
           availableBotSlots={0}
           memberNicknames={["host"]}
           currentBots={[]}
           onRenameRoom={vi.fn()}
+          onSetGameMode={onSetGameMode}
           onSetVisibilitySize={onSetVisibilitySize}
           onAddBots={vi.fn()}
           onRemoveBots={vi.fn()}
@@ -80,7 +97,8 @@ describe("HostControls", () => {
       );
     });
 
-    expect(container.querySelector("select")?.disabled).toBe(true);
+    expect(container.querySelector<HTMLSelectElement>('#visibility-size')?.disabled).toBe(true);
+    expect(container.querySelector<HTMLSelectElement>('#game-mode')?.disabled).toBe(true);
   });
 
   it("prefills editable bot rows and submits per-bot strategies for the host", async () => {

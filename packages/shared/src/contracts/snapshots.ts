@@ -3,7 +3,7 @@ import type { MapFeatureFlags, MatchItemType, MatchTrapState } from "../domain/i
 import type { PlayerMarkerShape } from "../domain/player-marker-shape.js";
 import type { ResultEntry } from "../domain/result-entry.js";
 import type { RoomExploreStrategy } from "../domain/room-bot-strategy.js";
-import type { MatchStatus, RoomMemberKind, RoomMemberRole, RoomMode, RoomMemberState, RoomStatus } from "../domain/status.js";
+import type { MatchStatus, RoomGameMode, RoomMemberKind, RoomMemberRole, RoomMode, RoomMemberState, RoomStatus } from "../domain/status.js";
 import type { ZoneBounds } from "../maps/map-definitions.js";
 
 export type RoomMemberView = {
@@ -80,6 +80,7 @@ export type RoomSnapshot = {
     roomId: string;
     name: string;
     mode: RoomMode;
+    gameMode: RoomGameMode;
     status: RoomStatus;
     hostPlayerId: string;
     maxPlayers: number;

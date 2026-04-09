@@ -741,6 +741,7 @@ function createSnapshot(input: {
       roomId: "room-1",
       name: "Alpha",
       mode: "normal" as const,
+      gameMode: "normal" as const,
       status: "playing" as const,
       hostPlayerId: "self",
       maxPlayers: 15,

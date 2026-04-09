@@ -4,7 +4,7 @@ import {
   type RoomExploreStrategy
 } from "../domain/room-bot-strategy.js";
 import type { ResultEntry } from "../domain/result-entry.js";
-import type { RoomMemberRole, RoomMode, RoomMemberState, RoomStatus } from "../domain/status.js";
+import type { RoomGameMode, RoomMemberRole, RoomMode, RoomMemberState, RoomStatus } from "../domain/status.js";
 import type { RoomSnapshot } from "./snapshots.js";
 
 export { ROOM_EXPLORE_STRATEGIES };
@@ -60,6 +60,11 @@ export type RenameRoomPayload = {
 export type SetVisibilitySizePayload = {
   roomId: string;
   visibilitySize: 3 | 5 | 7;
+};
+
+export type SetRoomGameModePayload = {
+  roomId: string;
+  gameMode: RoomGameMode;
 };
 
 export type StartGamePayload = {

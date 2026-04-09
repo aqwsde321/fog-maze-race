@@ -68,6 +68,7 @@ function buildSnapshot(matchId: string) {
       roomId: "room-1",
       name: "Alpha",
       mode: "normal" as const,
+      gameMode: "normal" as const,
       status: "playing" as const,
       hostPlayerId: "player-1",
       maxPlayers: 15,

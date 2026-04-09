@@ -9,6 +9,7 @@ import type {
   RoomLeftPayload,
   RoomListUpdatePayload,
   RoomStateUpdatePayload,
+  SetRoomGameModePayload,
   SetVisibilitySizePayload
 } from "@fog-maze-race/shared/contracts/realtime";
 import type { RoomSnapshot } from "@fog-maze-race/shared/contracts/snapshots";
@@ -23,6 +24,7 @@ type EventMap = {
   GAME_ENDED: GameEndedPayload;
   ERROR: ErrorPayload;
   SET_VISIBILITY_SIZE: SetVisibilitySizePayload;
+  SET_ROOM_GAME_MODE: SetRoomGameModePayload;
 };
 
 describe("US3 room administration contract", () => {
@@ -34,7 +36,7 @@ describe("US3 room administration contract", () => {
     const server = await buildServer({
       countdownStepMs: 25,
       resultsDurationMs: 60,
-      forcedMapId: "training-lap"
+      mapStorePath: null
     });
 
     app = server.app;
@@ -91,6 +93,10 @@ describe("US3 room administration contract", () => {
     const visionDenied = await once(guest, "ERROR");
     expect(visionDenied.code).toBe("HOST_ONLY");
 
+    guest.emit("SET_ROOM_GAME_MODE", { roomId: hostJoined.roomId, gameMode: "item" });
+    const gameModeDenied = await once(guest, "ERROR");
+    expect(gameModeDenied.code).toBe("HOST_ONLY");
+
     host.emit("SET_VISIBILITY_SIZE", { roomId: hostJoined.roomId, visibilitySize: 5 });
     const visibilityUpdated = await waitForSnapshot(
       host,
@@ -98,6 +104,14 @@ describe("US3 room administration contract", () => {
       1_000
     );
     expect(visibilityUpdated.room.visibilitySize).toBe(5);
+
+    host.emit("SET_ROOM_GAME_MODE", { roomId: hostJoined.roomId, gameMode: "item" });
+    const itemModeUpdated = await waitForSnapshot(
+      host,
+      (snapshot) => snapshot.room.gameMode === "item" && snapshot.previewMap?.featureFlags?.itemBoxes === true,
+      1_000
+    );
+    expect(itemModeUpdated.room.gameMode).toBe("item");
 
     host.emit("RENAME_ROOM", { roomId: hostJoined.roomId, name: "Beta" });
     const renamedList = await waitForRoomList(
@@ -152,7 +166,12 @@ describe("US3 room administration contract", () => {
     expect(resetDenied.code).toBe("HOST_ONLY");
 
     guest.emit("RESET_ROOM", { roomId: hostJoined.roomId });
-    await waitForSnapshot(guest, (snapshot) => snapshot.room.status === "waiting", 1_000);
+    const resetSnapshot = await waitForSnapshot(
+      guest,
+      (snapshot) => snapshot.room.status === "waiting" && snapshot.room.gameMode === "item",
+      1_000
+    );
+    expect(resetSnapshot.previewMap?.featureFlags?.itemBoxes).toBe(true);
   }, 15_000);
 
   it("syncs room chat messages to every member in the room", async () => {

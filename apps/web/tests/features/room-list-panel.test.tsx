@@ -164,6 +164,32 @@ describe("RoomListPanel", () => {
     expect(select?.style.appearance).toBe("none");
   });
 
+  it("does not render a map selector in the create room dialog", async () => {
+    await act(async () => {
+      root.render(
+        <RoomListPanel
+          rooms={[]}
+          roomName="Alpha"
+          roomMode="normal"
+          nickname="아르민"
+          connectionState="connected"
+          onNicknameSubmit={vi.fn()}
+          onRoomNameChange={vi.fn()}
+          onRoomModeChange={vi.fn()}
+          onCreateRoom={vi.fn()}
+          onJoinRoom={vi.fn()}
+        />
+      );
+    });
+
+    await act(async () => {
+      container.querySelector<HTMLButtonElement>('[data-testid="open-create-room-dialog-button"]')?.click();
+    });
+
+    expect(container.querySelector("#room-map")).toBeNull();
+    expect(container.textContent).not.toContain("아이템");
+  });
+
   it("filters rooms between all, joinable, and active states", async () => {
     await act(async () => {
       root.render(

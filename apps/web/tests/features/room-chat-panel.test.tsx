@@ -90,6 +90,7 @@ function buildSnapshot(messageCount = 1): RoomSnapshot {
       roomId: "room-1",
       name: "Alpha",
       mode: "normal",
+      gameMode: "normal",
       status: "waiting",
       hostPlayerId: "player-1",
       maxPlayers: 15,

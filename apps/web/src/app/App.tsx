@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type CSSProperties } from "react";
 
 import type { Direction } from "@fog-maze-race/shared/domain/grid-position";
-import type { RoomMode } from "@fog-maze-race/shared/domain/status";
+import type { RoomGameMode, RoomMode } from "@fog-maze-race/shared/domain/status";
 import type {
   ConnectedPayload,
   CountdownPayload,
@@ -295,6 +295,17 @@ export function App() {
     });
   }
 
+  function handleSetGameMode(gameMode: RoomGameMode) {
+    if (!snapshot) {
+      return;
+    }
+
+    socketRef.current.emit("SET_ROOM_GAME_MODE", {
+      roomId: snapshot.room.roomId,
+      gameMode
+    });
+  }
+
   function handleAddBots(input: { kind: RoomBotKind; bots: RoomBotRequest[] }) {
     if (!snapshot) {
       return;
@@ -427,6 +438,7 @@ export function App() {
           countdownValue={countdownValue}
           onStartGame={handleStartGame}
           onRenameRoom={handleRenameRoom}
+          onSetGameMode={handleSetGameMode}
           onSetVisibilitySize={handleSetVisibilitySize}
           onAddBots={handleAddBots}
           onRemoveBots={handleRemoveBots}

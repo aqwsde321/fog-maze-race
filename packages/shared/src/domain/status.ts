@@ -4,6 +4,9 @@ export type RoomStatus = (typeof ROOM_STATUSES)[number];
 export const ROOM_MODES = ["normal", "bot_race"] as const;
 export type RoomMode = (typeof ROOM_MODES)[number];
 
+export const ROOM_GAME_MODES = ["normal", "item"] as const;
+export type RoomGameMode = (typeof ROOM_GAME_MODES)[number];
+
 export const MATCH_STATUSES = ["countdown", "playing", "ended"] as const;
 export type MatchStatus = (typeof MATCH_STATUSES)[number];
 

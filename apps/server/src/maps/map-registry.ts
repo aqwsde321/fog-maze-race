@@ -2,6 +2,7 @@ import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { dirname } from "node:path";
 
 import type { AdminMapOrigin, AdminMapRecord, UpsertAdminMapPayload } from "@fog-maze-race/shared/contracts/admin-maps";
+import type { RoomGameMode } from "@fog-maze-race/shared/domain/status";
 import {
   DEFAULT_MAP_SOURCES,
   PLAYABLE_MAZE_SIZE,
@@ -92,11 +93,15 @@ export class MapRegistry {
   }
 
   getRandomPlayable(seedIndex = Date.now()) {
-    const playable = [...this.entries.values()]
-      .filter((entry) => entry.map.mapId !== "training-lap" && entry.map.mazeZone.maxX - entry.map.mazeZone.minX + 1 === PLAYABLE_MAZE_SIZE)
+    const playable = this.listPlayableByGameMode("normal")
       .map((entry) => entry.map);
 
     return playable[seedIndex % playable.length] ?? this.entries.get("training-lap")?.map ?? null;
+  }
+
+  getRandomPlayableByGameMode(gameMode: RoomGameMode, seedIndex = Date.now()) {
+    const playable = this.listPlayableByGameMode(gameMode).map((entry) => entry.map);
+    return playable[seedIndex % playable.length] ?? null;
   }
 
   async create(input: UpsertAdminMapPayload) {
@@ -221,6 +226,20 @@ export class MapRegistry {
 
   private isAdminVisible(entry: RegistryEntry) {
     return entry.map.mapId !== "training-lap" && entry.map.mazeZone.maxX - entry.map.mazeZone.minX + 1 === PLAYABLE_MAZE_SIZE;
+  }
+
+  private listPlayableByGameMode(gameMode: RoomGameMode) {
+    return [...this.entries.values()].filter((entry) => {
+      const isPlayable =
+        entry.map.mapId !== "training-lap" &&
+        entry.map.mazeZone.maxX - entry.map.mazeZone.minX + 1 === PLAYABLE_MAZE_SIZE;
+      if (!isPlayable) {
+        return false;
+      }
+
+      const supportsItems = Boolean(entry.map.featureFlags?.itemBoxes);
+      return gameMode === "item" ? supportsItems : !supportsItems;
+    });
   }
 }
 

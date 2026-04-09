@@ -96,6 +96,29 @@ describe("RoomService", () => {
     expect(snapshot.members[1]?.position).toEqual(sharedStartPosition);
   });
 
+  it("starts rooms in normal game mode and switches preview maps when the host changes to item mode", () => {
+    const service = new RoomService(new RevisionSync(), new MapRegistry(), {
+      random: () => 0
+    });
+
+    const created = service.createRoom({
+      session: new PlayerSession({
+        playerId: "host",
+        nickname: "호스트"
+      }),
+      name: "아이템전"
+    });
+
+    expect(created.snapshot.room.gameMode).toBe("normal");
+    expect(created.snapshot.previewMap?.featureFlags?.itemBoxes ?? false).toBe(false);
+
+    const updated = service.setGameMode(created.roomId, "host", "item");
+
+    expect(updated.room.gameMode).toBe("item");
+    expect(updated.previewMap?.mapId).toBe("kappa-trap");
+    expect(updated.previewMap?.featureFlags?.itemBoxes).toBe(true);
+  });
+
   it("reuses only colors that are no longer occupied when a player leaves and rejoins", () => {
     const service = new RoomService(new RevisionSync(), new MapRegistry(), {
       random: () => 0

@@ -10,7 +10,7 @@ import {
   type PlayerMarkerShape
 } from "@fog-maze-race/shared/domain/player-marker-shape";
 import type { RoomExploreStrategy } from "@fog-maze-race/shared/domain/room-bot-strategy";
-import type { MatchStatus, RoomMemberRole, RoomMode, RoomMemberState } from "@fog-maze-race/shared/domain/status";
+import type { MatchStatus, RoomGameMode, RoomMemberRole, RoomMode, RoomMemberState } from "@fog-maze-race/shared/domain/status";
 import {
   isInsideZone,
   isWalkableTile,
@@ -47,6 +47,7 @@ const VISIBILITY_SIZES = [3, 5, 7] as const;
 export type RoomRuntime = {
   room: RoomAggregate;
   match: MatchAggregate | null;
+  gameMode: RoomGameMode;
   previewMapId: string;
   fakeGoalTiles: GridPosition[];
   visibilitySize: 3 | 5 | 7;
@@ -80,8 +81,9 @@ export class RoomService {
     const roomId = randomUUID();
     const name = normalizeRoomName(input.name);
     const mode = input.mode ?? "normal";
-    const previewMapId = this.forcedPreviewMapId ?? this.mapRegistry.getRandomPlayable()?.mapId ?? "training-lap";
-    const previewMap = this.mapRegistry.get(previewMapId);
+    const gameMode: RoomGameMode = "normal";
+    const previewMap = this.resolvePreviewMap(gameMode);
+    const previewMapId = previewMap?.mapId ?? "training-lap";
     const room = new RoomAggregate({
       roomId,
       name,
@@ -108,6 +110,7 @@ export class RoomService {
     this.rooms.set(roomId, {
       room,
       match: null,
+      gameMode,
       previewMapId,
       fakeGoalTiles: createFakeGoalTiles(previewMap, mode, this.random),
       visibilitySize: 5,
@@ -178,7 +181,7 @@ export class RoomService {
 
   setPreviewMap(roomId: string, mapId?: string) {
     const runtime = this.requireRuntime(roomId);
-    const nextMap = mapId ? this.mapRegistry.get(mapId) : this.mapRegistry.getRandomPlayable();
+    const nextMap = mapId ? this.mapRegistry.get(mapId) : this.pickRandomPlayableMap(runtime.gameMode);
     if (!nextMap) {
       throw new Error("MAP_NOT_FOUND");
     }
@@ -186,6 +189,29 @@ export class RoomService {
     runtime.previewMapId = nextMap.mapId;
     runtime.fakeGoalTiles = createFakeGoalTiles(nextMap, runtime.room.mode, this.random);
     this.bumpStreamRevision(roomId);
+  }
+
+  setGameMode(roomId: string, requestedBy: string, gameMode: RoomGameMode) {
+    const runtime = this.requireRuntime(roomId);
+    if (runtime.room.hostPlayerId !== requestedBy) {
+      throw new Error("HOST_ONLY");
+    }
+
+    if (runtime.room.status !== "waiting") {
+      throw new Error("ROOM_NOT_JOINABLE");
+    }
+
+    runtime.gameMode = gameMode;
+    const nextMap = this.resolvePreviewMap(gameMode);
+    if (!nextMap) {
+      throw new Error("MAP_NOT_FOUND");
+    }
+
+    runtime.previewMapId = nextMap.mapId;
+    runtime.fakeGoalTiles = createFakeGoalTiles(nextMap, runtime.room.mode, this.random);
+    runtime.room.seedMatchPositions(nextMap.startSlots);
+    this.syncRoomRevision(roomId);
+    return this.getSnapshot(roomId);
   }
 
   setVisibilitySize(roomId: string, requestedBy: string, visibilitySize: 3 | 5 | 7) {
@@ -332,6 +358,7 @@ export class RoomService {
         roomId: runtime.room.roomId,
         name: runtime.room.name,
         mode: runtime.room.mode,
+        gameMode: runtime.gameMode,
         status: runtime.room.status,
         hostPlayerId: runtime.room.hostPlayerId,
         maxPlayers: runtime.room.maxPlayers,
@@ -387,6 +414,19 @@ export class RoomService {
           }
         : null
     };
+  }
+
+  private resolvePreviewMap(gameMode: RoomGameMode) {
+    if (this.forcedPreviewMapId) {
+      return this.mapRegistry.get(this.forcedPreviewMapId);
+    }
+
+    return this.pickRandomPlayableMap(gameMode);
+  }
+
+  private pickRandomPlayableMap(gameMode: RoomGameMode) {
+    const seedIndex = Math.floor(this.random() * Number.MAX_SAFE_INTEGER);
+    return this.mapRegistry.getRandomPlayableByGameMode(gameMode, seedIndex);
   }
 
   requireRuntime(roomId: string): RoomRuntime {

@@ -157,6 +157,46 @@ describe("MatchService start-zone movement", () => {
     expect(resetSnapshot.previewMap).not.toBeNull();
   });
 
+  it("keeps the selected game mode when resetting back to waiting", () => {
+    const mapRegistry = new MapRegistry();
+    const roomService = new RoomService(new RevisionSync(), mapRegistry, {
+      random: () => 0
+    });
+    const matchService = new MatchService(roomService, {
+      countdownStepMs: 1_000,
+      resultsDurationMs: 25
+    });
+    services.push(matchService);
+
+    const created = roomService.createRoom({
+      session: new PlayerSession({
+        playerId: "host",
+        nickname: "호스트"
+      }),
+      name: "Alpha"
+    });
+
+    roomService.setGameMode(created.roomId, "host", "item");
+    roomService.setMatch(
+      created.roomId,
+      new MatchAggregate({
+        matchId: "match-3",
+        roomId: created.roomId,
+        map: getMapById("kappa-trap")!
+      })
+    );
+    roomService.requireRuntime(created.roomId).room.endRound();
+    roomService.getMatch(created.roomId)?.end();
+    roomService.syncRoomRevision(created.roomId);
+
+    matchService.resetRoomToWaiting(created.roomId, "host", createSink());
+
+    const resetSnapshot = roomService.getSnapshot(created.roomId);
+    expect(resetSnapshot.room.status).toBe("waiting");
+    expect(resetSnapshot.room.gameMode).toBe("item");
+    expect(resetSnapshot.previewMap?.featureFlags?.itemBoxes).toBe(true);
+  });
+
   it("spawns one item box per active racer when an item map starts", () => {
     vi.useFakeTimers();
 

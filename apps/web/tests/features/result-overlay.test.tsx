@@ -156,6 +156,7 @@ function buildEndedSnapshot(
       roomId: "room-1",
       name: "Alpha",
       mode: "normal",
+      gameMode: "normal",
       status: "ended",
       hostPlayerId: "player-1",
       maxPlayers: 15,
