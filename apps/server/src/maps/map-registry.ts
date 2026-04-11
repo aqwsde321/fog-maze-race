@@ -228,17 +228,12 @@ export class MapRegistry {
     return entry.map.mapId !== "training-lap" && entry.map.mazeZone.maxX - entry.map.mazeZone.minX + 1 === PLAYABLE_MAZE_SIZE;
   }
 
-  private listPlayableByGameMode(gameMode: RoomGameMode) {
+  private listPlayableByGameMode(_gameMode: RoomGameMode) {
     return [...this.entries.values()].filter((entry) => {
       const isPlayable =
         entry.map.mapId !== "training-lap" &&
         entry.map.mazeZone.maxX - entry.map.mazeZone.minX + 1 === PLAYABLE_MAZE_SIZE;
-      if (!isPlayable) {
-        return false;
-      }
-
-      const supportsItems = Boolean(entry.map.featureFlags?.itemBoxes);
-      return gameMode === "item" ? supportsItems : !supportsItems;
+      return isPlayable;
     });
   }
 }

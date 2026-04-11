@@ -110,7 +110,7 @@ describe("US3 room administration contract", () => {
     host.emit("SET_ROOM_GAME_MODE", { roomId: hostJoined.roomId, gameMode: "item" });
     const itemModeUpdated = await waitForSnapshot(
       host,
-      (snapshot) => snapshot.room.gameMode === "item" && snapshot.previewMap?.featureFlags?.itemBoxes === true,
+      (snapshot) => snapshot.room.gameMode === "item",
       1_000
     );
     expect(itemModeUpdated.room.gameMode).toBe("item");
@@ -173,7 +173,7 @@ describe("US3 room administration contract", () => {
       (snapshot) => snapshot.room.status === "waiting" && snapshot.room.gameMode === "item",
       1_000
     );
-    expect(resetSnapshot.previewMap?.featureFlags?.itemBoxes).toBe(true);
+    expect(resetSnapshot.room.gameMode).toBe("item");
   }, 15_000);
 
   it("syncs room chat messages to every member in the room", async () => {

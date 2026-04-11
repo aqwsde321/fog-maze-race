@@ -37,7 +37,6 @@ describe("admin map routes", () => {
         name: "Gamma Lock",
         mazeRows: baseRows,
         featureFlags: {
-          itemBoxes: true,
           itemBoxSpawn: {
             mode: "fixed",
             value: 9
@@ -49,7 +48,6 @@ describe("admin map routes", () => {
     expect(createResponse.statusCode).toBe(201);
     expect(createResponse.json().map.origin).toBe("custom");
     expect(createResponse.json().map.featureFlags).toEqual({
-      itemBoxes: true,
       itemBoxSpawn: {
         mode: "fixed",
         value: 9
@@ -66,7 +64,6 @@ describe("admin map routes", () => {
         name: "Alpha Override",
         mazeRows: updateRows,
         featureFlags: {
-          itemBoxes: true,
           itemBoxSpawn: {
             mode: "per_racer",
             value: 3
@@ -79,7 +76,6 @@ describe("admin map routes", () => {
     expect(updateResponse.json().map.origin).toBe("override");
     expect(updateResponse.json().map.name).toBe("Alpha Override");
     expect(updateResponse.json().map.featureFlags).toEqual({
-      itemBoxes: true,
       itemBoxSpawn: {
         mode: "per_racer",
         value: 3

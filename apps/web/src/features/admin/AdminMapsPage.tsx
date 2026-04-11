@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState, type CSSProperties } from "react";
 
 import type { AdminMapRecord, UpsertAdminMapPayload } from "@fog-maze-race/shared/contracts/admin-maps";
-import { DEFAULT_ITEM_BOX_SPAWN_RULE, type MapFeatureFlags } from "@fog-maze-race/shared/domain/item";
+import { DEFAULT_ITEM_BOX_SPAWN_RULE, type ItemBoxSpawnRule, type MapFeatureFlags } from "@fog-maze-race/shared/domain/item";
 import { PLAYABLE_MAZE_SIZE, createBlankMazeRows } from "@fog-maze-race/shared/maps/map-definitions";
 
 type SaveMode = "create" | "update";
@@ -11,7 +11,9 @@ type DraftMap = {
   mapId: string;
   name: string;
   mazeRows: string[];
-  featureFlags: Required<MapFeatureFlags>;
+  featureFlags: {
+    itemBoxSpawn: ItemBoxSpawnRule;
+  };
 };
 
 const TOOLS: Array<{
@@ -138,7 +140,6 @@ export function AdminMapsPage() {
       name,
       mazeRows: draft.mazeRows,
       featureFlags: {
-        itemBoxes: draft.featureFlags.itemBoxes,
         itemBoxSpawn: {
           mode: draft.featureFlags.itemBoxSpawn.mode,
           value: Math.max(1, Math.floor(draft.featureFlags.itemBoxSpawn.value))
@@ -317,26 +318,8 @@ export function AdminMapsPage() {
           </div>
 
           <div style={itemSettingsRowStyle}>
-            <label style={checkboxFieldStyle}>
-              <input
-                aria-label="아이템 박스 사용"
-                type="checkbox"
-                checked={draft.featureFlags.itemBoxes}
-                onChange={(event) =>
-                  setDraft((current) => ({
-                    ...current,
-                    featureFlags: {
-                      ...current.featureFlags,
-                      itemBoxes: event.target.checked
-                    }
-                  }))
-                }
-              />
-              <span>아이템 박스 사용</span>
-            </label>
-
             <div style={spawnRuleGroupStyle}>
-              <span style={fieldLabelCaptionStyle}>생성 규칙</span>
+              <span style={fieldLabelCaptionStyle}>아이템 박스 생성 규칙</span>
               <div style={spawnRuleOptionsStyle}>
                 <label style={radioFieldStyle}>
                   <input
@@ -469,9 +452,8 @@ function createDraft(): DraftMap {
   };
 }
 
-function normalizeFeatureFlags(featureFlags?: MapFeatureFlags): Required<MapFeatureFlags> {
+function normalizeFeatureFlags(featureFlags?: MapFeatureFlags): DraftMap["featureFlags"] {
   return {
-    itemBoxes: featureFlags?.itemBoxes ?? false,
     itemBoxSpawn: {
       mode: featureFlags?.itemBoxSpawn?.mode ?? DEFAULT_ITEM_BOX_SPAWN_RULE.mode,
       value: featureFlags?.itemBoxSpawn?.value ?? DEFAULT_ITEM_BOX_SPAWN_RULE.value
@@ -845,20 +827,11 @@ const fieldLabelStyle: CSSProperties = {
 
 const itemSettingsRowStyle: CSSProperties = {
   display: "grid",
-  gridTemplateColumns: "minmax(180px, 220px) minmax(260px, 1fr) minmax(140px, 180px)",
+  gridTemplateColumns: "minmax(260px, 1fr) minmax(140px, 180px)",
   gap: "16px",
   marginTop: "16px",
   marginBottom: "14px",
   alignItems: "end"
-};
-
-const checkboxFieldStyle: CSSProperties = {
-  display: "inline-flex",
-  alignItems: "center",
-  gap: "10px",
-  minHeight: "40px",
-  color: "#cbd5e1",
-  fontSize: "0.86rem"
 };
 
 const spawnRuleGroupStyle: CSSProperties = {

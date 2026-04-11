@@ -211,14 +211,12 @@ export class RoomService {
     }
 
     runtime.gameMode = gameMode;
-    const nextMap = this.resolvePreviewMap(gameMode);
-    if (!nextMap) {
+    const previewMap = this.mapRegistry.get(runtime.previewMapId);
+    if (!previewMap) {
       throw new Error("MAP_NOT_FOUND");
     }
 
-    runtime.previewMapId = nextMap.mapId;
-    runtime.fakeGoalTiles = createFakeGoalTiles(nextMap, runtime.room.mode, this.random);
-    runtime.room.seedMatchPositions(nextMap.startSlots);
+    runtime.room.seedMatchPositions(previewMap.startSlots);
     this.syncRoomRevision(roomId);
     return this.getSnapshot(roomId);
   }

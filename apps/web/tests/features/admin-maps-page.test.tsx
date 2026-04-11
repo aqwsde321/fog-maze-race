@@ -98,7 +98,6 @@ describe("AdminMapsPage", () => {
       name: string;
       mazeRows: string[];
       featureFlags: {
-        itemBoxes: boolean;
         itemBoxSpawn: {
           mode: string;
           value: number;
@@ -110,7 +109,6 @@ describe("AdminMapsPage", () => {
     expect(body.mazeRows).toHaveLength(25);
     expect(body.mazeRows[1]?.[1]).toBe(".");
     expect(body.featureFlags).toEqual({
-      itemBoxes: false,
       itemBoxSpawn: {
         mode: "per_racer",
         value: 2
@@ -267,7 +265,6 @@ describe("AdminMapsPage", () => {
       name: "Alpha Run",
       origin: "override",
       featureFlags: {
-        itemBoxes: true,
         itemBoxSpawn: {
           mode: "fixed",
           value: 9
@@ -285,18 +282,15 @@ describe("AdminMapsPage", () => {
     });
     await flush();
 
-    const itemToggle = container.querySelector('input[aria-label="아이템 박스 사용"]') as HTMLInputElement | null;
     const fixedMode = container.querySelector('input[aria-label="고정 개수"]') as HTMLInputElement | null;
     const countInput = container.querySelector('input[aria-label="생성 개수"]') as HTMLInputElement | null;
     const saveButton = [...container.querySelectorAll("button")].find((button) => button.textContent?.includes("변경 저장"));
 
-    expect(itemToggle).toBeTruthy();
     expect(fixedMode).toBeTruthy();
     expect(countInput).toBeTruthy();
     expect(saveButton).toBeTruthy();
 
     await act(async () => {
-      itemToggle!.click();
       fixedMode!.click();
       setElementValue(countInput!, "9");
     });
@@ -310,7 +304,6 @@ describe("AdminMapsPage", () => {
       name: string;
       mazeRows: string[];
       featureFlags: {
-        itemBoxes: boolean;
         itemBoxSpawn: {
           mode: string;
           value: number;
@@ -319,7 +312,6 @@ describe("AdminMapsPage", () => {
     };
 
     expect(body.featureFlags).toEqual({
-      itemBoxes: true,
       itemBoxSpawn: {
         mode: "fixed",
         value: 9

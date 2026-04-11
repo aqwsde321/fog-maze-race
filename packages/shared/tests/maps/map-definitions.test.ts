@@ -117,16 +117,15 @@ describe("MAP_DEFINITIONS", () => {
     });
   });
 
-  it("preserves item-map feature flags on definitions", () => {
+  it("preserves item box spawn feature flags on definitions", () => {
     const itemMap = getMapById("kappa-trap");
     const normalMap = getMapById("alpha-run");
 
-    expect(itemMap?.featureFlags?.itemBoxes).toBe(true);
     expect(itemMap?.featureFlags?.itemBoxSpawn).toEqual({
       mode: "per_racer",
       value: 2
     });
-    expect(normalMap?.featureFlags?.itemBoxes ?? false).toBe(false);
+    expect(normalMap?.featureFlags?.itemBoxSpawn).toBeUndefined();
 
     const blankItemMap = buildMapDefinition({
       mapId: "item-feature-test",

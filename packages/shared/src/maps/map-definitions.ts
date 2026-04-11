@@ -470,7 +470,6 @@ export const DEFAULT_MAP_SOURCES: EditableMapSource[] = [
     name: "Kappa Trap",
     mazeRows: KAPPA_TRAP_CORE_ROWS,
     featureFlags: {
-      itemBoxes: true,
       itemBoxSpawn: {
         mode: "per_racer",
         value: 2

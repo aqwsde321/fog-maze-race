@@ -144,7 +144,7 @@ export class MatchAggregate {
   }
 
   spawnItemBoxes(count: number, random: () => number) {
-    if (!this.map.featureFlags?.itemBoxes) {
+    if (count <= 0) {
       this.itemBoxes = [];
       return this.itemBoxes;
     }

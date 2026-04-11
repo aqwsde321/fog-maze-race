@@ -194,10 +194,47 @@ describe("MatchService start-zone movement", () => {
     const resetSnapshot = roomService.getSnapshot(created.roomId);
     expect(resetSnapshot.room.status).toBe("waiting");
     expect(resetSnapshot.room.gameMode).toBe("item");
-    expect(resetSnapshot.previewMap?.featureFlags?.itemBoxes).toBe(true);
   });
 
-  it("spawns one item box per active racer when an item map starts", () => {
+  it("spawns item boxes on a regular map when item mode starts", () => {
+    vi.useFakeTimers();
+
+    const mapRegistry = new MapRegistry();
+    const roomService = new RoomService(new RevisionSync(), mapRegistry, {
+      forcedPreviewMapId: getMapById("alpha-run")!.mapId
+    });
+    const matchService = new MatchService(roomService, {
+      countdownStepMs: 25,
+      resultsDurationMs: 60,
+      random: () => 0
+    });
+    services.push(matchService);
+
+    const created = roomService.createRoom({
+      session: new PlayerSession({
+        playerId: "host",
+        nickname: "호스트"
+      }),
+      name: "Alpha"
+    });
+    roomService.setGameMode(created.roomId, "host", "item");
+    roomService.joinRoom({
+      roomId: created.roomId,
+      session: new PlayerSession({
+        playerId: "guest",
+        nickname: "게스트"
+      })
+    });
+
+    matchService.startGame(created.roomId, "host", createSink());
+    vi.advanceTimersByTime(120);
+
+    const snapshot = roomService.getSnapshot(created.roomId);
+    expect(snapshot.room.status).toBe("playing");
+    expect(snapshot.match?.itemBoxes).toHaveLength(4);
+  });
+
+  it("does not spawn item boxes in normal mode even if the forced map has item settings", () => {
     vi.useFakeTimers();
 
     const mapRegistry = new MapRegistry();
@@ -231,8 +268,8 @@ describe("MatchService start-zone movement", () => {
 
     const snapshot = roomService.getSnapshot(created.roomId);
     expect(snapshot.room.status).toBe("playing");
-    expect(snapshot.match?.map.featureFlags?.itemBoxes).toBe(true);
-    expect(snapshot.match?.itemBoxes).toHaveLength(4);
+    expect(snapshot.room.gameMode).toBe("normal");
+    expect(snapshot.match?.itemBoxes).toHaveLength(0);
   });
 
   it("keeps a one-slot inventory and freezes another racer after an ice trap triggers", () => {
@@ -270,6 +307,7 @@ describe("MatchService start-zone movement", () => {
         nickname: "세번째"
       })
     });
+    roomService.setGameMode(created.roomId, "host", "item");
 
     matchService.startGame(created.roomId, "host", createSink());
     vi.advanceTimersByTime(120);

@@ -365,6 +365,7 @@ export class MatchService {
           runtime.room.markMembersPlaying();
           match.spawnItemBoxes(
             resolveItemBoxSpawnCount(
+              runtime.gameMode,
               match.map.featureFlags,
               runtime.room.listMembers().filter((member) => member.role === "racer" && member.state === "playing").length
             ),
@@ -520,12 +521,16 @@ export class MatchService {
   }
 }
 
-function resolveItemBoxSpawnCount(featureFlags: MapFeatureFlags | undefined, activeRacerCount: number) {
-  if (!featureFlags?.itemBoxes) {
+function resolveItemBoxSpawnCount(
+  gameMode: "normal" | "item",
+  featureFlags: MapFeatureFlags | undefined,
+  activeRacerCount: number
+) {
+  if (gameMode !== "item") {
     return 0;
   }
 
-  const spawnRule = featureFlags.itemBoxSpawn ?? DEFAULT_ITEM_BOX_SPAWN_RULE;
+  const spawnRule = featureFlags?.itemBoxSpawn ?? DEFAULT_ITEM_BOX_SPAWN_RULE;
   const normalizedValue = Math.max(1, Math.floor(spawnRule.value));
 
   if (spawnRule.mode === "fixed") {

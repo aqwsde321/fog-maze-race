@@ -96,7 +96,7 @@ describe("RoomService", () => {
     expect(snapshot.members[1]?.position).toEqual(sharedStartPosition);
   });
 
-  it("starts rooms in normal game mode and switches preview maps when the host changes to item mode", () => {
+  it("starts rooms in normal game mode and keeps the preview map when the host changes game mode", () => {
     const service = new RoomService(new RevisionSync(), new MapRegistry(), {
       random: () => 0
     });
@@ -110,13 +110,12 @@ describe("RoomService", () => {
     });
 
     expect(created.snapshot.room.gameMode).toBe("normal");
-    expect(created.snapshot.previewMap?.featureFlags?.itemBoxes ?? false).toBe(false);
+    const initialPreviewMapId = created.snapshot.previewMap?.mapId;
 
     const updated = service.setGameMode(created.roomId, "host", "item");
 
     expect(updated.room.gameMode).toBe("item");
-    expect(updated.previewMap?.mapId).toBe("kappa-trap");
-    expect(updated.previewMap?.featureFlags?.itemBoxes).toBe(true);
+    expect(updated.previewMap?.mapId).toBe(initialPreviewMapId);
   });
 
   it("reuses only colors that are no longer occupied when a player leaves and rejoins", () => {
