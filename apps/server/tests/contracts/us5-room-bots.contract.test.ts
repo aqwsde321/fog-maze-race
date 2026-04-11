@@ -70,11 +70,12 @@ describe("US5 room bots contract", () => {
     guest.emit("JOIN_ROOM", { roomId: hostJoined.roomId });
     await once(guest, "ROOM_JOINED");
 
+    const deniedPromise = once(guest, "ERROR");
     guest.emit("ADD_ROOM_BOTS", {
       roomId: hostJoined.roomId,
       bots: [{ nickname: "red", kind: "explore", strategy: "frontier" }]
     });
-    const denied = await once(guest, "ERROR");
+    const denied = await deniedPromise;
     expect(denied.code).toBe("HOST_ONLY");
 
     host.emit("ADD_ROOM_BOTS", {
@@ -207,13 +208,15 @@ describe("US5 room bots contract", () => {
       creatorPlayerId: viewerOneConnected.playerId
     });
 
+    const viewerOneLimitedPromise = once(viewerOne, "ERROR");
     viewerOne.emit("ADD_ROOM_BOTS", {
       roomId: joined.roomId,
       bots: [{ nickname: "blue", kind: "join" }]
     });
-    const viewerOneLimited = await once(viewerOne, "ERROR");
+    const viewerOneLimited = await viewerOneLimitedPromise;
     expect(viewerOneLimited.code).toBe("BOT_LIMIT_REACHED");
 
+    const viewerTwoLimitedPromise = once(viewerTwo, "ERROR");
     viewerTwo.emit("ADD_ROOM_BOTS", {
       roomId: joined.roomId,
       bots: [
@@ -221,7 +224,7 @@ describe("US5 room bots contract", () => {
         { nickname: "b2", kind: "join" }
       ]
     });
-    const viewerTwoLimited = await once(viewerTwo, "ERROR");
+    const viewerTwoLimited = await viewerTwoLimitedPromise;
     expect(viewerTwoLimited.code).toBe("BOT_LIMIT_REACHED");
 
     viewerTwo.emit("ADD_ROOM_BOTS", {
@@ -240,11 +243,12 @@ describe("US5 room bots contract", () => {
       exploreStrategy: "wall"
     });
 
+    const removalDeniedPromise = once(viewerOne, "ERROR");
     viewerOne.emit("REMOVE_ROOM_BOTS", {
       roomId: joined.roomId,
       playerIds: [viewerTwoBot!.playerId]
     });
-    const removalDenied = await once(viewerOne, "ERROR");
+    const removalDenied = await removalDeniedPromise;
     expect(removalDenied.code).toBe("BOT_OWNER_ONLY");
 
     const viewerOneBot = withViewerTwoBot.members.find((member) => member.nickname === "red");
@@ -419,16 +423,26 @@ async function waitForSnapshot(
   predicate: (snapshot: RoomJoinedPayload["snapshot"]) => boolean,
   timeoutMs: number
 ) {
-  const startedAt = Date.now();
+  return new Promise<RoomJoinedPayload["snapshot"]>((resolve, reject) => {
+    const untypedSocket = socket as any;
 
-  while (Date.now() - startedAt < timeoutMs) {
-    const payload = await once(socket, "ROOM_STATE_UPDATE");
-    if (predicate(payload.snapshot)) {
-      return payload.snapshot;
-    }
-  }
+    const timeout = setTimeout(() => {
+      untypedSocket.off("ROOM_STATE_UPDATE", handleSnapshot);
+      reject(new Error("Timed out waiting for room snapshot"));
+    }, timeoutMs);
 
-  throw new Error("Timed out waiting for room snapshot");
+    const handleSnapshot = (payload: RoomStateUpdatePayload) => {
+      if (!predicate(payload.snapshot)) {
+        return;
+      }
+
+      clearTimeout(timeout);
+      untypedSocket.off("ROOM_STATE_UPDATE", handleSnapshot);
+      resolve(payload.snapshot);
+    };
+
+    untypedSocket.on("ROOM_STATE_UPDATE", handleSnapshot);
+  });
 }
 
 async function waitFor(predicate: () => Promise<boolean>, timeoutMs: number) {
@@ -438,7 +452,15 @@ async function waitFor(predicate: () => Promise<boolean>, timeoutMs: number) {
     if (await predicate()) {
       return;
     }
+
+    await delay(10);
   }
 
   throw new Error("Timed out waiting for condition");
+}
+
+function delay(durationMs: number) {
+  return new Promise<void>((resolve) => {
+    setTimeout(resolve, durationMs);
+  });
 }
