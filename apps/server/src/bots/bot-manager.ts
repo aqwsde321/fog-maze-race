@@ -331,7 +331,7 @@ export class BotManager {
       return;
     }
 
-    const nextDirection = this.decideNextDirection(bot, snapshot.match.map, member.position, snapshot);
+    const nextDirection = this.decideNextDirection(bot, snapshot.match.map, member.position, snapshot, snapshotMember);
     if (!nextDirection) {
       return;
     }
@@ -396,16 +396,23 @@ export class BotManager {
     bot: BotRuntime,
     map: MapView,
     position: GridPosition,
-    snapshot: ReturnType<RoomService["getSnapshot"]>
+    snapshot: ReturnType<RoomService["getSnapshot"]>,
+    snapshotMember: RoomMemberView | null
   ): Direction | null {
     if (bot.kind === "join") {
+      return findPathToGoal(map, position)?.[0] ?? null;
+    }
+
+    if (snapshotMember?.scannerUntil && Date.parse(snapshotMember.scannerUntil) > Date.now()) {
       return findPathToGoal(map, position)?.[0] ?? null;
     }
 
     bot.explorerMemory = updateExplorerMemory({
       previous: bot.explorerMemory,
       snapshot,
-      selfPlayerId: bot.playerId
+      selfPlayerId: bot.playerId,
+      visibilityRadiusBonus:
+        snapshotMember?.flareUntil && Date.parse(snapshotMember.flareUntil) > Date.now() ? 1 : 0
     });
 
     return decideExplorerMove({
@@ -464,7 +471,7 @@ function shouldUseHeldItem(
   snapshot: RoomSnapshot,
   member: RoomMemberView
 ) {
-  if (member.kind !== "bot" || member.role !== "racer" || member.heldItemType !== "ice_trap" || !member.position) {
+  if (member.kind !== "bot" || member.role !== "racer" || !member.heldItemType || !member.position) {
     return false;
   }
 
@@ -473,7 +480,17 @@ function shouldUseHeldItem(
     return false;
   }
 
-  return !match.traps?.some((trap) => samePosition(trap.position, member.position));
+  switch (member.heldItemType) {
+    case "ice_trap":
+    case "return_trap":
+      return !match.traps?.some((trap) => samePosition(trap.position, member.position));
+    case "flare":
+      return !(member.flareUntil && Date.parse(member.flareUntil) > Date.now());
+    case "boost":
+      return !(member.boostUntil && Date.parse(member.boostUntil) > Date.now());
+    case "scanner":
+      return !(member.scannerUntil && Date.parse(member.scannerUntil) > Date.now());
+  }
 }
 
 function findPathToGoal(map: MapView, start: GridPosition) {

@@ -1,5 +1,5 @@
 import type { GridPosition } from "../domain/grid-position.js";
-import type { MapFeatureFlags, MatchItemType, MatchTrapState } from "../domain/item.js";
+import type { MapFeatureFlags, MatchItemType, MatchTrapState, MatchTrapType } from "../domain/item.js";
 import type { PlayerMarkerShape } from "../domain/player-marker-shape.js";
 import type { ResultEntry } from "../domain/result-entry.js";
 import type { RoomBotSpeedMultiplier } from "../domain/room-bot-speed.js";
@@ -21,6 +21,9 @@ export type RoomMemberView = {
   finishRank: number | null;
   heldItemType?: MatchItemType | null;
   frozenUntil?: string | null;
+  flareUntil?: string | null;
+  boostUntil?: string | null;
+  scannerUntil?: string | null;
   isHost: boolean;
 };
 
@@ -57,6 +60,7 @@ export type MatchItemBoxView = {
 export type MatchTrapView = {
   trapId: string;
   ownerPlayerId: string;
+  itemType: MatchTrapType;
   position: GridPosition;
   state: MatchTrapState;
 };

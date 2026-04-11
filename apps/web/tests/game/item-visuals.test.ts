@@ -4,6 +4,7 @@ import {
   getFrozenPrisonMetrics,
   getIceTrapPalette,
   getItemBoxMetrics,
+  getReturnTrapPalette,
   isFrozenActive
 } from "../../src/game/pixi/item-visuals.js";
 
@@ -24,6 +25,15 @@ describe("item visuals", () => {
     expect(armed.spikeAlpha).toBeGreaterThan(triggered.spikeAlpha);
     expect(armed.coreAlpha).toBeGreaterThan(triggered.coreAlpha);
     expect(armed.shellStroke).not.toBe(triggered.shellStroke);
+  });
+
+  it("returns a distinct palette for return traps", () => {
+    const ice = getIceTrapPalette("armed");
+    const returning = getReturnTrapPalette("armed");
+
+    expect(returning.shellColor).not.toBe(ice.shellColor);
+    expect(returning.spikeColor).not.toBe(ice.spikeColor);
+    expect(returning.coreColor).not.toBe(ice.coreColor);
   });
 
   it("treats only future frozen timestamps as active", () => {

@@ -8,6 +8,7 @@ import type {
   RoomBotSpeedMultiplier
 } from "@fog-maze-race/shared/contracts/realtime";
 import type { Direction } from "@fog-maze-race/shared/domain/grid-position";
+import { getMatchItemLabel } from "@fog-maze-race/shared/domain/item";
 import type { RoomGameMode } from "@fog-maze-race/shared/domain/status";
 import type { RoomSnapshot } from "@fog-maze-race/shared/contracts/snapshots";
 
@@ -173,13 +174,20 @@ export function GameScreen({
   const canMove = snapshot.room.status === "waiting" || snapshot.room.status === "countdown" || snapshot.room.status === "playing";
   const isFrozen =
     Boolean(selfMember?.frozenUntil) && new Date(selfMember!.frozenUntil!).getTime() > Date.now();
+  const isFlareActive =
+    Boolean(selfMember?.flareUntil) && new Date(selfMember!.flareUntil!).getTime() > Date.now();
+  const isBoostActive =
+    Boolean(selfMember?.boostUntil) && new Date(selfMember!.boostUntil!).getTime() > Date.now();
+  const isScannerActive =
+    Boolean(selfMember?.scannerUntil) && new Date(selfMember!.scannerUntil!).getTime() > Date.now();
   const canUseItem =
     snapshot.room.status === "playing" &&
     selfMember?.role === "racer" &&
     selfMember.state === "playing" &&
     !isFrozen &&
-    selfMember.heldItemType === "ice_trap";
-  const heldItemLabel = selfMember?.heldItemType === "ice_trap" ? "얼음 함정" : null;
+    Boolean(selfMember.heldItemType);
+  const heldItemLabel = getMatchItemLabel(selfMember?.heldItemType);
+  const heldItemIcon = resolveHeldItemIcon(selfMember?.heldItemType);
   const displayStatus = snapshot.room.status === "countdown" ? "playing" : snapshot.room.status;
   const currentRacerCount = snapshot.members.filter((member) => member.role === "racer").length;
   const availableBotSlots = Math.max(
@@ -560,11 +568,11 @@ export function GameScreen({
           tabIndex={0}
         >
           <GameCanvas snapshot={snapshot} selfPlayerId={selfPlayerId} />
-          {snapshot.room.status === "playing" && (heldItemLabel || isFrozen) ? (
+          {snapshot.room.status === "playing" && (heldItemLabel || isFrozen || isFlareActive || isBoostActive) ? (
             <div data-testid="item-hud" style={itemHudWrapStyle}>
               {heldItemLabel ? (
                 <div data-testid="held-item-card" style={itemCardStyle}>
-                  <div style={itemCardIconStyle}>❄</div>
+                  <div style={itemCardIconStyle}>{heldItemIcon}</div>
                   <div style={itemCardBodyStyle}>
                     <span style={itemCardLabelStyle}>보유 아이템</span>
                     <strong style={itemCardValueStyle}>{heldItemLabel}</strong>
@@ -575,6 +583,16 @@ export function GameScreen({
               {isFrozen ? (
                 <div data-testid="frozen-status-card" style={frozenCardStyle}>
                   빙결 상태
+                </div>
+              ) : null}
+              {isFlareActive ? (
+                <div data-testid="flare-status-card" style={effectCardStyle("flare")}>
+                  플레어 활성
+                </div>
+              ) : null}
+              {isBoostActive ? (
+                <div data-testid="boost-status-card" style={effectCardStyle("boost")}>
+                  부스트 활성
                 </div>
               ) : null}
             </div>
@@ -1500,6 +1518,49 @@ const frozenCardStyle: CSSProperties = {
   fontSize: "0.74rem",
   fontWeight: 700
 };
+
+function effectCardStyle(kind: "flare" | "boost" | "scanner"): CSSProperties {
+  switch (kind) {
+    case "flare":
+      return {
+        ...frozenCardStyle,
+        background: "rgba(84, 37, 6, 0.92)",
+        border: "1px solid rgba(251, 191, 36, 0.28)",
+        color: "#fde68a"
+      };
+    case "boost":
+      return {
+        ...frozenCardStyle,
+        background: "rgba(20, 62, 33, 0.92)",
+        border: "1px solid rgba(74, 222, 128, 0.28)",
+        color: "#bbf7d0"
+      };
+    case "scanner":
+      return {
+        ...frozenCardStyle,
+        background: "rgba(10, 33, 53, 0.92)",
+        border: "1px solid rgba(125, 211, 252, 0.28)",
+        color: "#bae6fd"
+      };
+  }
+}
+
+function resolveHeldItemIcon(itemType: RoomSnapshot["members"][number]["heldItemType"]) {
+  switch (itemType) {
+    case "return_trap":
+      return "↺";
+    case "flare":
+      return "✦";
+    case "boost":
+      return "≫";
+    case "scanner":
+      return "⌖";
+    case "ice_trap":
+      return "❄";
+    default:
+      return "?";
+  }
+}
 
 const quickChatComposerStyle: CSSProperties = {
   position: "relative",

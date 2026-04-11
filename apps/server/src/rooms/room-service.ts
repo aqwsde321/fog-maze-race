@@ -110,7 +110,10 @@ export class RoomService {
       state: "waiting",
       position: creatorRole === "racer" ? getSharedStartPosition(previewMap) : null,
       heldItemType: null,
-      frozenUntil: null
+      frozenUntil: null,
+      flareUntil: null,
+      boostUntil: null,
+      scannerUntil: null
     });
 
     this.rooms.set(roomId, {
@@ -160,7 +163,10 @@ export class RoomService {
       state: "waiting",
       position: role === "racer" ? getSharedStartPosition(previewMap) : null,
       heldItemType: null,
-      frozenUntil: null
+      frozenUntil: null,
+      flareUntil: null,
+      boostUntil: null,
+      scannerUntil: null
     });
     runtime.shapeCursor += 1;
 
@@ -409,6 +415,9 @@ export class RoomService {
         finishRank: member.finishRank,
         heldItemType: member.heldItemType,
         frozenUntil: toIso(member.frozenUntil),
+        flareUntil: toIso(member.flareUntil),
+        boostUntil: toIso(member.boostUntil),
+        scannerUntil: toIso(member.scannerUntil),
         isHost: member.playerId === runtime.room.hostPlayerId
       })),
       chat: runtime.room.listChatMessages().map((message) => ({
@@ -439,6 +448,7 @@ export class RoomService {
             traps: runtime.match.traps.map((trap) => ({
               trapId: trap.trapId,
               ownerPlayerId: trap.ownerPlayerId,
+              itemType: trap.itemType,
               position: trap.position,
               state: trap.state
             })),

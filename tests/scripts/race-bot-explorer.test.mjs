@@ -772,6 +772,31 @@ test("explorer bot does not drift back into the strict start zone on beta-dash 3
   assert.equal(result.returnedToStrictEntryAt, null);
 });
 
+test("explorer bot restarts staging after being sent back into the strict start zone", () => {
+  const map = MAP_DEFINITIONS.find((entry) => entry.mapId === "alpha-run");
+  assert.ok(map);
+
+  const memory = createExplorerMemory();
+  memory.visitCounts.set(`${map.startZone.maxX + 3},${map.startZone.minY + 1}`, 3);
+  memory.recentTileKeys = [
+    `${map.startZone.maxX + 2},${map.startZone.minY + 1}`,
+    `${map.startZone.maxX + 3},${map.startZone.minY + 1}`
+  ];
+
+  const decision = decideExplorerMove({
+    map,
+    memory,
+    position: { ...map.startSlots[0] },
+    seed: createExplorerSeed("bot5"),
+    strategy: "frontier"
+  });
+
+  assert.deepEqual(decision, {
+    direction: "down",
+    reason: "staging"
+  });
+});
+
 function createMemoryFromRows(rows, visitEntries = [], recentTileKeys = [], edgeEntries = []) {
   const memory = createExplorerMemory();
 

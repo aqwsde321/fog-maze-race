@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { MATCH_ITEM_TYPES } from "@fog-maze-race/shared/domain/item";
 import { getMapById } from "@fog-maze-race/shared/maps/map-definitions";
 import { samePosition } from "@fog-maze-race/shared/domain/grid-position";
 
@@ -58,7 +59,7 @@ describe("MatchAggregate", () => {
     expect(match.itemBoxes).toHaveLength(5);
 
     for (const box of spawned) {
-      expect(box.itemType).toBe("ice_trap");
+      expect(MATCH_ITEM_TYPES).toContain(box.itemType);
       expect(box.position.x).toBeGreaterThanOrEqual(itemMap.mazeZone.minX);
       expect(box.position.x).toBeLessThanOrEqual(itemMap.mazeZone.maxX);
       expect(box.position.y).toBeGreaterThanOrEqual(itemMap.mazeZone.minY);
@@ -105,6 +106,50 @@ describe("MatchAggregate", () => {
     expect(triggered).toMatchObject({
       ownerPlayerId: "player-1",
       position: trapPosition,
+      state: "triggered"
+    });
+    expect(match.traps).toHaveLength(0);
+  });
+
+  it("arms a return trap after the owner leaves and triggers it only for another racer", () => {
+    const itemMap = getMapById("kappa-trap");
+    if (!itemMap) {
+      throw new Error("kappa-trap map is required");
+    }
+
+    const match = new MatchAggregate({
+      matchId: "match-items-3",
+      roomId: "room-1",
+      map: itemMap
+    });
+
+    const trapPosition = { x: itemMap.mazeZone.minX + 3, y: 3 };
+    const trap = match.placeTrap("player-1", trapPosition, "return_trap");
+
+    expect(trap).toMatchObject({
+      ownerPlayerId: "player-1",
+      position: trapPosition,
+      itemType: "return_trap",
+      state: "arming"
+    });
+
+    match.armTrapForOwner("player-1", trapPosition, { x: trapPosition.x + 1, y: trapPosition.y }, 5_000);
+
+    expect(match.traps[0]).toMatchObject({
+      ownerPlayerId: "player-1",
+      position: trapPosition,
+      itemType: "return_trap",
+      state: "armed"
+    });
+
+    expect(match.triggerTrapAt("player-1", trapPosition, 6_000)).toBeNull();
+
+    const triggered = match.triggerTrapAt("player-2", trapPosition, 6_500);
+
+    expect(triggered).toMatchObject({
+      ownerPlayerId: "player-1",
+      position: trapPosition,
+      itemType: "return_trap",
       state: "triggered"
     });
     expect(match.traps).toHaveLength(0);

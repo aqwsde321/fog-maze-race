@@ -26,6 +26,9 @@ export type RoomMemberRecord = {
   finishRank: number | null;
   heldItemType: MatchItemType | null;
   frozenUntil: number | null;
+  flareUntil: number | null;
+  boostUntil: number | null;
+  scannerUntil: number | null;
 };
 
 export type RoomChatMessageRecord = {
@@ -64,8 +67,8 @@ export class RoomAggregate {
   }
 
   join(
-    input: Omit<RoomMemberRecord, "joinOrder" | "finishedAt" | "finishRank" | "heldItemType" | "frozenUntil"> &
-      Partial<Pick<RoomMemberRecord, "heldItemType" | "frozenUntil">>
+    input: Omit<RoomMemberRecord, "joinOrder" | "finishedAt" | "finishRank" | "heldItemType" | "frozenUntil" | "flareUntil" | "boostUntil" | "scannerUntil"> &
+      Partial<Pick<RoomMemberRecord, "heldItemType" | "frozenUntil" | "flareUntil" | "boostUntil" | "scannerUntil">>
   ) {
     if (this.status !== "waiting") {
       throw new Error("ROOM_NOT_JOINABLE");
@@ -86,7 +89,10 @@ export class RoomAggregate {
       finishedAt: null,
       finishRank: null,
       heldItemType: input.heldItemType ?? null,
-      frozenUntil: input.frozenUntil ?? null
+      frozenUntil: input.frozenUntil ?? null,
+      flareUntil: input.flareUntil ?? null,
+      boostUntil: input.boostUntil ?? null,
+      scannerUntil: input.scannerUntil ?? null
     };
 
     this.members.set(member.playerId, member);
@@ -184,6 +190,9 @@ export class RoomAggregate {
       member.finishedAt = null;
       member.heldItemType = null;
       member.frozenUntil = null;
+      member.flareUntil = null;
+      member.boostUntil = null;
+      member.scannerUntil = null;
     });
 
     this.bumpRevision();
@@ -194,6 +203,15 @@ export class RoomAggregate {
       if (member.role === "racer" && member.state !== "left") {
         member.state = "playing";
         member.frozenUntil = null;
+        if (member.flareUntil && member.flareUntil <= Date.now()) {
+          member.flareUntil = null;
+        }
+        if (member.boostUntil && member.boostUntil <= Date.now()) {
+          member.boostUntil = null;
+        }
+        if (member.scannerUntil && member.scannerUntil <= Date.now()) {
+          member.scannerUntil = null;
+        }
         continue;
       }
 
@@ -238,6 +256,39 @@ export class RoomAggregate {
     return member;
   }
 
+  setFlareUntil(playerId: string, flareUntil: number | null) {
+    const member = this.members.get(playerId);
+    if (!member) {
+      throw new Error("NOT_IN_ROOM");
+    }
+
+    member.flareUntil = flareUntil;
+    this.bumpRevision();
+    return member;
+  }
+
+  setBoostUntil(playerId: string, boostUntil: number | null) {
+    const member = this.members.get(playerId);
+    if (!member) {
+      throw new Error("NOT_IN_ROOM");
+    }
+
+    member.boostUntil = boostUntil;
+    this.bumpRevision();
+    return member;
+  }
+
+  setScannerUntil(playerId: string, scannerUntil: number | null) {
+    const member = this.members.get(playerId);
+    if (!member) {
+      throw new Error("NOT_IN_ROOM");
+    }
+
+    member.scannerUntil = scannerUntil;
+    this.bumpRevision();
+    return member;
+  }
+
   markMemberFinished(playerId: string, rank: number, now = Date.now()) {
     const member = this.members.get(playerId);
     if (!member) {
@@ -270,6 +321,9 @@ export class RoomAggregate {
       member.position = null;
       member.heldItemType = null;
       member.frozenUntil = null;
+      member.flareUntil = null;
+      member.boostUntil = null;
+      member.scannerUntil = null;
     }
     this.bumpRevision();
   }

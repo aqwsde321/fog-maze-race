@@ -417,6 +417,160 @@ describe("MatchService start-zone movement", () => {
     matchService.move(created.roomId, "guest", { direction: "right", inputSeq: 1_001 }, createSink());
     expect(roomService.getSnapshot(created.roomId).members.find((member) => member.playerId === "guest")?.position).not.toEqual(frozenPosition);
   });
+
+  it("activates flare and scanner effects when those items are used", () => {
+    vi.useFakeTimers();
+
+    const mapRegistry = new MapRegistry();
+    const roomService = new RoomService(new RevisionSync(), mapRegistry, {
+      forcedPreviewMapId: getMapById("kappa-trap")!.mapId
+    });
+    const matchService = new MatchService(roomService, {
+      countdownStepMs: 25,
+      resultsDurationMs: 60,
+      random: () => 0
+    });
+    services.push(matchService);
+
+    const created = roomService.createRoom({
+      session: new PlayerSession({
+        playerId: "host",
+        nickname: "호스트"
+      }),
+      name: "Alpha"
+    });
+    roomService.setGameMode(created.roomId, "host", "item");
+    matchService.startGame(created.roomId, "host", createSink());
+    vi.advanceTimersByTime(120);
+
+    roomService.requireRuntime(created.roomId).room.setHeldItem("host", "flare");
+    matchService.useItem(created.roomId, "host", createSink());
+
+    let snapshot = roomService.getSnapshot(created.roomId);
+    const flareUntil = snapshot.members.find((member) => member.playerId === "host")?.flareUntil ?? null;
+    expect(flareUntil).not.toBeNull();
+    expect(snapshot.members.find((member) => member.playerId === "host")?.heldItemType ?? null).toBeNull();
+
+    roomService.requireRuntime(created.roomId).room.setHeldItem("host", "scanner");
+    matchService.useItem(created.roomId, "host", createSink());
+
+    snapshot = roomService.getSnapshot(created.roomId);
+    const scannerUntil = snapshot.members.find((member) => member.playerId === "host")?.scannerUntil ?? null;
+    expect(scannerUntil).not.toBeNull();
+    expect(snapshot.members.find((member) => member.playerId === "host")?.heldItemType ?? null).toBeNull();
+  });
+
+  it("returns another racer to the shared start slot when a return trap triggers", () => {
+    vi.useFakeTimers();
+
+    const mapRegistry = new MapRegistry();
+    const roomService = new RoomService(new RevisionSync(), mapRegistry, {
+      forcedPreviewMapId: getMapById("kappa-trap")!.mapId
+    });
+    const matchService = new MatchService(roomService, {
+      countdownStepMs: 25,
+      resultsDurationMs: 60,
+      random: () => 0
+    });
+    services.push(matchService);
+
+    const created = roomService.createRoom({
+      session: new PlayerSession({
+        playerId: "host",
+        nickname: "호스트"
+      }),
+      name: "Alpha"
+    });
+    roomService.joinRoom({
+      roomId: created.roomId,
+      session: new PlayerSession({
+        playerId: "guest",
+        nickname: "게스트"
+      })
+    });
+    roomService.setGameMode(created.roomId, "host", "item");
+    matchService.startGame(created.roomId, "host", createSink());
+    vi.advanceTimersByTime(120);
+
+    const snapshot = roomService.getSnapshot(created.roomId);
+    const startSlot = snapshot.match?.map.startSlots[0];
+    if (!startSlot) {
+      throw new Error("expected a shared start slot");
+    }
+
+    const trapPosition = { x: snapshot.match!.map.mazeZone.minX + 4, y: snapshot.match!.map.mazeZone.minY + 1 };
+    roomService.requireRuntime(created.roomId).room.updateMemberPosition("host", trapPosition);
+    roomService.requireRuntime(created.roomId).room.setHeldItem("host", "return_trap");
+    roomService.syncRoomRevision(created.roomId);
+
+    matchService.useItem(created.roomId, "host", createSink());
+    matchService.move(created.roomId, "host", { direction: "right", inputSeq: 701 }, createSink());
+
+    let updated = roomService.getSnapshot(created.roomId);
+    expect(updated.match?.traps?.[0]).toMatchObject({
+      ownerPlayerId: "host",
+      itemType: "return_trap",
+      state: "armed",
+      position: trapPosition
+    });
+
+    const retreatDirection = findAdjacentWalkableDirection(updated.match!.map, trapPosition);
+    if (!retreatDirection) {
+      throw new Error("expected a walkable retreat step next to the trap");
+    }
+
+    roomService.requireRuntime(created.roomId).room.updateMemberPosition(
+      "guest",
+      movePosition(trapPosition, retreatDirection)
+    );
+    roomService.syncRoomRevision(created.roomId);
+    matchService.move(
+      created.roomId,
+      "guest",
+      { direction: reverseDirection(retreatDirection), inputSeq: 702 },
+      createSink()
+    );
+
+    updated = roomService.getSnapshot(created.roomId);
+    const guestMember = updated.members.find((member) => member.playerId === "guest");
+    expect(guestMember?.position).toEqual(startSlot);
+    expect(guestMember?.frozenUntil ?? null).toBeNull();
+    expect(updated.match?.traps).toHaveLength(0);
+  });
+
+  it("moves boosted racers up to two walkable tiles with one input", () => {
+    vi.useFakeTimers();
+
+    const mapRegistry = new MapRegistry();
+    const roomService = new RoomService(new RevisionSync(), mapRegistry, {
+      forcedPreviewMapId: getMapById("training-lap")!.mapId
+    });
+    const matchService = new MatchService(roomService, {
+      countdownStepMs: 25,
+      resultsDurationMs: 60,
+      random: () => 0
+    });
+    services.push(matchService);
+
+    const created = roomService.createRoom({
+      session: new PlayerSession({
+        playerId: "host",
+        nickname: "호스트"
+      }),
+      name: "Alpha"
+    });
+    matchService.startGame(created.roomId, "host", createSink());
+    vi.advanceTimersByTime(120);
+
+    const runtime = roomService.requireRuntime(created.roomId);
+    runtime.room.updateMemberPosition("host", { x: 4, y: 1 });
+    runtime.room.setBoostUntil("host", Date.now() + 3_000);
+    roomService.syncRoomRevision(created.roomId);
+
+    matchService.move(created.roomId, "host", { direction: "right", inputSeq: 1 }, createSink());
+
+    expect(roomService.getSnapshot(created.roomId).members.find((member) => member.playerId === "host")?.position).toEqual({ x: 6, y: 1 });
+  });
 });
 
 function createSink(): MatchEventSink {

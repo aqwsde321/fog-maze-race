@@ -309,6 +309,144 @@ describe("BotManager", () => {
       state: "armed"
     });
   });
+
+  it("uses flare and scanner automatically when an explore bot is holding them in the maze", () => {
+    vi.useFakeTimers();
+
+    const mapRegistry = new MapRegistry();
+    const roomService = new RoomService(new RevisionSync(), mapRegistry, {
+      forcedPreviewMapId: getMapById("kappa-trap")!.mapId
+    });
+    const matchService = new MatchService(roomService, {
+      countdownStepMs: 25,
+      resultsDurationMs: 60,
+      random: () => 0
+    });
+    const hostSession = new PlayerSession({
+      playerId: "host",
+      nickname: "호스트"
+    });
+    const sessions = new Map<string, PlayerSession>([[hostSession.playerId, hostSession]]);
+    const botManager = new BotManager(createServerStub(), roomService, matchService, sessions);
+    matchServices.push(matchService);
+    botManagers.push(botManager);
+
+    const created = roomService.createRoom({
+      session: hostSession,
+      name: "Alpha",
+      mode: "bot_race"
+    });
+
+    botManager.addRoomBots({
+      roomId: created.roomId,
+      requestedBy: hostSession.playerId,
+      bots: [{ nickname: "bot1", kind: "explore", strategy: "frontier" }]
+    });
+
+    const runtime = roomService.requireRuntime(created.roomId);
+    const botMember = runtime.room.listMembers().find((member) => member.kind === "bot");
+    const map = getMapById("kappa-trap");
+    if (!map || !botMember) {
+      throw new Error("kappa-trap map and bot member are required");
+    }
+
+    runtime.room.startCountdown(hostSession.playerId);
+    runtime.room.beginPlaying();
+    runtime.room.markMembersPlaying();
+    const match = new MatchAggregate({
+      matchId: "match-2",
+      roomId: created.roomId,
+      map: {
+        ...map,
+        visibilityRadius: roomService.getVisibilityRadius(created.roomId)
+      }
+    });
+    match.setCountdownValue(0, Date.now());
+    roomService.setMatch(created.roomId, match);
+    runtime.room.updateMemberPosition(botMember.playerId, { x: map.mazeZone.minX + 3, y: map.mazeZone.minY + 1 });
+    roomService.syncRoomRevision(created.roomId);
+
+    runtime.room.setHeldItem(botMember.playerId, "flare");
+    vi.advanceTimersByTime(250);
+    let snapshot = roomService.getSnapshot(created.roomId);
+    expect(snapshot.members.find((member) => member.playerId === botMember.playerId)?.heldItemType).toBeNull();
+    expect(snapshot.members.find((member) => member.playerId === botMember.playerId)?.flareUntil).not.toBeNull();
+
+    runtime.room.setHeldItem(botMember.playerId, "scanner");
+    vi.advanceTimersByTime(250);
+    snapshot = roomService.getSnapshot(created.roomId);
+    expect(snapshot.members.find((member) => member.playerId === botMember.playerId)?.heldItemType).toBeNull();
+    expect(snapshot.members.find((member) => member.playerId === botMember.playerId)?.scannerUntil).not.toBeNull();
+  });
+
+  it("uses a return trap automatically when an explore bot is holding it in the maze", () => {
+    vi.useFakeTimers();
+
+    const mapRegistry = new MapRegistry();
+    const roomService = new RoomService(new RevisionSync(), mapRegistry, {
+      forcedPreviewMapId: getMapById("kappa-trap")!.mapId
+    });
+    const matchService = new MatchService(roomService, {
+      countdownStepMs: 25,
+      resultsDurationMs: 60,
+      random: () => 0
+    });
+    const hostSession = new PlayerSession({
+      playerId: "host",
+      nickname: "호스트"
+    });
+    const sessions = new Map<string, PlayerSession>([[hostSession.playerId, hostSession]]);
+    const botManager = new BotManager(createServerStub(), roomService, matchService, sessions);
+    matchServices.push(matchService);
+    botManagers.push(botManager);
+
+    const created = roomService.createRoom({
+      session: hostSession,
+      name: "Alpha",
+      mode: "bot_race"
+    });
+
+    botManager.addRoomBots({
+      roomId: created.roomId,
+      requestedBy: hostSession.playerId,
+      bots: [{ nickname: "bot1", kind: "explore", strategy: "frontier" }]
+    });
+
+    const runtime = roomService.requireRuntime(created.roomId);
+    const botMember = runtime.room.listMembers().find((member) => member.kind === "bot");
+    const map = getMapById("kappa-trap");
+    if (!map || !botMember) {
+      throw new Error("kappa-trap map and bot member are required");
+    }
+
+    runtime.room.startCountdown(hostSession.playerId);
+    runtime.room.beginPlaying();
+    runtime.room.markMembersPlaying();
+    const match = new MatchAggregate({
+      matchId: "match-3",
+      roomId: created.roomId,
+      map: {
+        ...map,
+        visibilityRadius: roomService.getVisibilityRadius(created.roomId)
+      }
+    });
+    match.setCountdownValue(0, Date.now());
+    roomService.setMatch(created.roomId, match);
+    runtime.room.updateMemberPosition(botMember.playerId, { x: map.mazeZone.minX + 3, y: map.mazeZone.minY + 1 });
+    runtime.room.setHeldItem(botMember.playerId, "return_trap");
+    roomService.syncRoomRevision(created.roomId);
+
+    vi.advanceTimersByTime(250);
+
+    const snapshot = roomService.getSnapshot(created.roomId);
+    expect(snapshot.members.find((member) => member.playerId === botMember.playerId)?.heldItemType).toBeNull();
+    expect(snapshot.match?.traps).toHaveLength(1);
+    expect(snapshot.match?.traps?.[0]).toMatchObject({
+      ownerPlayerId: botMember.playerId,
+      itemType: "return_trap",
+      state: "armed"
+    });
+  });
 });
 
 function createSink(): MatchEventSink {

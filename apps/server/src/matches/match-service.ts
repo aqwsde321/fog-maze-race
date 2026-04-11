@@ -20,6 +20,7 @@ import {
 import type { ResultEntry } from "@fog-maze-race/shared/domain/result-entry";
 
 import { MatchAggregate } from "../core/match.js";
+import type { RoomAggregate } from "../core/room.js";
 import { forceEndMatch } from "../rooms/force-end-match.js";
 import { resetRoom } from "../rooms/reset-room.js";
 import { RoomService } from "../rooms/room-service.js";
@@ -45,6 +46,9 @@ export type MatchServiceOptions = {
 };
 
 const ICE_TRAP_FROZEN_MS = 1_500;
+const FLARE_DURATION_MS = 4_000;
+const BOOST_DURATION_MS = 3_000;
+const SCANNER_DURATION_MS = 4_000;
 
 type TimerBucket = {
   countdown: ReturnType<typeof setTimeout>[];
@@ -142,33 +146,74 @@ export class MatchService {
     }
 
     const now = Date.now();
+    clearExpiredMemberEffects(runtime.room, playerId, now);
+
     if (member.frozenUntil && member.frozenUntil > now) {
       return;
     }
-    if (member.frozenUntil && member.frozenUntil <= now) {
-      runtime.room.setFrozenUntil(playerId, null);
+
+    const stepCount = member.boostUntil && member.boostUntil > now ? 2 : 1;
+    let currentPosition = member.position;
+    let finalPosition = member.position;
+    let finishedRank: number | null = null;
+    let moved = false;
+
+    for (let stepIndex = 0; stepIndex < stepCount; stepIndex += 1) {
+      const nextPosition = match.applyMove(currentPosition, input.direction);
+      if (!match.hasPositionChanged(currentPosition, nextPosition)) {
+        break;
+      }
+
+      moved = true;
+      match.armTrapForOwner(playerId, currentPosition, nextPosition, now);
+      runtime.room.updateMemberPosition(playerId, nextPosition);
+      finalPosition = nextPosition;
+
+      const movingMember = runtime.room.getMember(playerId);
+      if (!movingMember) {
+        break;
+      }
+
+      if (match.isGoal(nextPosition)) {
+        finishedRank = match.markFinished({
+          playerId,
+          nickname: movingMember.nickname,
+          color: movingMember.color,
+          position: nextPosition
+        }, now);
+        if (finishedRank) {
+          runtime.room.markMemberFinished(playerId, finishedRank);
+        }
+        break;
+      }
+
+      if (movingMember.heldItemType === null) {
+        const claimedItemType = match.claimItemBoxAt(nextPosition);
+        if (claimedItemType) {
+          runtime.room.setHeldItem(playerId, claimedItemType);
+        }
+      }
+
+      const triggeredTrap = match.triggerTrapAt(playerId, nextPosition, now);
+      if (triggeredTrap) {
+        if (triggeredTrap.itemType === "ice_trap") {
+          runtime.room.setFrozenUntil(playerId, now + ICE_TRAP_FROZEN_MS);
+        } else {
+          const returnPosition = match.map.startSlots[0] ?? nextPosition;
+          runtime.room.updateMemberPosition(playerId, returnPosition);
+          finalPosition = returnPosition;
+        }
+        break;
+      }
+
+      currentPosition = nextPosition;
     }
 
-    const nextPosition = match.applyMove(member.position, input.direction);
-    if (!match.hasPositionChanged(member.position, nextPosition)) {
+    if (!moved) {
       return;
     }
 
-    const previousPosition = member.position;
-    match.armTrapForOwner(playerId, previousPosition, nextPosition, now);
-    runtime.room.updateMemberPosition(playerId, nextPosition);
-
-    const finishedRank = match.isGoal(nextPosition)
-      ? match.markFinished({
-          playerId,
-          nickname: member.nickname,
-          color: member.color,
-          position: nextPosition
-        }, now)
-      : null;
-
     if (finishedRank) {
-      runtime.room.markMemberFinished(playerId, finishedRank);
       this.roomService.syncRoomRevision(roomId);
       sink.emitPlayerFinished({
         roomId,
@@ -188,25 +233,13 @@ export class MatchService {
       return;
     }
 
-    if (member.heldItemType === null) {
-      const claimedItemType = match.claimItemBoxAt(nextPosition);
-      if (claimedItemType) {
-        runtime.room.setHeldItem(playerId, claimedItemType);
-      }
-    }
-
-    const triggeredTrap = match.triggerTrapAt(playerId, nextPosition, now);
-    if (triggeredTrap) {
-      runtime.room.setFrozenUntil(playerId, now + ICE_TRAP_FROZEN_MS);
-    }
-
     this.roomService.syncRoomRevision(roomId);
     const snapshot = this.roomService.getSnapshot(roomId);
 
     sink.emitPlayerMoved({
       roomId,
       playerId,
-      position: nextPosition,
+      position: finalPosition,
       inputSeq: input.inputSeq,
       revision: snapshot.revision
     });
@@ -228,23 +261,41 @@ export class MatchService {
     }
 
     const now = Date.now();
+    clearExpiredMemberEffects(runtime.room, playerId, now);
+
     if (member.frozenUntil && member.frozenUntil > now) {
       return;
     }
-    if (member.frozenUntil && member.frozenUntil <= now) {
-      runtime.room.setFrozenUntil(playerId, null);
-    }
 
-    if (member.heldItemType !== "ice_trap") {
+    const heldItemType = member.heldItemType;
+    if (!heldItemType) {
       return;
     }
 
-    const placedTrap = runtime.match.placeIceTrap(playerId, member.position);
-    if (!placedTrap) {
-      return;
+    switch (heldItemType) {
+      case "ice_trap":
+      case "return_trap": {
+        const placedTrap = runtime.match.placeTrap(playerId, member.position, heldItemType);
+        if (!placedTrap) {
+          return;
+        }
+        runtime.room.setHeldItem(playerId, null);
+        break;
+      }
+      case "flare":
+        runtime.room.setHeldItem(playerId, null);
+        runtime.room.setFlareUntil(playerId, now + FLARE_DURATION_MS);
+        break;
+      case "boost":
+        runtime.room.setHeldItem(playerId, null);
+        runtime.room.setBoostUntil(playerId, now + BOOST_DURATION_MS);
+        break;
+      case "scanner":
+        runtime.room.setHeldItem(playerId, null);
+        runtime.room.setScannerUntil(playerId, now + SCANNER_DURATION_MS);
+        break;
     }
 
-    runtime.room.setHeldItem(playerId, null);
     this.roomService.syncRoomRevision(roomId);
     sink.emitRoomState({
       roomId,
@@ -538,4 +589,24 @@ function resolveItemBoxSpawnCount(
   }
 
   return activeRacerCount * normalizedValue;
+}
+
+function clearExpiredMemberEffects(room: RoomAggregate, playerId: string, now: number) {
+  const member = room.getMember(playerId);
+  if (!member) {
+    return;
+  }
+
+  if (member.frozenUntil && member.frozenUntil <= now) {
+    room.setFrozenUntil(playerId, null);
+  }
+  if (member.flareUntil && member.flareUntil <= now) {
+    room.setFlareUntil(playerId, null);
+  }
+  if (member.boostUntil && member.boostUntil <= now) {
+    room.setBoostUntil(playerId, null);
+  }
+  if (member.scannerUntil && member.scannerUntil <= now) {
+    room.setScannerUntil(playerId, null);
+  }
 }

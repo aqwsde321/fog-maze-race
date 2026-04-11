@@ -85,6 +85,7 @@ export function updateExplorerMemory(input: {
   previous: ExplorerMemory;
   snapshot: RoomSnapshot;
   selfPlayerId: string;
+  visibilityRadiusBonus?: number;
 }): ExplorerMemory {
   const nextMatchKey = getExplorerMatchKey(input.snapshot, input.selfPlayerId);
   if (!nextMatchKey) {
@@ -120,7 +121,10 @@ export function updateExplorerMemory(input: {
   }
 
   const projection = createVisibilityProjection({
-    map: toMapDefinition(input.snapshot.match.map),
+    map: {
+      ...toMapDefinition(input.snapshot.match.map),
+      visibilityRadius: input.snapshot.match.map.visibilityRadius + Math.max(0, input.visibilityRadiusBonus ?? 0)
+    },
     selfPlayerId: input.selfPlayerId,
     members: input.snapshot.members.map((member) => ({
       playerId: member.playerId,
@@ -176,14 +180,15 @@ export function decideExplorerMove(input: {
   const directionSteps = getDirectionSteps(input.seed ?? 0);
   const hasExploredBeyondEntryApproach = hasVisitedOutsideEntryApproach(input.map, input.memory);
   const hasExploredBeyondStrictEntry = hasVisitedOutsideStrictEntry(input.map, input.memory);
-  const stagedMove = hasExploredBeyondStrictEntry
-    ? null
-    : planStartZoneMove({
+  const shouldReenterFromStrictEntry = isStrictEntryPosition(input.map, input.position);
+  const stagedMove = shouldReenterFromStrictEntry || !hasExploredBeyondStrictEntry
+    ? planStartZoneMove({
         map: input.map,
         memory: input.memory,
         position: input.position,
         seed: input.seed ?? 0
-      });
+      })
+    : null;
   if (stagedMove) {
     return {
       direction: stagedMove,

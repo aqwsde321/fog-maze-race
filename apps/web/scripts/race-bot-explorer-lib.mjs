@@ -90,7 +90,8 @@ const TREMAUX_FIRST_DIRECTION_ORDER = ["down", "left", "up", "right"];
 export function updateExplorerMemory({
   previous,
   snapshot,
-  selfPlayerId
+  selfPlayerId,
+  visibilityRadiusBonus = 0
 }) {
   const nextMatchKey = getExplorerMatchKey(snapshot, selfPlayerId);
   if (!nextMatchKey) {
@@ -126,7 +127,10 @@ export function updateExplorerMemory({
   }
 
   const projection = createVisibilityProjection({
-    map: snapshot.match.map,
+    map: {
+      ...snapshot.match.map,
+      visibilityRadius: snapshot.match.map.visibilityRadius + Math.max(0, visibilityRadiusBonus)
+    },
     selfPlayerId,
     members: snapshot.members.map((member) => ({
       playerId: member.playerId,
@@ -181,14 +185,15 @@ export function decideExplorerMove({
   const directionSteps = getDirectionSteps(seed);
   const hasExploredBeyondEntryApproach = hasVisitedOutsideEntryApproach(map, memory);
   const hasExploredBeyondStrictEntry = hasVisitedOutsideStrictEntry(map, memory);
-  const stagedMove = hasExploredBeyondStrictEntry
-    ? null
-    : planStartZoneMove({
+  const shouldReenterFromStrictEntry = isStrictEntryPosition(map, position);
+  const stagedMove = shouldReenterFromStrictEntry || !hasExploredBeyondStrictEntry
+    ? planStartZoneMove({
         map,
         memory,
         position,
         seed
-      });
+      })
+    : null;
   if (stagedMove) {
     return {
       direction: stagedMove,

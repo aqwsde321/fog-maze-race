@@ -5,7 +5,12 @@ import {
   type Direction,
   type GridPosition
 } from "@fog-maze-race/shared/domain/grid-position";
-import type { MatchItemType, MatchTrapState } from "@fog-maze-race/shared/domain/item";
+import {
+  rollMatchItemType,
+  type MatchItemType,
+  type MatchTrapState,
+  type MatchTrapType
+} from "@fog-maze-race/shared/domain/item";
 import type { ResultEntry } from "@fog-maze-race/shared/domain/result-entry";
 import type { MatchStatus } from "@fog-maze-race/shared/domain/status";
 import {
@@ -24,6 +29,7 @@ export type MatchItemBoxRecord = {
 export type MatchTrapRecord = {
   trapId: string;
   ownerPlayerId: string;
+  itemType: MatchTrapType;
   position: GridPosition;
   state: MatchTrapState;
   armedAt: number | null;
@@ -175,7 +181,7 @@ export class MatchAggregate {
       nextBoxes.push({
         boxId: randomUUID(),
         position,
-        itemType: "ice_trap"
+        itemType: rollMatchItemType(random)
       });
     }
 
@@ -200,7 +206,7 @@ export class MatchAggregate {
     return claimedItemType;
   }
 
-  placeIceTrap(ownerPlayerId: string, position: GridPosition) {
+  placeTrap(ownerPlayerId: string, position: GridPosition, itemType: MatchTrapType) {
     if (this.traps.some((trap) => samePosition(trap.position, position))) {
       return null;
     }
@@ -208,6 +214,7 @@ export class MatchAggregate {
     const trap: MatchTrapRecord = {
       trapId: randomUUID(),
       ownerPlayerId,
+      itemType,
       position,
       state: "arming",
       armedAt: null
@@ -215,6 +222,10 @@ export class MatchAggregate {
 
     this.traps.push(trap);
     return trap;
+  }
+
+  placeIceTrap(ownerPlayerId: string, position: GridPosition) {
+    return this.placeTrap(ownerPlayerId, position, "ice_trap");
   }
 
   armTrapForOwner(ownerPlayerId: string, previousPosition: GridPosition, nextPosition: GridPosition, now = Date.now()) {

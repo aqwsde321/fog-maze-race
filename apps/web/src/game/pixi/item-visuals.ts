@@ -1,4 +1,4 @@
-import type { MatchTrapState } from "@fog-maze-race/shared/domain/item";
+import type { MatchTrapState, MatchTrapType } from "@fog-maze-race/shared/domain/item";
 
 export type ItemBoxMetrics = {
   inset: number;
@@ -73,6 +73,48 @@ export function getIceTrapPalette(state: MatchTrapState): TrapPalette {
         coreAlpha: 0.42
       };
   }
+}
+
+export function getReturnTrapPalette(state: MatchTrapState): TrapPalette {
+  switch (state) {
+    case "arming":
+      return {
+        shellColor: 0x2e1065,
+        shellAlpha: 0.2,
+        shellStroke: 0xc084fc,
+        shellStrokeAlpha: 0.48,
+        spikeColor: 0xfb7185,
+        spikeAlpha: 0.7,
+        coreColor: 0xfef3c7,
+        coreAlpha: 0.62
+      };
+    case "armed":
+      return {
+        shellColor: 0x3b0764,
+        shellAlpha: 0.3,
+        shellStroke: 0xf5d0fe,
+        shellStrokeAlpha: 0.84,
+        spikeColor: 0xf472b6,
+        spikeAlpha: 0.94,
+        coreColor: 0xfef3c7,
+        coreAlpha: 0.9
+      };
+    case "triggered":
+      return {
+        shellColor: 0x581c87,
+        shellAlpha: 0.16,
+        shellStroke: 0xf9a8d4,
+        shellStrokeAlpha: 0.42,
+        spikeColor: 0xf9a8d4,
+        spikeAlpha: 0.56,
+        coreColor: 0xfef3c7,
+        coreAlpha: 0.38
+      };
+  }
+}
+
+export function getTrapPalette(trapType: MatchTrapType, state: MatchTrapState): TrapPalette {
+  return trapType === "return_trap" ? getReturnTrapPalette(state) : getIceTrapPalette(state);
 }
 
 export function getFrozenPrisonMetrics(tileSize: number): FrozenPrisonMetrics {

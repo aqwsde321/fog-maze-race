@@ -165,6 +165,34 @@ describe("explorer-policy", () => {
     expect(result.returnedToStrictEntryAt).toBeNull();
   });
 
+  it("restarts staging when a racer is sent back into the strict start zone after exploring", () => {
+    const map = MAP_DEFINITIONS.find((entry) => entry.mapId === "alpha-run");
+    expect(map).toBeDefined();
+    if (!map) {
+      return;
+    }
+
+    const memory = createExplorerMemory();
+    memory.visitCounts.set(`${map.startZone.maxX + 3},${map.startZone.minY + 1}`, 3);
+    memory.recentTileKeys = [
+      `${map.startZone.maxX + 2},${map.startZone.minY + 1}`,
+      `${map.startZone.maxX + 3},${map.startZone.minY + 1}`
+    ];
+
+    const decision = decideExplorerMove({
+      map,
+      memory,
+      position: { ...map.startSlots[0]! },
+      seed: createExplorerSeed("bot5"),
+      strategy: "frontier"
+    });
+
+    expect(decision).toEqual({
+      direction: "down",
+      reason: "staging"
+    });
+  });
+
   it("keeps shared-start explorer seeds divergent beyond repeated rotation buckets", () => {
     const map = MAP_DEFINITIONS.find((entry) => entry.mapId === "alpha-run");
     expect(map).toBeDefined();

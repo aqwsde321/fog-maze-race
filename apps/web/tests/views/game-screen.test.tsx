@@ -250,7 +250,7 @@ describe("GameScreen keyboard control", () => {
       root.render(
         <GameScreen
           snapshot={buildSnapshot("playing", {
-            heldItemType: "ice_trap"
+            heldItemType: "flare"
           })}
           selfPlayerId="player-1"
           countdownValue={null}
@@ -278,8 +278,39 @@ describe("GameScreen keyboard control", () => {
 
     expect(event.defaultPrevented).toBe(true);
     expect(onUseItem).toHaveBeenCalledTimes(1);
-    expect(container.querySelector('[data-testid="item-hud"]')?.textContent).toContain("얼음 함정");
+    expect(container.querySelector('[data-testid="item-hud"]')?.textContent).toContain("플레어");
     expect(container.querySelector('[data-testid="held-item-card"]')?.textContent).toContain("Space 사용");
+  });
+
+  it("shows flare and boost statuses while scanner stays off the left HUD", async () => {
+    const now = Date.now();
+
+    await act(async () => {
+      root.render(
+        <GameScreen
+          snapshot={buildSnapshot("playing", {
+            flareUntil: new Date(now + 4_000).toISOString(),
+            boostUntil: new Date(now + 3_000).toISOString(),
+            scannerUntil: new Date(now + 4_000).toISOString()
+          })}
+          selfPlayerId="player-1"
+          countdownValue={null}
+          onStartGame={vi.fn()}
+          onRenameRoom={vi.fn()}
+          onSetVisibilitySize={vi.fn()}
+          onForceEndRoom={vi.fn()}
+          onResetToWaiting={vi.fn()}
+          onLeaveRoom={vi.fn()}
+          onUseItem={vi.fn()}
+          onMove={vi.fn()}
+          onSendChatMessage={vi.fn()}
+        />
+      );
+    });
+
+    expect(container.querySelector('[data-testid="flare-status-card"]')?.textContent).toContain("플레어");
+    expect(container.querySelector('[data-testid="boost-status-card"]')?.textContent).toContain("부스트");
+    expect(container.querySelector('[data-testid="scanner-status-card"]')).toBeNull();
   });
 
   it("shows a centered fake-goal alert when the local player steps onto a fake goal tile", async () => {
@@ -1275,8 +1306,11 @@ describe("GameScreen keyboard control", () => {
     members?: RoomSnapshot["members"];
     mode?: RoomSnapshot["room"]["mode"];
     selfPlayerId?: string;
-    heldItemType?: "ice_trap" | null;
+    heldItemType?: "ice_trap" | "return_trap" | "flare" | "boost" | "scanner" | null;
     frozenUntil?: string | null;
+    flareUntil?: string | null;
+    boostUntil?: string | null;
+    scannerUntil?: string | null;
   }
 ): RoomSnapshot {
   const selfPlayerId = overrides?.selfPlayerId ?? "player-1";
@@ -1315,7 +1349,10 @@ describe("GameScreen keyboard control", () => {
         ? {
             ...member,
             heldItemType: overrides?.heldItemType ?? member.heldItemType ?? null,
-            frozenUntil: overrides?.frozenUntil ?? member.frozenUntil ?? null
+            frozenUntil: overrides?.frozenUntil ?? member.frozenUntil ?? null,
+            flareUntil: overrides?.flareUntil ?? member.flareUntil ?? null,
+            boostUntil: overrides?.boostUntil ?? member.boostUntil ?? null,
+            scannerUntil: overrides?.scannerUntil ?? member.scannerUntil ?? null
           }
         : member
     ),

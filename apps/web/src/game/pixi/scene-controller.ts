@@ -1,6 +1,7 @@
 import { Application, Container, Graphics, Text, TextStyle } from "pixi.js";
 
 import type { MapView, RoomSnapshot } from "@fog-maze-race/shared/contracts/snapshots";
+import type { Direction } from "@fog-maze-race/shared/domain/grid-position";
 import { createVisibilityProjection, toTileKey } from "@fog-maze-race/shared/visibility/apply-visibility";
 import type { MapDefinition } from "@fog-maze-race/shared/maps/map-definitions";
 
@@ -22,7 +23,7 @@ import { clampOverlayCenterX, collectActivePlayerChats } from "./player-overlays
 import { resolveRenderMembers } from "../player-overlay-layout.js";
 import {
   getFrozenPrisonMetrics,
-  getIceTrapPalette,
+  getTrapPalette,
   getItemBoxMetrics,
   isFrozenActive
 } from "./item-visuals.js";
@@ -96,10 +97,12 @@ export async function createSceneController(container: HTMLDivElement): Promise<
 
       const renderMembers = resolveRenderMembers(snapshot);
       const selfMember = renderMembers.find((member) => member.playerId === selfPlayerId) ?? null;
+      const visibilityRadiusBonus =
+        selfMember?.flareUntil && Date.parse(selfMember.flareUntil) > Date.now() ? 1 : 0;
 
       const projection = match && selfPlayerId && selfMember?.role !== "spectator"
         ? createVisibilityProjection({
-            map: toVisibilityMap(map),
+            map: toVisibilityMap(map, visibilityRadiusBonus),
             selfPlayerId,
             members: renderMembers.map((member) => ({
               playerId: member.playerId,
@@ -174,7 +177,7 @@ export async function createSceneController(container: HTMLDivElement): Promise<
             continue;
           }
 
-          drawIceTrap(tileLayer, layout, trap.position, trap.state);
+          drawTrap(tileLayer, layout, trap.position, trap.itemType, trap.state);
         }
       }
 
@@ -226,6 +229,23 @@ export async function createSceneController(container: HTMLDivElement): Promise<
             message: chatBubble.content,
             viewportWidth: layout.viewportWidth
           });
+        }
+
+        if (
+          member.playerId === selfPlayerId &&
+          member.scannerUntil &&
+          Date.parse(member.scannerUntil) > Date.now()
+        ) {
+          const direction = findGoalDirection(map, member.position);
+          if (direction) {
+            drawPlayerScannerArrow(overlayLayer, {
+              centerX,
+              centerY,
+              markerRadius,
+              direction,
+              viewportWidth: layout.viewportWidth
+            });
+          }
         }
 
         drawPlayerNicknameLabel(overlayLayer, {
@@ -303,6 +323,17 @@ const PLAYER_CHAT_STYLE = new TextStyle({
   }
 });
 
+const PLAYER_SCANNER_STYLE = new TextStyle({
+  fill: "#e0f2fe",
+  fontSize: 14,
+  fontWeight: "900",
+  stroke: {
+    color: "#082f49",
+    width: 3,
+    join: "round"
+  }
+});
+
 const ITEM_BOX_QUESTION_STYLE = new TextStyle({
   fill: "#ffffff",
   fontSize: 18,
@@ -372,6 +403,40 @@ function drawPlayerNicknameLabel(layer: Container, input: {
   layer.addChild(text);
 }
 
+function drawPlayerScannerArrow(layer: Container, input: {
+  centerX: number;
+  centerY: number;
+  markerRadius: number;
+  direction: Direction;
+  viewportWidth: number;
+}) {
+  const badgeWidth = 26;
+  const badgeHeight = 22;
+  const badgeCenterX = clampOverlayCenterX({
+    centerX: input.centerX + input.markerRadius + 12,
+    overlayWidth: badgeWidth,
+    viewportWidth: input.viewportWidth,
+    padding: 8
+  });
+  const badgeX = badgeCenterX - badgeWidth / 2;
+  const badgeY = Math.max(8, input.centerY - input.markerRadius - badgeHeight * 0.7);
+  const badge = new Graphics();
+  badge
+    .roundRect(badgeX, badgeY, badgeWidth, badgeHeight, 10)
+    .fill({ color: 0x082f49, alpha: 0.82 })
+    .stroke({ color: 0x7dd3fc, alpha: 0.34, width: 1 });
+
+  const text = new Text({
+    text: toDirectionArrow(input.direction),
+    style: PLAYER_SCANNER_STYLE
+  });
+  text.x = badgeCenterX - text.width / 2;
+  text.y = badgeY + badgeHeight / 2 - text.height / 2 - 1;
+
+  layer.addChild(badge);
+  layer.addChild(text);
+}
+
 function drawItemBox(
   graphics: Graphics,
   overlayLayer: Container,
@@ -406,10 +471,11 @@ function drawItemBox(
   overlayLayer.addChild(text);
 }
 
-function drawIceTrap(
+function drawTrap(
   graphics: Graphics,
   layout: ReturnType<typeof createBoardLayout>,
   position: { x: number; y: number },
+  trapType: "ice_trap" | "return_trap",
   state: "arming" | "armed" | "triggered"
 ) {
   const tileX = layout.offsetX + position.x * layout.tileSize;
@@ -417,7 +483,7 @@ function drawIceTrap(
   const centerX = tileX + layout.tileSize / 2;
   const centerY = tileY + layout.tileSize / 2;
   const radius = Math.max(8, layout.tileSize * 0.22);
-  const palette = getIceTrapPalette(state);
+  const palette = getTrapPalette(trapType, state);
 
   graphics
     .circle(centerX, centerY, radius + 3)
@@ -441,19 +507,37 @@ function drawIceTrap(
       .stroke({ color: palette.spikeColor, alpha: palette.spikeAlpha * 0.92, width: Math.max(1.5, layout.tileSize * 0.05) });
   }
 
-  graphics
-    .poly([
-      centerX,
-      centerY - radius * 0.34,
-      centerX + radius * 0.34,
-      centerY,
-      centerX,
-      centerY + radius * 0.34,
-      centerX - radius * 0.34,
-      centerY
-    ])
-    .fill({ color: palette.coreColor, alpha: palette.coreAlpha })
-    .stroke({ color: 0xffffff, alpha: palette.coreAlpha * 0.78, width: 1 });
+  if (trapType === "return_trap") {
+    graphics
+      .circle(centerX, centerY, radius * 0.34)
+      .stroke({ color: 0xffffff, alpha: palette.coreAlpha * 0.9, width: 1.4 });
+
+    graphics
+      .moveTo(centerX - radius * 0.05, centerY - radius * 0.42)
+      .lineTo(centerX + radius * 0.26, centerY - radius * 0.12)
+      .lineTo(centerX + radius * 0.02, centerY - radius * 0.06)
+      .stroke({ color: palette.coreColor, alpha: palette.coreAlpha, width: 1.6 });
+
+    graphics
+      .moveTo(centerX + radius * 0.05, centerY + radius * 0.42)
+      .lineTo(centerX - radius * 0.26, centerY + radius * 0.12)
+      .lineTo(centerX - radius * 0.02, centerY + radius * 0.06)
+      .stroke({ color: palette.coreColor, alpha: palette.coreAlpha, width: 1.6 });
+  } else {
+    graphics
+      .poly([
+        centerX,
+        centerY - radius * 0.34,
+        centerX + radius * 0.34,
+        centerY,
+        centerX,
+        centerY + radius * 0.34,
+        centerX - radius * 0.34,
+        centerY
+      ])
+      .fill({ color: palette.coreColor, alpha: palette.coreAlpha })
+      .stroke({ color: 0xffffff, alpha: palette.coreAlpha * 0.78, width: 1 });
+  }
 }
 
 function drawFrozenPrison(
@@ -501,7 +585,7 @@ function toPixiColor(color: string) {
   return Number.parseInt(color.replace("#", ""), 16);
 }
 
-function toVisibilityMap(map: MapView): MapDefinition {
+function toVisibilityMap(map: MapView, visibilityRadiusBonus = 0): MapDefinition {
   return {
     mapId: map.mapId,
     name: map.mapId,
@@ -514,8 +598,72 @@ function toVisibilityMap(map: MapView): MapDefinition {
     startSlots: map.startSlots,
     connectorTiles: map.connectorTiles,
     fakeGoalTiles: map.fakeGoalTiles ?? [],
-    visibilityRadius: map.visibilityRadius
+    visibilityRadius: map.visibilityRadius + Math.max(0, visibilityRadiusBonus)
   };
+}
+
+function toDirectionArrow(direction: Direction) {
+  switch (direction) {
+    case "up":
+      return "↑";
+    case "down":
+      return "↓";
+    case "left":
+      return "←";
+    case "right":
+      return "→";
+  }
+}
+
+function findGoalDirection(map: MapView, start: { x: number; y: number }): Direction | null {
+  const queue: Array<{ x: number; y: number; path: Direction[] }> = [{
+    x: start.x,
+    y: start.y,
+    path: []
+  }];
+  const visited = new Set([`${start.x},${start.y}`]);
+  const steps: Array<{ direction: Direction; x: number; y: number }> = [
+    { direction: "right", x: 1, y: 0 },
+    { direction: "left", x: -1, y: 0 },
+    { direction: "down", x: 0, y: 1 },
+    { direction: "up", x: 0, y: -1 }
+  ];
+
+  while (queue.length > 0) {
+    const current = queue.shift();
+    if (!current) {
+      continue;
+    }
+
+    if (
+      current.x >= map.goalZone.minX &&
+      current.x <= map.goalZone.maxX &&
+      current.y >= map.goalZone.minY &&
+      current.y <= map.goalZone.maxY
+    ) {
+      return current.path[0] ?? null;
+    }
+
+    for (const step of steps) {
+      const nextX = current.x + step.x;
+      const nextY = current.y + step.y;
+      const key = `${nextX},${nextY}`;
+      const tile = map.tiles[nextY]?.[nextX] ?? "#";
+
+      if (visited.has(key) || tile === "#" || tile === " ") {
+        continue;
+      }
+
+      visited.add(key);
+      queue.push({
+        x: nextX,
+        y: nextY,
+        path: [...current.path, step.direction]
+      });
+    }
+  }
+
+  return null;
 }
 
 function drawZonePanels(
