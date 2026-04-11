@@ -20,6 +20,12 @@ import {
 } from "../tile-memory.js";
 import { clampOverlayCenterX, collectActivePlayerChats } from "./player-overlays.js";
 import { resolveRenderMembers } from "../player-overlay-layout.js";
+import {
+  getFrozenPrisonMetrics,
+  getIceTrapPalette,
+  getItemBoxMetrics,
+  isFrozenActive
+} from "./item-visuals.js";
 
 export type SceneController = {
   render: (snapshot: RoomSnapshot | null, selfPlayerId: string | null) => void;
@@ -160,7 +166,7 @@ export async function createSceneController(container: HTMLDivElement): Promise<
             continue;
           }
 
-          drawItemBox(tileLayer, layout, box.position);
+          drawItemBox(tileLayer, overlayLayer, layout, box.position);
         }
 
         for (const trap of match.traps ?? []) {
@@ -206,6 +212,10 @@ export async function createSceneController(container: HTMLDivElement): Promise<
           color: 0x081120,
           alpha: 0.92
         });
+
+        if (isFrozenActive(member.frozenUntil)) {
+          drawFrozenPrison(playerLayer, layout, centerX, centerY);
+        }
 
         const chatBubble = activeChatByPlayer.get(member.playerId);
         if (chatBubble) {
@@ -293,6 +303,17 @@ const PLAYER_CHAT_STYLE = new TextStyle({
   }
 });
 
+const ITEM_BOX_QUESTION_STYLE = new TextStyle({
+  fill: "#ffffff",
+  fontSize: 18,
+  fontWeight: "900",
+  stroke: {
+    color: "#a16207",
+    width: 3,
+    join: "round"
+  }
+});
+
 function drawPlayerChatBubble(layer: Container, input: {
   centerX: number;
   centerY: number;
@@ -353,32 +374,36 @@ function drawPlayerNicknameLabel(layer: Container, input: {
 
 function drawItemBox(
   graphics: Graphics,
+  overlayLayer: Container,
   layout: ReturnType<typeof createBoardLayout>,
   position: { x: number; y: number }
 ) {
   const tileX = layout.offsetX + position.x * layout.tileSize;
   const tileY = layout.offsetY + position.y * layout.tileSize;
-  const inset = Math.max(5, Math.floor(layout.tileSize * 0.18));
-  const size = layout.tileSize - inset * 2 - 2;
+  const metrics = getItemBoxMetrics(layout.tileSize);
+  const inset = metrics.inset;
+  const size = metrics.size;
   const x = tileX + inset;
   const y = tileY + inset;
 
   graphics
-    .roundRect(x, y, size, size, Math.max(6, Math.floor(size * 0.22)))
-    .fill({ color: 0x0b2540, alpha: 0.96 })
-    .stroke({ color: 0x7dd3fc, alpha: 0.9, width: 1.4 });
+    .roundRect(x, y, size, size, metrics.radius)
+    .fill({ color: 0xfacc15, alpha: 0.98 })
+    .stroke({ color: 0xf59e0b, alpha: 0.92, width: 1.6 });
 
   graphics
-    .circle(x + size * 0.34, y + size * 0.38, Math.max(2, size * 0.07))
-    .fill({ color: 0xe0f2fe, alpha: 0.9 })
-    .circle(x + size * 0.66, y + size * 0.38, Math.max(2, size * 0.07))
-    .fill({ color: 0xe0f2fe, alpha: 0.9 });
+    .roundRect(x + size * 0.1, y + size * 0.1, size * 0.8, size * 0.22, Math.max(4, metrics.radius * 0.45))
+    .fill({ color: 0xffffff, alpha: 0.16 });
 
-  graphics
-    .moveTo(x + size * 0.28, y + size * 0.63)
-    .lineTo(x + size * 0.5, y + size * 0.82)
-    .lineTo(x + size * 0.72, y + size * 0.63)
-    .stroke({ color: 0x67e8f9, alpha: 0.9, width: Math.max(2, size * 0.08) });
+  const text = new Text({
+    text: "?",
+    style: ITEM_BOX_QUESTION_STYLE
+  });
+  const scale = metrics.questionFontSize / 18;
+  text.scale.set(scale);
+  text.x = x + size / 2 - text.width / 2;
+  text.y = y + size / 2 - text.height / 2 - 1;
+  overlayLayer.addChild(text);
 }
 
 function drawIceTrap(
@@ -392,22 +417,75 @@ function drawIceTrap(
   const centerX = tileX + layout.tileSize / 2;
   const centerY = tileY + layout.tileSize / 2;
   const radius = Math.max(8, layout.tileSize * 0.22);
-  const glowAlpha = state === "armed" ? 0.9 : state === "triggered" ? 0.45 : 0.6;
-  const fillColor = state === "armed" ? 0x67e8f9 : state === "triggered" ? 0xbfdbfe : 0x38bdf8;
+  const palette = getIceTrapPalette(state);
 
   graphics
     .circle(centerX, centerY, radius + 3)
-    .fill({ color: 0x082f49, alpha: 0.22 })
-    .stroke({ color: 0xe0f2fe, alpha: glowAlpha, width: 1.1 });
+    .fill({ color: palette.shellColor, alpha: palette.shellAlpha })
+    .stroke({ color: palette.shellStroke, alpha: palette.shellStrokeAlpha, width: 1.1 });
 
-  for (const angle of [0, Math.PI / 4]) {
+  for (const angle of [0, Math.PI / 3, (Math.PI * 2) / 3]) {
     const cos = Math.cos(angle);
     const sin = Math.sin(angle);
+    const inner = radius * 0.28;
     graphics
       .moveTo(centerX - cos * radius, centerY - sin * radius)
       .lineTo(centerX + cos * radius, centerY + sin * radius)
-      .stroke({ color: fillColor, alpha: glowAlpha, width: Math.max(2, layout.tileSize * 0.08) });
+      .stroke({ color: palette.spikeColor, alpha: palette.spikeAlpha, width: Math.max(2, layout.tileSize * 0.08) });
+
+    graphics
+      .moveTo(centerX + cos * inner, centerY + sin * inner)
+      .lineTo(centerX + cos * (radius * 0.62) - sin * (radius * 0.17), centerY + sin * (radius * 0.62) + cos * (radius * 0.17))
+      .moveTo(centerX + cos * inner, centerY + sin * inner)
+      .lineTo(centerX + cos * (radius * 0.62) + sin * (radius * 0.17), centerY + sin * (radius * 0.62) - cos * (radius * 0.17))
+      .stroke({ color: palette.spikeColor, alpha: palette.spikeAlpha * 0.92, width: Math.max(1.5, layout.tileSize * 0.05) });
   }
+
+  graphics
+    .poly([
+      centerX,
+      centerY - radius * 0.34,
+      centerX + radius * 0.34,
+      centerY,
+      centerX,
+      centerY + radius * 0.34,
+      centerX - radius * 0.34,
+      centerY
+    ])
+    .fill({ color: palette.coreColor, alpha: palette.coreAlpha })
+    .stroke({ color: 0xffffff, alpha: palette.coreAlpha * 0.78, width: 1 });
+}
+
+function drawFrozenPrison(
+  graphics: Graphics,
+  layout: ReturnType<typeof createBoardLayout>,
+  centerX: number,
+  centerY: number
+) {
+  const metrics = getFrozenPrisonMetrics(layout.tileSize);
+  const x = centerX - metrics.width / 2;
+  const y = centerY - metrics.height / 2;
+
+  graphics
+    .roundRect(x, y, metrics.width, metrics.height, metrics.radius)
+    .fill({ color: 0xbfe8ff, alpha: 0.22 })
+    .stroke({ color: 0xe0f2fe, alpha: 0.88, width: 1.4 });
+
+  graphics
+    .roundRect(x + 2, y + 2, metrics.width - 4, metrics.height * 0.28, Math.max(4, metrics.radius * 0.55))
+    .fill({ color: 0xffffff, alpha: 0.09 });
+
+  graphics
+    .moveTo(x + metrics.crackInset, y + metrics.height * 0.28)
+    .lineTo(centerX - metrics.crackInset * 0.3, centerY - metrics.crackInset)
+    .lineTo(x + metrics.width * 0.42, y + metrics.height - metrics.crackInset * 1.1)
+    .stroke({ color: 0xe0f2fe, alpha: 0.42, width: 1.1 });
+
+  graphics
+    .moveTo(x + metrics.width - metrics.crackInset, y + metrics.height * 0.24)
+    .lineTo(centerX + metrics.crackInset * 0.35, centerY + metrics.crackInset * 0.3)
+    .lineTo(x + metrics.width * 0.62, y + metrics.height - metrics.crackInset)
+    .stroke({ color: 0xffffff, alpha: 0.28, width: 1 });
 }
 
 function drawPlaceholder(graphics: Graphics) {
