@@ -8,9 +8,7 @@ test("admin maps page can create a new playable map", async ({ page }) => {
   await expect(page.getByText("Training Lap")).toHaveCount(0);
   await page.getByRole("button", { name: "새 맵" }).click();
 
-  const inputs = page.locator("input");
-  await expect(inputs).toHaveCount(1);
-  await inputs.nth(0).fill(`Maze ${suffix}`);
+  await page.getByLabel("맵 이름").fill(`Maze ${suffix}`);
   await expect(page.locator("textarea")).toHaveCount(0);
   await page.getByRole("button", { name: "통로 도구" }).click();
   await page.getByTestId("maze-cell-1-1").click();
