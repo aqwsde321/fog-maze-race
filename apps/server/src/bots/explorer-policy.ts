@@ -181,7 +181,8 @@ export function decideExplorerMove(input: {
   const hasExploredBeyondEntryApproach = hasVisitedOutsideEntryApproach(input.map, input.memory);
   const hasExploredBeyondStrictEntry = hasVisitedOutsideStrictEntry(input.map, input.memory);
   const shouldReenterFromStrictEntry = isStrictEntryPosition(input.map, input.position);
-  const stagedMove = shouldReenterFromStrictEntry || !hasExploredBeyondStrictEntry
+  const shouldContinueEntryStaging = shouldStageFromEntryTile(input.map, input.memory, input.position);
+  const stagedMove = shouldReenterFromStrictEntry || shouldContinueEntryStaging || !hasExploredBeyondStrictEntry
     ? planStartZoneMove({
         map: input.map,
         memory: input.memory,
@@ -973,12 +974,18 @@ function planStartZoneMove(input: {
   position: GridPosition;
   seed: number;
 }): Direction | null {
+  const connectorX = input.map.startZone.maxX + 1;
+  const hasConnectorEntry = input.map.connectorTiles.length > 0;
   const currentTile = tileAt(input.map, input.position.x, input.position.y);
-  if (currentTile !== "S" && currentTile !== "C") {
+  const isEntryTile =
+    hasConnectorEntry &&
+    input.position.x === connectorX + 1 &&
+    input.position.y >= input.map.startZone.minY &&
+    input.position.y <= input.map.startZone.maxY;
+  if (currentTile !== "S" && currentTile !== "C" && !isEntryTile) {
     return null;
   }
 
-  const connectorX = input.map.startZone.maxX + 1;
   const preferredRows = getPreferredEntryRows(input.map, input.seed);
   const knownOpenRow = preferredRows.find((row) =>
     isWalkableKnownTile(input.memory.knownTiles.get(`${connectorX + 1},${row}`))
@@ -1001,11 +1008,47 @@ function planStartZoneMove(input: {
   if (input.position.y > targetRow) {
     return "up";
   }
-  if (input.position.x <= connectorX) {
+  if (input.position.x <= connectorX + 1) {
     return "right";
   }
 
   return null;
+}
+
+function shouldStageFromEntryTile(
+  map: MapView,
+  memory: ExplorerMemory,
+  position: GridPosition
+) {
+  if (map.connectorTiles.length === 0) {
+    return false;
+  }
+
+  const connectorX = map.startZone.maxX + 1;
+  const isFirstMazeEntryTile =
+    position.x === connectorX + 1 &&
+    position.y >= map.startZone.minY &&
+    position.y <= map.startZone.maxY;
+  if (!isFirstMazeEntryTile) {
+    return false;
+  }
+
+  const recentPositions = memory.recentTileKeys
+    .slice(-3)
+    .map(parseTileKey)
+    .filter((candidate): candidate is GridPosition => Boolean(candidate));
+
+  const currentRecentPosition = recentPositions.at(-1);
+  const previousRecentPosition = recentPositions.at(-2);
+  if (!currentRecentPosition || !previousRecentPosition) {
+    return false;
+  }
+
+  return (
+    currentRecentPosition.x === position.x &&
+    currentRecentPosition.y === position.y &&
+    isStrictEntryPosition(map, previousRecentPosition)
+  );
 }
 
 function isKnownWalkable(knownTiles: Map<string, string>, position: GridPosition) {

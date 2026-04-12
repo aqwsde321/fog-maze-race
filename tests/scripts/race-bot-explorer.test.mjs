@@ -797,6 +797,33 @@ test("explorer bot restarts staging after being sent back into the strict start 
   });
 });
 
+test("explorer bot continues staging from the first maze entry tile after a return-to-start reset", () => {
+  const map = MAP_DEFINITIONS.find((entry) => entry.mapId === "alpha-run");
+  assert.ok(map);
+
+  const seed = createExplorerSeed("bot2");
+  const memory = createExplorerMemory();
+  memory.visitCounts.set(`${map.startZone.maxX + 3},${map.startZone.minY + 1}`, 3);
+  memory.recentTileKeys = [
+    `${map.startZone.maxX},${map.startZone.minY + 2}`,
+    `${map.startZone.maxX + 1},${map.startZone.minY + 2}`,
+    `${map.startZone.maxX + 2},${map.startZone.minY + 2}`
+  ];
+
+  const decision = decideExplorerMove({
+    map,
+    memory,
+    position: { x: map.startZone.maxX + 2, y: map.startZone.minY + 2 },
+    seed,
+    strategy: "frontier"
+  });
+
+  assert.deepEqual(decision, {
+    direction: "right",
+    reason: "staging"
+  });
+});
+
 function createMemoryFromRows(rows, visitEntries = [], recentTileKeys = [], edgeEntries = []) {
   const memory = createExplorerMemory();
 

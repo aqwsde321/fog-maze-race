@@ -193,6 +193,36 @@ describe("explorer-policy", () => {
     });
   });
 
+  it("continues staging from the first maze entry tile after a return-to-start reset", () => {
+    const map = MAP_DEFINITIONS.find((entry) => entry.mapId === "alpha-run");
+    expect(map).toBeDefined();
+    if (!map) {
+      return;
+    }
+
+    const seed = createExplorerSeed("bot2");
+    const memory = createExplorerMemory();
+    memory.visitCounts.set(`${map.startZone.maxX + 3},${map.startZone.minY + 1}`, 3);
+    memory.recentTileKeys = [
+      `${map.startZone.maxX},${map.startZone.minY + 2}`,
+      `${map.startZone.maxX + 1},${map.startZone.minY + 2}`,
+      `${map.startZone.maxX + 2},${map.startZone.minY + 2}`
+    ];
+
+    const decision = decideExplorerMove({
+      map,
+      memory,
+      position: { x: map.startZone.maxX + 2, y: map.startZone.minY + 2 },
+      seed,
+      strategy: "frontier"
+    });
+
+    expect(decision).toEqual({
+      direction: "right",
+      reason: "staging"
+    });
+  });
+
   it("keeps shared-start explorer seeds divergent beyond repeated rotation buckets", () => {
     const map = MAP_DEFINITIONS.find((entry) => entry.mapId === "alpha-run");
     expect(map).toBeDefined();
