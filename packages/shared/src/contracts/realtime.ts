@@ -127,6 +127,7 @@ export type RoomListItem = {
   playerCount: number;
   status: RoomStatus;
   mode: RoomMode;
+  gameMode: RoomGameMode;
 };
 
 export type RoomListUpdatePayload = {

@@ -114,6 +114,13 @@ describe("US3 room administration contract", () => {
       1_000
     );
     expect(itemModeUpdated.room.gameMode).toBe("item");
+    const roomListUpdated = await waitForRoomList(
+      watcher,
+      (payload) =>
+        payload.rooms.some((room) => room.roomId === hostJoined.roomId && room.gameMode === "item"),
+      1_000
+    );
+    expect(roomListUpdated.rooms.find((room) => room.roomId === hostJoined.roomId)?.gameMode).toBe("item");
 
     host.emit("RENAME_ROOM", { roomId: hostJoined.roomId, name: "Beta" });
     const renamedList = await waitForRoomList(

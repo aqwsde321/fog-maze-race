@@ -1,7 +1,7 @@
 import { useEffect, useState, type CSSProperties } from "react";
 
 import type { RoomListItem } from "@fog-maze-race/shared/contracts/realtime";
-import type { RoomMode, RoomStatus } from "@fog-maze-race/shared/domain/status";
+import type { RoomGameMode, RoomMode, RoomStatus } from "@fog-maze-race/shared/domain/status";
 
 import { SelectField } from "./SelectField.js";
 
@@ -218,7 +218,7 @@ export function RoomListPanel({
                     </span>
                   </div>
                   <p style={roomMetaStyle}>
-                    방장 {room.hostNickname} · {room.playerCount}명 · {room.mode === "bot_race" ? "봇 전용" : "일반"}
+                    방장 {room.hostNickname} · {room.playerCount}명 · {room.mode === "bot_race" ? "봇 전용" : "일반"} · {formatGameModeLabel(room.gameMode)}
                   </p>
                 </div>
                 <button
@@ -721,6 +721,10 @@ function matchesRoomFilter(filter: RoomListFilter, status: RoomStatus) {
   }
 
   return true;
+}
+
+function formatGameModeLabel(gameMode: RoomGameMode) {
+  return gameMode === "item" ? "아이템전" : "일반전";
 }
 
 function getRoomStatusTheme(status: RoomStatus) {

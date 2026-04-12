@@ -360,7 +360,8 @@ export class RoomService {
         hostNickname: room.getMember(room.hostPlayerId)?.nickname ?? "Unknown",
         playerCount: room.listMembers().length,
         status: room.status,
-        mode: room.mode
+        mode: room.mode,
+        gameMode: this.requireRuntime(room.roomId).gameMode
       }))
       .sort((left, right) => left.name.localeCompare(right.name, "ko-KR"));
   }

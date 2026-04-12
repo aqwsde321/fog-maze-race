@@ -97,6 +97,7 @@ export function registerAdminHandlers({
         roomId: payload.roomId,
         snapshot
       }, loadMonitor);
+      emitRoomListAsync(io, roomService, loadMonitor);
     } catch (error) {
       emitError(socket, error);
     }

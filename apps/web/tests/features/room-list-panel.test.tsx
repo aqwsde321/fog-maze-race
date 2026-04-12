@@ -103,7 +103,8 @@ describe("RoomListPanel", () => {
               hostNickname: "호스트",
               playerCount: 1,
               status: "waiting",
-              mode: "normal"
+              mode: "normal",
+              gameMode: "item"
             }
           ]}
           roomName="Alpha"
@@ -131,6 +132,7 @@ describe("RoomListPanel", () => {
     expect(container.querySelector('[data-testid="create-room-dialog"]')).not.toBeNull();
     expect(lobbyHeader?.nextElementSibling).toBe(roomListCard);
     expect(roomListCard?.style.margin).toBe("0px auto");
+    expect(container.textContent).toContain("아이템전");
   });
 
   it("renders the room mode selector with the same shell chrome used in the game room", async () => {
@@ -201,7 +203,8 @@ describe("RoomListPanel", () => {
               hostNickname: "호스트1",
               playerCount: 1,
               status: "waiting",
-              mode: "normal"
+              mode: "normal",
+              gameMode: "normal"
             },
             {
               roomId: "room-countdown",
@@ -209,7 +212,8 @@ describe("RoomListPanel", () => {
               hostNickname: "호스트2",
               playerCount: 2,
               status: "countdown",
-              mode: "normal"
+              mode: "normal",
+              gameMode: "item"
             },
             {
               roomId: "room-playing",
@@ -217,7 +221,8 @@ describe("RoomListPanel", () => {
               hostNickname: "호스트3",
               playerCount: 3,
               status: "playing",
-              mode: "bot_race"
+              mode: "bot_race",
+              gameMode: "item"
             },
             {
               roomId: "room-ended",
@@ -225,7 +230,8 @@ describe("RoomListPanel", () => {
               hostNickname: "호스트4",
               playerCount: 4,
               status: "ended",
-              mode: "normal"
+              mode: "normal",
+              gameMode: "normal"
             }
           ]}
           roomName="Alpha"
@@ -278,7 +284,8 @@ describe("RoomListPanel", () => {
               hostNickname: "호스트1",
               playerCount: 1,
               status: "waiting",
-              mode: "normal"
+              mode: "normal",
+              gameMode: "normal"
             },
             {
               roomId: "room-countdown",
@@ -286,7 +293,8 @@ describe("RoomListPanel", () => {
               hostNickname: "호스트2",
               playerCount: 2,
               status: "countdown",
-              mode: "normal"
+              mode: "normal",
+              gameMode: "item"
             },
             {
               roomId: "room-playing",
@@ -294,7 +302,8 @@ describe("RoomListPanel", () => {
               hostNickname: "호스트3",
               playerCount: 3,
               status: "playing",
-              mode: "bot_race"
+              mode: "bot_race",
+              gameMode: "item"
             }
           ]}
           roomName="Alpha"
@@ -335,7 +344,8 @@ describe("RoomListPanel", () => {
             hostNickname: `호스트${index}`,
             playerCount: index + 1,
             status: "waiting" as const,
-            mode: "normal" as const
+            mode: "normal" as const,
+            gameMode: "normal" as const
           }))}
           roomName="Alpha"
           roomMode="normal"

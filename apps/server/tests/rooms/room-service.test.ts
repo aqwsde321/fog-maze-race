@@ -118,6 +118,36 @@ describe("RoomService", () => {
     expect(updated.previewMap?.mapId).toBe(initialPreviewMapId);
   });
 
+  it("includes the current game mode in room list items", () => {
+    const service = new RoomService(new RevisionSync(), new MapRegistry(), {
+      random: () => 0
+    });
+
+    const created = service.createRoom({
+      session: new PlayerSession({
+        playerId: "host",
+        nickname: "호스트"
+      }),
+      name: "Alpha"
+    });
+
+    expect(service.listRooms()).toEqual([
+      expect.objectContaining({
+        roomId: created.roomId,
+        gameMode: "normal"
+      })
+    ]);
+
+    service.setGameMode(created.roomId, "host", "item");
+
+    expect(service.listRooms()).toEqual([
+      expect.objectContaining({
+        roomId: created.roomId,
+        gameMode: "item"
+      })
+    ]);
+  });
+
   it("reuses only colors that are no longer occupied when a player leaves and rejoins", () => {
     const service = new RoomService(new RevisionSync(), new MapRegistry(), {
       random: () => 0
