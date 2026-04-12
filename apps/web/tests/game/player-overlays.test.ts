@@ -5,6 +5,7 @@ import {
   CHAT_BUBBLE_MAX_LENGTH,
   clampOverlayCenterX,
   collectActivePlayerChats,
+  resolveHeldItemBadgeVisual,
   truncatePlayerChatMessage
 } from "../../src/game/pixi/player-overlays.js";
 
@@ -62,5 +63,29 @@ describe("player overlays", () => {
     expect(clampOverlayCenterX({ centerX: 20, overlayWidth: 80, viewportWidth: 300 })).toBe(50);
     expect(clampOverlayCenterX({ centerX: 280, overlayWidth: 80, viewportWidth: 300 })).toBe(250);
     expect(clampOverlayCenterX({ centerX: 150, overlayWidth: 80, viewportWidth: 300 })).toBe(150);
+  });
+
+  it("maps held item types to distinct badge visuals", () => {
+    expect(resolveHeldItemBadgeVisual("ice_trap")).toMatchObject({
+      icon: "❄",
+      fillColor: 0x0b2942
+    });
+    expect(resolveHeldItemBadgeVisual("return_trap")).toMatchObject({
+      icon: "↺",
+      fillColor: 0x3b0764
+    });
+    expect(resolveHeldItemBadgeVisual("flare")).toMatchObject({
+      icon: "✦",
+      fillColor: 0x78350f
+    });
+    expect(resolveHeldItemBadgeVisual("boost")).toMatchObject({
+      icon: "≫",
+      fillColor: 0x14532d
+    });
+    expect(resolveHeldItemBadgeVisual("scanner")).toMatchObject({
+      icon: "⌖",
+      fillColor: 0x082f49
+    });
+    expect(resolveHeldItemBadgeVisual(null)).toBeNull();
   });
 });

@@ -137,7 +137,8 @@ export function updateExplorerMemory({
       position: member.position,
       state: member.state
     })),
-    revealGoalZone: false
+    revealGoalZone: false,
+    forceFullMapPlayerId: snapshot.match.lastRacerStandingPlayerId ?? null
   });
 
   for (const tileKey of projection.visibleTileKeys) {

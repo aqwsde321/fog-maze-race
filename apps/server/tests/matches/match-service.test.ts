@@ -571,6 +571,118 @@ describe("MatchService start-zone movement", () => {
 
     expect(roomService.getSnapshot(created.roomId).members.find((member) => member.playerId === "host")?.position).toEqual({ x: 6, y: 1 });
   });
+
+  it("starts a 10-second end countdown and finishes the round when one racer remains", () => {
+    vi.useFakeTimers();
+
+    const mapRegistry = new MapRegistry();
+    const roomService = new RoomService(new RevisionSync(), mapRegistry, {
+      forcedPreviewMapId: getMapById("training-lap")!.mapId
+    });
+    const matchService = new MatchService(roomService, {
+      countdownStepMs: 25,
+      resultsDurationMs: 60
+    });
+    services.push(matchService);
+
+    const created = roomService.createRoom({
+      session: new PlayerSession({
+        playerId: "host",
+        nickname: "호스트"
+      }),
+      name: "Alpha"
+    });
+    roomService.joinRoom({
+      roomId: created.roomId,
+      session: new PlayerSession({
+        playerId: "guest",
+        nickname: "게스트"
+      })
+    });
+
+    matchService.startGame(created.roomId, "host", createSink());
+    vi.advanceTimersByTime(120);
+
+    const runtime = roomService.requireRuntime(created.roomId);
+    runtime.room.updateMemberPosition("host", { x: 7, y: 1 });
+    runtime.room.updateMemberPosition("guest", { x: 4, y: 1 });
+    roomService.syncRoomRevision(created.roomId);
+
+    matchService.move(created.roomId, "host", { direction: "right", inputSeq: 1 }, createSink());
+
+    let snapshot = roomService.getSnapshot(created.roomId);
+    expect(snapshot.room.status).toBe("playing");
+    expect(snapshot.match?.lastRacerStandingPlayerId).toBe("guest");
+    expect(snapshot.match?.lastRacerStandingEndsAt).not.toBeNull();
+
+    vi.advanceTimersByTime(10_001);
+
+    snapshot = roomService.getSnapshot(created.roomId);
+    expect(snapshot.room.status).toBe("ended");
+    expect(snapshot.match?.status).toBe("ended");
+    expect(snapshot.match?.lastRacerStandingPlayerId ?? null).toBeNull();
+    expect(snapshot.match?.lastRacerStandingEndsAt ?? null).toBeNull();
+    expect(snapshot.match?.results).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ playerId: "host", outcome: "finished", rank: 1 }),
+        expect.objectContaining({ playerId: "guest", outcome: "left", rank: null })
+      ])
+    );
+  });
+
+  it("clears the last-racer countdown when the final racer finishes before timeout", () => {
+    vi.useFakeTimers();
+
+    const mapRegistry = new MapRegistry();
+    const roomService = new RoomService(new RevisionSync(), mapRegistry, {
+      forcedPreviewMapId: getMapById("training-lap")!.mapId
+    });
+    const matchService = new MatchService(roomService, {
+      countdownStepMs: 25,
+      resultsDurationMs: 60
+    });
+    services.push(matchService);
+
+    const created = roomService.createRoom({
+      session: new PlayerSession({
+        playerId: "host",
+        nickname: "호스트"
+      }),
+      name: "Alpha"
+    });
+    roomService.joinRoom({
+      roomId: created.roomId,
+      session: new PlayerSession({
+        playerId: "guest",
+        nickname: "게스트"
+      })
+    });
+
+    matchService.startGame(created.roomId, "host", createSink());
+    vi.advanceTimersByTime(120);
+
+    const runtime = roomService.requireRuntime(created.roomId);
+    runtime.room.updateMemberPosition("host", { x: 7, y: 1 });
+    runtime.room.updateMemberPosition("guest", { x: 7, y: 1 });
+    roomService.syncRoomRevision(created.roomId);
+
+    matchService.move(created.roomId, "host", { direction: "right", inputSeq: 1 }, createSink());
+
+    let snapshot = roomService.getSnapshot(created.roomId);
+    expect(snapshot.match?.lastRacerStandingPlayerId).toBe("guest");
+
+    matchService.move(created.roomId, "guest", { direction: "right", inputSeq: 2 }, createSink());
+    vi.advanceTimersByTime(10_001);
+
+    snapshot = roomService.getSnapshot(created.roomId);
+    expect(snapshot.room.status).toBe("ended");
+    expect(snapshot.match?.results).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ playerId: "host", outcome: "finished", rank: 1 }),
+        expect.objectContaining({ playerId: "guest", outcome: "finished", rank: 2 })
+      ])
+    );
+  });
 });
 
 function createSink(): MatchEventSink {

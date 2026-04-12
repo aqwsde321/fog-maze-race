@@ -30,7 +30,8 @@ export class RecoveryService {
     session.disconnect(Date.now(), this.options.graceWindowMs);
 
     try {
-      const snapshot = this.roomService.disconnectPlayer(roomId, playerId);
+      this.roomService.disconnectPlayer(roomId, playerId);
+      const snapshot = this.matchService.handlePlayerDisconnected(roomId, sink) ?? this.roomService.getSnapshot(roomId);
       sink.emitRoomState({ roomId, snapshot });
     } catch {
       return;
@@ -54,7 +55,7 @@ export class RecoveryService {
     this.timeoutHandles.set(playerId, timeoutHandle);
   }
 
-  recover(playerId: string) {
+  recover(playerId: string, sink?: MatchEventSink) {
     const record = this.disconnectGrace.recover(playerId);
     if (!record) {
       return null;
@@ -74,7 +75,11 @@ export class RecoveryService {
     session.reconnect();
 
     try {
-      const snapshot = this.roomService.recoverPlayer(record.roomId, playerId);
+      this.roomService.recoverPlayer(record.roomId, playerId);
+      const snapshot =
+        sink
+          ? this.matchService.handlePlayerRecovered(record.roomId, sink) ?? this.roomService.getSnapshot(record.roomId)
+          : this.roomService.getSnapshot(record.roomId);
       return {
         roomId: record.roomId,
         snapshot

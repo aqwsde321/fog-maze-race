@@ -640,6 +640,35 @@ describe("GameScreen keyboard control", () => {
     expect(overlay?.textContent).toContain("3");
   });
 
+  it("shows the last-racer end countdown while one racer remains", async () => {
+    const endsAt = new Date(Date.now() + 10_000).toISOString();
+
+    await act(async () => {
+      root.render(
+        <GameScreen
+          snapshot={buildSnapshot("playing", {
+            lastRacerStandingPlayerId: "player-1",
+            lastRacerStandingEndsAt: endsAt
+          })}
+          selfPlayerId="player-1"
+          countdownValue={null}
+          onStartGame={vi.fn()}
+          onRenameRoom={vi.fn()}
+          onSetVisibilitySize={vi.fn()}
+          onForceEndRoom={vi.fn()}
+          onResetToWaiting={vi.fn()}
+          onLeaveRoom={vi.fn()}
+          onUseItem={vi.fn()}
+          onMove={vi.fn()}
+          onSendChatMessage={vi.fn()}
+        />
+      );
+    });
+
+    expect(container.querySelector('[data-testid="last-racer-overlay"]')?.textContent).toContain("마지막 주자");
+    expect(container.querySelector('[data-testid="last-racer-overlay"]')?.textContent).toContain("10초");
+  });
+
   it("hides the start button for non-host players", async () => {
     await act(async () => {
       root.render(
@@ -1311,6 +1340,8 @@ describe("GameScreen keyboard control", () => {
     flareUntil?: string | null;
     boostUntil?: string | null;
     scannerUntil?: string | null;
+    lastRacerStandingPlayerId?: string | null;
+    lastRacerStandingEndsAt?: string | null;
   }
 ): RoomSnapshot {
   const selfPlayerId = overrides?.selfPlayerId ?? "player-1";
@@ -1366,6 +1397,8 @@ describe("GameScreen keyboard control", () => {
           countdownValue: status === "countdown" ? 3 : null,
           startedAt: status === "ended" ? "2026-03-22T23:59:40.000Z" : null,
           endedAt: status === "ended" ? "2026-03-23T00:00:00.000Z" : null,
+          lastRacerStandingPlayerId: overrides?.lastRacerStandingPlayerId ?? null,
+          lastRacerStandingEndsAt: overrides?.lastRacerStandingEndsAt ?? null,
           resultsDurationMs: status === "ended" ? 6_000 : null,
           finishOrder: status === "ended" ? [selfPlayerId] : [],
           results: status === "ended"

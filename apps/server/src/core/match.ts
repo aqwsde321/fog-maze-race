@@ -44,6 +44,8 @@ export class MatchAggregate {
   readonly map: MapDefinition;
   status: MatchStatus;
   countdownValue: 3 | 2 | 1 | 0 | null;
+  lastRacerStandingPlayerId: string | null;
+  lastRacerStandingEndsAt: number | null;
   finishOrder: string[];
   results: ResultEntry[];
   itemBoxes: MatchItemBoxRecord[];
@@ -57,6 +59,8 @@ export class MatchAggregate {
     this.map = input.map;
     this.status = "countdown";
     this.countdownValue = 3;
+    this.lastRacerStandingPlayerId = null;
+    this.lastRacerStandingEndsAt = null;
     this.finishOrder = [];
     this.results = [];
     this.itemBoxes = [];
@@ -88,6 +92,16 @@ export class MatchAggregate {
       this.status = "playing";
       this.startedAt = now;
     }
+  }
+
+  setLastRacerStanding(playerId: string, endsAt: number) {
+    this.lastRacerStandingPlayerId = playerId;
+    this.lastRacerStandingEndsAt = endsAt;
+  }
+
+  clearLastRacerStanding() {
+    this.lastRacerStandingPlayerId = null;
+    this.lastRacerStandingEndsAt = null;
   }
 
   applyMove(position: GridPosition, direction: Direction) {

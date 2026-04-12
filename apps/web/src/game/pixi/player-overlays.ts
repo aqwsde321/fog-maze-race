@@ -1,7 +1,15 @@
 import type { RoomChatMessageView } from "@fog-maze-race/shared/contracts/snapshots";
+import type { MatchItemType } from "@fog-maze-race/shared/domain/item";
 
 export const CHAT_BUBBLE_LIFETIME_MS = 2_000;
 export const CHAT_BUBBLE_MAX_LENGTH = 14;
+
+export type HeldItemBadgeVisual = {
+  icon: string;
+  fillColor: number;
+  strokeColor: number;
+  textColor: string;
+};
 
 export function truncatePlayerChatMessage(content: string, maxLength = CHAT_BUBBLE_MAX_LENGTH) {
   const normalized = content.replace(/\s+/g, " ").trim();
@@ -65,4 +73,46 @@ export function clampOverlayCenterX(input: {
   }
 
   return Math.min(maxCenter, Math.max(minCenter, input.centerX));
+}
+
+export function resolveHeldItemBadgeVisual(itemType: MatchItemType | null | undefined): HeldItemBadgeVisual | null {
+  switch (itemType) {
+    case "ice_trap":
+      return {
+        icon: "❄",
+        fillColor: 0x0b2942,
+        strokeColor: 0x7dd3fc,
+        textColor: "#e0f2fe"
+      };
+    case "return_trap":
+      return {
+        icon: "↺",
+        fillColor: 0x3b0764,
+        strokeColor: 0xf472b6,
+        textColor: "#fdf2f8"
+      };
+    case "flare":
+      return {
+        icon: "✦",
+        fillColor: 0x78350f,
+        strokeColor: 0xfacc15,
+        textColor: "#fef3c7"
+      };
+    case "boost":
+      return {
+        icon: "≫",
+        fillColor: 0x14532d,
+        strokeColor: 0x4ade80,
+        textColor: "#dcfce7"
+      };
+    case "scanner":
+      return {
+        icon: "⌖",
+        fillColor: 0x082f49,
+        strokeColor: 0x7dd3fc,
+        textColor: "#e0f2fe"
+      };
+    default:
+      return null;
+  }
 }

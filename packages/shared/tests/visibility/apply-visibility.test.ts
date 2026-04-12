@@ -74,4 +74,21 @@ describe("createVisibilityProjection", () => {
     expect(projection.visibleTileKeys).toContain("0,0");
     expect(projection.visiblePlayerIds).toEqual(["self", "faraway"]);
   });
+
+  it("reveals the entire map to the last remaining racer during the end countdown", () => {
+    const projection = createVisibilityProjection({
+      map,
+      selfPlayerId: "self",
+      forceFullMapPlayerId: "self",
+      members: [
+        { playerId: "self", position: { x: 6, y: 17 }, state: "playing" },
+        { playerId: "faraway", position: { x: map.goalZone.minX, y: map.goalZone.minY }, state: "finished" }
+      ]
+    });
+
+    expect(projection.showFullMap).toBe(true);
+    expect(projection.visibleTileKeys).toContain("0,0");
+    expect(projection.visibleTileKeys).toContain(`${map.goalZone.minX},${map.goalZone.minY}`);
+    expect(projection.visiblePlayerIds).toEqual(["self", "faraway"]);
+  });
 });

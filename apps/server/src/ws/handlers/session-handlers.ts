@@ -14,7 +14,7 @@ import { RecoveryService } from "../../rooms/recovery-service.js";
 import { RoomService } from "../../rooms/room-service.js";
 import { DisconnectGraceRegistry } from "../disconnect-grace.js";
 import { emitError, emitRoomListAsync, emitRoomState, requireSession } from "./handler-support.js";
-import { recoverPlayerConnection } from "./recovery-handlers.js";
+import { createRoomEventSink, recoverPlayerConnection } from "./recovery-handlers.js";
 
 type SessionHandlerDeps = {
   io: Server;
@@ -48,7 +48,10 @@ export function registerSessionHandlers({
 
       const recovery = recoverPlayerConnection({
         session,
-        recoveryService
+        recoveryService,
+        sink: session.currentRoomId
+          ? createRoomEventSink(io, roomService, session.currentRoomId, loadMonitor)
+          : undefined
       });
       socket.emit("CONNECTED", recovery.connected);
 

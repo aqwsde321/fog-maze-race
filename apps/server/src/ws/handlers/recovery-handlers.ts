@@ -11,6 +11,7 @@ import { emitRoomEvent, emitRoomListAsync, emitRoomState } from "./handler-suppo
 type RecoveryConnectInput = {
   session: PlayerSession;
   recoveryService: RecoveryService;
+  sink?: MatchEventSink;
 };
 
 type RecoveryDisconnectInput = {
@@ -21,12 +22,13 @@ type RecoveryDisconnectInput = {
 
 export function recoverPlayerConnection({
   session,
-  recoveryService
+  recoveryService,
+  sink
 }: RecoveryConnectInput): {
   connected: ConnectedPayload;
   recoveredRoom: { roomId: string; snapshot: ReturnType<RoomService["getSnapshot"]> } | null;
 } {
-  const recovered = recoveryService.recover(session.playerId);
+  const recovered = recoveryService.recover(session.playerId, sink);
 
   return {
     connected: {

@@ -28,6 +28,7 @@ export function createVisibilityProjection(input: {
   selfPlayerId: string;
   members: VisibilityMember[];
   revealGoalZone?: boolean;
+  forceFullMapPlayerId?: string | null;
 }): VisibilityProjection {
   const self = input.members.find((member) => member.playerId === input.selfPlayerId);
 
@@ -39,7 +40,7 @@ export function createVisibilityProjection(input: {
     };
   }
 
-  const showFullMap = self.state === "finished";
+  const showFullMap = self.state === "finished" || input.forceFullMapPlayerId === self.playerId;
   const revealGoalZone = input.revealGoalZone ?? true;
   const visibleTiles = new Set<string>();
   const visiblePlayerIds = new Set<string>();

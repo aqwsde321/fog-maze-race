@@ -160,6 +160,7 @@ export function GameScreen({
   const [serverHealth, setServerHealth] = useState<ServerHealthSnapshot | null>(null);
   const [serverHealthError, setServerHealthError] = useState<string | null>(null);
   const [metricHistory, setMetricHistory] = useState<MetricHistory>(createEmptyMetricHistory);
+  const [nowMs, setNowMs] = useState(() => Date.now());
   const [pingMetric, setPingMetric] = useState<PingMetricState>({
     avgMs10s: null,
     currentMs: null
@@ -206,6 +207,17 @@ export function GameScreen({
     ? (currentBots.length > 0 ? 0 : Math.min(availableBotSlots, 1))
     : availableBotSlots;
   const activeMap = snapshot.match?.map ?? snapshot.previewMap;
+  const lastRacerStandingEndsAtMs = snapshot.match?.lastRacerStandingEndsAt
+    ? Date.parse(snapshot.match.lastRacerStandingEndsAt)
+    : null;
+  const isLastRacerCountdownVisible =
+    snapshot.room.status === "playing" &&
+    lastRacerStandingEndsAtMs !== null &&
+    Number.isFinite(lastRacerStandingEndsAtMs) &&
+    lastRacerStandingEndsAtMs > nowMs;
+  const lastRacerCountdownSeconds = isLastRacerCountdownVisible && lastRacerStandingEndsAtMs !== null
+    ? Math.max(0, Math.ceil((lastRacerStandingEndsAtMs - nowMs) / 1_000))
+    : null;
   const serverMetrics = serverHealth ? buildServerMetrics(serverHealth, snapshot.members.length, pingMetric, metricHistory) : [];
   const fakeGoalAlertAnchor =
     snapshot.match?.map && canvasMetrics.width > 0 && canvasMetrics.height > 0
@@ -220,6 +232,21 @@ export function GameScreen({
       })
     : null;
   const quickChatPlacement = resolveQuickChatPlacement(quickChatAnchor, canvasMetrics);
+
+  useEffect(() => {
+    if (!isLastRacerCountdownVisible) {
+      return;
+    }
+
+    setNowMs(Date.now());
+    const intervalId = window.setInterval(() => {
+      setNowMs(Date.now());
+    }, 250);
+
+    return () => {
+      window.clearInterval(intervalId);
+    };
+  }, [isLastRacerCountdownVisible, lastRacerStandingEndsAtMs]);
 
   useEffect(() => {
     if (!canMove) {
@@ -673,6 +700,14 @@ export function GameScreen({
               <div style={countdownCardStyle}>
                 <p style={countdownLabelStyle}>시작까지</p>
                 <strong style={countdownValueStyle}>{countdownValue}</strong>
+              </div>
+            </div>
+          ) : null}
+          {isLastRacerCountdownVisible && lastRacerCountdownSeconds !== null ? (
+            <div data-testid="last-racer-overlay" style={lastRacerOverlayStyle}>
+              <div style={lastRacerCardStyle}>
+                <span style={lastRacerLabelStyle}>마지막 주자</span>
+                <strong style={lastRacerValueStyle}>{lastRacerCountdownSeconds}초 후 종료</strong>
               </div>
             </div>
           ) : null}
@@ -1625,6 +1660,41 @@ const countdownOverlayStyle: CSSProperties = {
   display: "grid",
   placeItems: "center",
   pointerEvents: "none"
+};
+
+const lastRacerOverlayStyle: CSSProperties = {
+  position: "absolute",
+  left: "50%",
+  top: "20px",
+  transform: "translateX(-50%)",
+  zIndex: 5,
+  pointerEvents: "none"
+};
+
+const lastRacerCardStyle: CSSProperties = {
+  display: "grid",
+  gap: "4px",
+  justifyItems: "center",
+  padding: "12px 18px",
+  borderRadius: "18px",
+  background: "rgba(2, 6, 23, 0.82)",
+  border: "1px solid rgba(250, 204, 21, 0.3)",
+  boxShadow: "0 18px 48px rgba(2, 6, 23, 0.32)",
+  backdropFilter: "blur(8px)"
+};
+
+const lastRacerLabelStyle: CSSProperties = {
+  color: "#fde68a",
+  fontSize: "0.76rem",
+  fontWeight: 800,
+  letterSpacing: "0.16em",
+  textTransform: "uppercase"
+};
+
+const lastRacerValueStyle: CSSProperties = {
+  color: "#f8fafc",
+  fontSize: "1rem",
+  fontWeight: 800
 };
 
 function fakeGoalAlertOverlayStyle(canvasMetrics: CanvasMetrics): CSSProperties {

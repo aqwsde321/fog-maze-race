@@ -302,6 +302,17 @@ export class RoomAggregate {
     return member;
   }
 
+  markMemberLeft(playerId: string) {
+    const member = this.members.get(playerId);
+    if (!member) {
+      throw new Error("NOT_IN_ROOM");
+    }
+
+    member.state = "left";
+    this.bumpRevision();
+    return member;
+  }
+
   allMembersFinished() {
     const racers = this.listMembers().filter((member) => member.role === "racer");
     return racers.length > 0 && racers.every((member) => member.state === "finished");

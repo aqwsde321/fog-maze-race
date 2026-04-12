@@ -438,6 +438,8 @@ export class RoomService {
             countdownValue: runtime.match.countdownValue,
             startedAt: toIso(runtime.match.startedAt),
             endedAt: toIso(runtime.match.endedAt),
+            lastRacerStandingPlayerId: runtime.match.lastRacerStandingPlayerId,
+            lastRacerStandingEndsAt: toIso(runtime.match.lastRacerStandingEndsAt),
             resultsDurationMs: runtime.match.endedAt ? this.resultsDurationMs : null,
             finishOrder: [...runtime.match.finishOrder],
             results: [...runtime.match.results],

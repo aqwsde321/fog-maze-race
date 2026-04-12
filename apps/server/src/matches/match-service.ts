@@ -49,9 +49,11 @@ const ICE_TRAP_FROZEN_MS = 1_500;
 const FLARE_DURATION_MS = 4_000;
 const BOOST_DURATION_MS = 3_000;
 const SCANNER_DURATION_MS = 4_000;
+const LAST_RACER_END_MS = 10_000;
 
 type TimerBucket = {
   countdown: ReturnType<typeof setTimeout>[];
+  loneRacer: ReturnType<typeof setTimeout> | null;
 };
 
 export class MatchService {
@@ -214,6 +216,7 @@ export class MatchService {
     }
 
     if (finishedRank) {
+      this.reconcileLastRacerStanding(roomId, sink);
       this.roomService.syncRoomRevision(roomId);
       sink.emitPlayerFinished({
         roomId,
@@ -306,9 +309,40 @@ export class MatchService {
   dispose() {
     for (const timers of this.timers.values()) {
       timers.countdown.forEach((timer) => clearTimeout(timer));
+      if (timers.loneRacer) {
+        clearTimeout(timers.loneRacer);
+      }
     }
 
     this.timers.clear();
+  }
+
+  handlePlayerDisconnected(roomId: string, sink: MatchEventSink) {
+    const runtime = this.roomService.findRuntime(roomId);
+    if (!runtime) {
+      return null;
+    }
+
+    const changed = this.reconcileLastRacerStanding(roomId, sink);
+    if (changed) {
+      this.roomService.syncRoomRevision(roomId);
+    }
+
+    return this.roomService.getSnapshot(roomId);
+  }
+
+  handlePlayerRecovered(roomId: string, sink: MatchEventSink) {
+    const runtime = this.roomService.findRuntime(roomId);
+    if (!runtime) {
+      return null;
+    }
+
+    const changed = this.reconcileLastRacerStanding(roomId, sink);
+    if (changed) {
+      this.roomService.syncRoomRevision(roomId);
+    }
+
+    return this.roomService.getSnapshot(roomId);
   }
 
   handlePlayerLeft(
@@ -333,6 +367,7 @@ export class MatchService {
       runtime.match.markLeft(member);
     }
 
+    this.reconcileLastRacerStanding(roomId, sink);
     this.roomService.syncRoomRevision(roomId);
 
     if (runtime.room.status === "playing" && runtime.room.allMembersFinished()) {
@@ -392,6 +427,10 @@ export class MatchService {
     const bucket = this.getTimerBucket(roomId);
     bucket.countdown.forEach((timer) => clearTimeout(timer));
     bucket.countdown = [];
+    if (bucket.loneRacer) {
+      clearTimeout(bucket.loneRacer);
+      bucket.loneRacer = null;
+    }
 
     const values: Array<3 | 2 | 1 | 0> = [3, 2, 1, 0];
 
@@ -422,6 +461,7 @@ export class MatchService {
             ),
             this.options.random ?? Math.random
           );
+          this.reconcileLastRacerStanding(roomId, sink);
           this.roomService.syncRoomRevision(roomId);
         } else {
           this.roomService.bumpStreamRevision(roomId);
@@ -460,6 +500,8 @@ export class MatchService {
     if (!match) {
       return;
     }
+
+    this.clearLastRacerStanding(roomId);
 
     runtime.room.endRound();
     match.end();
@@ -560,11 +602,104 @@ export class MatchService {
     }
 
     const created: TimerBucket = {
-      countdown: []
+      countdown: [],
+      loneRacer: null
     };
 
     this.timers.set(roomId, created);
     return created;
+  }
+
+  private reconcileLastRacerStanding(roomId: string, sink: MatchEventSink) {
+    const runtime = this.roomService.findRuntime(roomId);
+    if (!runtime?.match) {
+      return false;
+    }
+
+    const match = runtime.match;
+    const bucket = this.getTimerBucket(roomId);
+    const playingRacers = runtime.room.listMembers().filter(
+      (member) => member.role === "racer" && member.state === "playing"
+    );
+
+    if (runtime.room.status !== "playing" || match.status !== "playing" || playingRacers.length !== 1) {
+      return this.clearLastRacerStanding(roomId);
+    }
+
+    const loneRacer = playingRacers[0]!;
+    if (
+      match.lastRacerStandingPlayerId === loneRacer.playerId &&
+      match.lastRacerStandingEndsAt !== null &&
+      match.lastRacerStandingEndsAt > Date.now()
+    ) {
+      return false;
+    }
+
+    if (bucket.loneRacer) {
+      clearTimeout(bucket.loneRacer);
+      bucket.loneRacer = null;
+    }
+
+    const endsAt = Date.now() + LAST_RACER_END_MS;
+    match.setLastRacerStanding(loneRacer.playerId, endsAt);
+    bucket.loneRacer = setTimeout(() => {
+      this.handleLastRacerTimeout(roomId, loneRacer.playerId, sink);
+    }, LAST_RACER_END_MS + 1);
+    return true;
+  }
+
+  private clearLastRacerStanding(roomId: string) {
+    const runtime = this.roomService.findRuntime(roomId);
+    if (!runtime?.match) {
+      return false;
+    }
+
+    const bucket = this.getTimerBucket(roomId);
+    if (bucket.loneRacer) {
+      clearTimeout(bucket.loneRacer);
+      bucket.loneRacer = null;
+    }
+
+    const hadValue =
+      runtime.match.lastRacerStandingPlayerId !== null ||
+      runtime.match.lastRacerStandingEndsAt !== null;
+    if (hadValue) {
+      runtime.match.clearLastRacerStanding();
+    }
+
+    return hadValue;
+  }
+
+  private handleLastRacerTimeout(roomId: string, playerId: string, sink: MatchEventSink) {
+    const runtime = this.roomService.findRuntime(roomId);
+    if (!runtime?.match || runtime.room.status !== "playing" || runtime.match.status !== "playing") {
+      this.clearLastRacerStanding(roomId);
+      return;
+    }
+
+    const playingRacers = runtime.room.listMembers().filter(
+      (member) => member.role === "racer" && member.state === "playing"
+    );
+    const loneRacer = playingRacers[0] ?? null;
+    if (playingRacers.length !== 1 || loneRacer?.playerId !== playerId) {
+      const changed = this.clearLastRacerStanding(roomId);
+      if (changed) {
+        this.roomService.syncRoomRevision(roomId);
+        sink.emitRoomState({
+          roomId,
+          snapshot: this.roomService.getSnapshot(roomId)
+        });
+      }
+      return;
+    }
+
+    runtime.match.markLeft({
+      playerId: loneRacer.playerId,
+      nickname: loneRacer.nickname,
+      color: loneRacer.color
+    });
+    runtime.room.markMemberLeft(loneRacer.playerId);
+    this.finishGame(roomId, sink);
   }
 
   private getInitialCountdownDelay() {

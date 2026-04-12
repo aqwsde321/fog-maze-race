@@ -19,7 +19,11 @@ import {
   resolveTileVisibilityState,
   updateTileMemory
 } from "../tile-memory.js";
-import { clampOverlayCenterX, collectActivePlayerChats } from "./player-overlays.js";
+import {
+  clampOverlayCenterX,
+  collectActivePlayerChats,
+  resolveHeldItemBadgeVisual
+} from "./player-overlays.js";
 import { resolveRenderMembers } from "../player-overlay-layout.js";
 import {
   getFrozenPrisonMetrics,
@@ -108,7 +112,8 @@ export async function createSceneController(container: HTMLDivElement): Promise<
               playerId: member.playerId,
               position: member.position,
               state: member.state
-            }))
+            })),
+            forceFullMapPlayerId: match.lastRacerStandingPlayerId ?? null
           })
         : {
             showFullMap: true,
@@ -248,6 +253,16 @@ export async function createSceneController(container: HTMLDivElement): Promise<
           }
         }
 
+        if (member.heldItemType) {
+          drawPlayerHeldItemBadge(overlayLayer, {
+            centerX,
+            centerY,
+            markerRadius,
+            itemType: member.heldItemType,
+            viewportWidth: layout.viewportWidth
+          });
+        }
+
         drawPlayerNicknameLabel(overlayLayer, {
           centerX,
           centerY,
@@ -333,6 +348,16 @@ const PLAYER_SCANNER_STYLE = new TextStyle({
     join: "round"
   }
 });
+
+const PLAYER_HELD_ITEM_STYLE = {
+  fontSize: 12,
+  fontWeight: "900",
+  stroke: {
+    color: "#07111f",
+    width: 2.5,
+    join: "round"
+  }
+} as const;
 
 const ITEM_BOX_QUESTION_STYLE = new TextStyle({
   fill: "#ffffff",
@@ -432,6 +457,47 @@ function drawPlayerScannerArrow(layer: Container, input: {
   });
   text.x = badgeCenterX - text.width / 2;
   text.y = badgeY + badgeHeight / 2 - text.height / 2 - 1;
+
+  layer.addChild(badge);
+  layer.addChild(text);
+}
+
+function drawPlayerHeldItemBadge(layer: Container, input: {
+  centerX: number;
+  centerY: number;
+  markerRadius: number;
+  itemType: NonNullable<RoomSnapshot["members"][number]["heldItemType"]>;
+  viewportWidth: number;
+}) {
+  const visual = resolveHeldItemBadgeVisual(input.itemType);
+  if (!visual) {
+    return;
+  }
+
+  const badgeSize = 22;
+  const badgeCenterX = clampOverlayCenterX({
+    centerX: input.centerX + input.markerRadius + 12,
+    overlayWidth: badgeSize,
+    viewportWidth: input.viewportWidth,
+    padding: 8
+  });
+  const badgeX = badgeCenterX - badgeSize / 2;
+  const badgeY = input.centerY - badgeSize / 2 + 6;
+  const badge = new Graphics();
+  badge
+    .roundRect(badgeX, badgeY, badgeSize, badgeSize, 10)
+    .fill({ color: visual.fillColor, alpha: 0.92 })
+    .stroke({ color: visual.strokeColor, alpha: 0.52, width: 1.2 });
+
+  const text = new Text({
+    text: visual.icon,
+    style: new TextStyle({
+      ...PLAYER_HELD_ITEM_STYLE,
+      fill: visual.textColor
+    })
+  });
+  text.x = badgeCenterX - text.width / 2;
+  text.y = badgeY + badgeSize / 2 - text.height / 2 - 1;
 
   layer.addChild(badge);
   layer.addChild(text);
