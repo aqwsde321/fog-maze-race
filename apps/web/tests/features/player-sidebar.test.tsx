@@ -57,7 +57,7 @@ describe("PlayerSidebar", () => {
 
     const list = container.querySelector<HTMLElement>('[data-testid="player-sidebar-list"]');
 
-    expect(list?.style.maxHeight).toBe("50vh");
+    expect(list?.style.maxHeight).toBe("min(42vh, calc(100vh - 360px))");
     expect(list?.style.overflowY).toBe("auto");
   });
 

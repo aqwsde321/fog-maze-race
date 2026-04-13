@@ -4,7 +4,7 @@ import type { Server } from "socket.io";
 
 import type { RoomBotKind, RoomBotRequest, RoomExploreStrategy } from "@fog-maze-race/shared/contracts/realtime";
 import type { MapView, RoomMemberView, RoomSnapshot } from "@fog-maze-race/shared/contracts/snapshots";
-import { samePosition, type Direction, type GridPosition } from "@fog-maze-race/shared/domain/grid-position";
+import { movePosition, samePosition, type Direction, type GridPosition } from "@fog-maze-race/shared/domain/grid-position";
 import { isInsideZone } from "@fog-maze-race/shared/maps/map-definitions";
 import type { RoomMode } from "@fog-maze-race/shared/domain/status";
 
@@ -415,13 +415,33 @@ export class BotManager {
         snapshotMember?.flareUntil && Date.parse(snapshotMember.flareUntil) > Date.now() ? 1 : 0
     });
 
-    return decideExplorerMove({
+    const decision = decideExplorerMove({
       map,
       memory: bot.explorerMemory,
       position,
       seed: bot.explorerSeed,
       strategy: bot.strategy ?? DEFAULT_EXPLORE_STRATEGY
-    })?.direction ?? null;
+    });
+    const boostedDirection =
+      snapshotMember?.boostUntil && Date.parse(snapshotMember.boostUntil) > Date.now()
+        ? resolveBoostedExplorerDirection({
+            map,
+            knownTiles: bot.explorerMemory.knownTiles,
+            recentTileKeys: bot.explorerMemory.recentTileKeys,
+            position,
+            decision
+          })
+        : undefined;
+
+    if (boostedDirection === null) {
+      return null;
+    }
+
+    if (typeof boostedDirection === "string") {
+      return boostedDirection;
+    }
+
+    return decision?.direction ?? null;
   }
 
   private createSink(roomId: string): MatchEventSink {
@@ -538,6 +558,62 @@ function findPathToGoal(map: MapView, start: GridPosition) {
   return null;
 }
 
+type ExplorerDecisionLike = {
+  direction: Direction;
+  reason: "frontier" | "goal" | "probe" | "staging";
+  frontierTargetTileKey?: string | null;
+  reentryTargetTileKey?: string | null;
+  entryAnchorTileKey?: string | null;
+};
+
+export function resolveBoostedExplorerDirection(input: {
+  map: MapView;
+  knownTiles: Map<string, string>;
+  recentTileKeys: string[];
+  position: GridPosition;
+  decision: ExplorerDecisionLike | null;
+}) {
+  const decision = input.decision;
+  if (!decision) {
+    return undefined;
+  }
+
+  const previousTileKey =
+    input.recentTileKeys.length >= 2
+      ? input.recentTileKeys[input.recentTileKeys.length - 2] ?? null
+      : null;
+  const boostedProjectedPosition = simulateBoostedMoveOnKnownMap(
+    input.map,
+    input.knownTiles,
+    input.position,
+    decision.direction,
+    2
+  );
+  if (
+    !samePosition(boostedProjectedPosition, input.position) &&
+    (!previousTileKey || toTileKey(boostedProjectedPosition) !== previousTileKey)
+  ) {
+    return decision.direction;
+  }
+
+  const singleStepProjectedPosition = simulateBoostedMoveOnKnownMap(
+    input.map,
+    input.knownTiles,
+    input.position,
+    decision.direction,
+    1
+  );
+  if (samePosition(singleStepProjectedPosition, input.position)) {
+    return null;
+  }
+
+  if (previousTileKey && toTileKey(singleStepProjectedPosition) === previousTileKey) {
+    return null;
+  }
+
+  return decision.direction;
+}
+
 function isPassableTile(map: MapView, x: number, y: number) {
   return tileAt(map, x, y) !== "#";
 }
@@ -563,6 +639,40 @@ function tileAt(map: MapView, x: number, y: number) {
   }
 
   return row[x] ?? "#";
+}
+
+function toTileKey(position: GridPosition) {
+  return `${position.x},${position.y}`;
+}
+
+function isKnownWalkable(knownTiles: Map<string, string>, position: GridPosition) {
+  const tile = knownTiles.get(toTileKey(position));
+  return Boolean(tile && tile !== "#" && tile !== " ");
+}
+
+function simulateBoostedMoveOnKnownMap(
+  map: MapView,
+  knownTiles: Map<string, string>,
+  start: GridPosition,
+  direction: Direction,
+  stepCount: number
+) {
+  let position = start;
+
+  for (let index = 0; index < stepCount; index += 1) {
+    const next = movePosition(position, direction);
+    if (!isInsideMap(map, next) || !isKnownWalkable(knownTiles, next)) {
+      break;
+    }
+
+    position = next;
+  }
+
+  return position;
+}
+
+function isInsideMap(map: MapView, position: GridPosition) {
+  return position.y >= 0 && position.y < map.tiles.length && position.x >= 0 && position.x < map.width;
 }
 
 function resolveBotMoveIntervalMs(baseIntervalMs: number, botSpeedMultiplier: number) {

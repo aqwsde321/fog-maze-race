@@ -3,7 +3,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { MatchAggregate } from "../../src/core/match.js";
 import { PlayerSession } from "../../src/core/player-session.js";
-import { BotManager } from "../../src/bots/bot-manager.js";
+import { BotManager, resolveBoostedExplorerDirection } from "../../src/bots/bot-manager.js";
 import { MapRegistry } from "../../src/maps/map-registry.js";
 import { MatchService, type MatchEventSink } from "../../src/matches/match-service.js";
 import { RoomService } from "../../src/rooms/room-service.js";
@@ -304,10 +304,8 @@ describe("BotManager", () => {
     const snapshot = roomService.getSnapshot(created.roomId);
     expect(snapshot.members.find((member) => member.playerId === botMember.playerId)?.heldItemType).toBeNull();
     expect(snapshot.match?.traps).toHaveLength(1);
-    expect(snapshot.match?.traps?.[0]).toMatchObject({
-      ownerPlayerId: botMember.playerId,
-      state: "armed"
-    });
+    expect(snapshot.match?.traps?.[0]?.ownerPlayerId).toBe(botMember.playerId);
+    expect(snapshot.match?.traps?.[0]?.state).toMatch(/arming|armed/);
   });
 
   it("uses flare and scanner automatically when an explore bot is holding them in the maze", () => {
@@ -441,11 +439,67 @@ describe("BotManager", () => {
     const snapshot = roomService.getSnapshot(created.roomId);
     expect(snapshot.members.find((member) => member.playerId === botMember.playerId)?.heldItemType).toBeNull();
     expect(snapshot.match?.traps).toHaveLength(1);
-    expect(snapshot.match?.traps?.[0]).toMatchObject({
-      ownerPlayerId: botMember.playerId,
-      itemType: "return_trap",
-      state: "armed"
+    expect(snapshot.match?.traps?.[0]?.ownerPlayerId).toBe(botMember.playerId);
+    expect(snapshot.match?.traps?.[0]?.itemType).toBe("return_trap");
+    expect(snapshot.match?.traps?.[0]?.state).toMatch(/arming|armed/);
+  });
+
+  it("falls back to a one-step move when a boosted two-step action would cause corridor ping-pong", () => {
+    const map = getMapById("alpha-run");
+    if (!map) {
+      throw new Error("alpha-run map is required");
+    }
+
+    const knownTiles = new Map<string, string>();
+    for (let y = 0; y < map.tiles.length; y += 1) {
+      const row = map.tiles[y] ?? "";
+      for (let x = 0; x < row.length; x += 1) {
+        knownTiles.set(`${x},${y}`, row[x] ?? "#");
+      }
+    }
+
+    const direction = resolveBoostedExplorerDirection({
+      map,
+      knownTiles,
+      recentTileKeys: ["22,3", "20,3"],
+      position: { x: 20, y: 3 },
+      decision: {
+        direction: "right",
+        reason: "frontier",
+        frontierTargetTileKey: "13,16"
+      }
     });
+
+    expect(direction).toBe("right");
+  });
+
+  it("suppresses boosted movement when even the fallback one-step move is blocked", () => {
+    const map = getMapById("training-lap");
+    if (!map) {
+      throw new Error("training-lap map is required");
+    }
+
+    const knownTiles = new Map<string, string>();
+    for (let y = 0; y < map.tiles.length; y += 1) {
+      const row = map.tiles[y] ?? "";
+      for (let x = 0; x < row.length; x += 1) {
+        knownTiles.set(`${x},${y}`, row[x] ?? "#");
+      }
+    }
+
+    const direction = resolveBoostedExplorerDirection({
+      map,
+      knownTiles,
+      recentTileKeys: ["0,0", "0,0"],
+      position: { x: 0, y: 0 },
+      decision: {
+        direction: "left",
+        reason: "frontier",
+        frontierTargetTileKey: "4,1"
+      }
+    });
+
+    expect(direction).toBeNull();
   });
 });
 

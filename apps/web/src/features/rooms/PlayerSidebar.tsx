@@ -181,7 +181,7 @@ const listStyle: CSSProperties = {
   display: "grid",
   gap: "2px",
   marginTop: "4px",
-  maxHeight: "50vh",
+  maxHeight: "min(42vh, calc(100vh - 360px))",
   overflowY: "auto",
   paddingRight: "2px"
 };

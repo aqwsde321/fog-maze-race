@@ -695,6 +695,65 @@ export function GameScreen({
               </span>
             </button>
           </div>
+          {isHost ? (
+            <div data-testid="server-floating-dock" style={serverFloatingDockStyle}>
+              {isServerPanelOpen ? (
+                <section data-testid="server-health-panel" style={serverPanelStyle}>
+                  <div style={serverHeaderStyle}>
+                    <p style={labelStyle}>Server</p>
+                    <strong data-testid="server-health-status" style={serverStatusValueStyle(serverHealthError)}>
+                      {serverHealthError ? serverHealthError : serverHealth ? "온라인" : "확인 중"}
+                    </strong>
+                  </div>
+                  <div data-testid="server-health-scroll" style={serverPanelBodyStyle}>
+                    {serverHealth ? (
+                      <>
+                        <p style={serverSubLabelStyle}>현재 / 10초 평균 또는 최대</p>
+                        <div style={serverMetricListStyle}>
+                          {serverMetrics.map((metric) => (
+                            <div key={metric.key} style={serverMetricRowStyle}>
+                              <div style={serverMetricLabelGroupStyle}>
+                                <span style={serverMetricLabelStyle}>{metric.label}</span>
+                                {metric.tooltip ? <MetricInfoButton metric={metric} /> : null}
+                              </div>
+                              <div style={serverMetricDataStyle}>
+                                <span style={serverMetricValueStyle}>
+                                  {metric.value}
+                                </span>
+                                {metric.trend ? <MetricSparkline metric={metric} /> : null}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </>
+                    ) : (
+                      <p style={serverPendingTextStyle}>
+                        {serverHealthError ? "서버 상태를 다시 확인해주세요." : "서버 상태를 불러오는 중입니다."}
+                      </p>
+                    )}
+                  </div>
+                </section>
+              ) : null}
+
+              <button
+                data-testid="server-health-toggle"
+                type="button"
+                aria-expanded={isServerPanelOpen}
+                onClick={() => {
+                  setIsServerPanelOpen((previous) => !previous);
+                }}
+                style={floatingToggleButtonStyle("server", isServerPanelOpen, Boolean(serverHealthError))}
+              >
+                <span style={floatingToggleDotStyle(serverHealthError ? "error" : "server")} />
+                <span style={floatingToggleContentStyle}>
+                  <span style={floatingToggleTitleStyle}>서버 부하</span>
+                  <strong style={floatingToggleValueStyle(Boolean(serverHealthError))}>
+                    {serverHealthError ? "오류" : serverHealth ? "온라인" : "열기"}
+                  </strong>
+                </span>
+              </button>
+            </div>
+          ) : null}
           {snapshot.room.status === "countdown" && countdownValue !== null ? (
             <div data-testid="countdown-overlay" style={countdownOverlayStyle}>
               <div style={countdownCardStyle}>
@@ -837,65 +896,6 @@ export function GameScreen({
         <PlayerSidebar snapshot={snapshot} selfPlayerId={selfPlayerId} />
       </div>
 
-      {isHost ? (
-        <div data-testid="server-floating-dock" style={serverFloatingDockStyle}>
-          {isServerPanelOpen ? (
-            <section data-testid="server-health-panel" style={serverPanelStyle}>
-              <div style={serverHeaderStyle}>
-                <p style={labelStyle}>Server</p>
-                <strong data-testid="server-health-status" style={serverStatusValueStyle(serverHealthError)}>
-                  {serverHealthError ? serverHealthError : serverHealth ? "온라인" : "확인 중"}
-                </strong>
-              </div>
-              <div data-testid="server-health-scroll" style={serverPanelBodyStyle}>
-                {serverHealth ? (
-                  <>
-                    <p style={serverSubLabelStyle}>현재 / 10초 평균 또는 최대</p>
-                    <div style={serverMetricListStyle}>
-                      {serverMetrics.map((metric) => (
-                        <div key={metric.key} style={serverMetricRowStyle}>
-                          <div style={serverMetricLabelGroupStyle}>
-                            <span style={serverMetricLabelStyle}>{metric.label}</span>
-                            {metric.tooltip ? <MetricInfoButton metric={metric} /> : null}
-                          </div>
-                          <div style={serverMetricDataStyle}>
-                            <span style={serverMetricValueStyle}>
-                              {metric.value}
-                            </span>
-                            {metric.trend ? <MetricSparkline metric={metric} /> : null}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </>
-                ) : (
-                  <p style={serverPendingTextStyle}>
-                    {serverHealthError ? "서버 상태를 다시 확인해주세요." : "서버 상태를 불러오는 중입니다."}
-                  </p>
-                )}
-              </div>
-            </section>
-          ) : null}
-
-          <button
-            data-testid="server-health-toggle"
-            type="button"
-            aria-expanded={isServerPanelOpen}
-            onClick={() => {
-              setIsServerPanelOpen((previous) => !previous);
-            }}
-            style={floatingToggleButtonStyle("server", isServerPanelOpen, Boolean(serverHealthError))}
-          >
-            <span style={floatingToggleDotStyle(serverHealthError ? "error" : "server")} />
-            <span style={floatingToggleContentStyle}>
-              <span style={floatingToggleTitleStyle}>서버 부하</span>
-              <strong style={floatingToggleValueStyle(Boolean(serverHealthError))}>
-                {serverHealthError ? "오류" : serverHealth ? "온라인" : "열기"}
-              </strong>
-            </span>
-          </button>
-        </div>
-      ) : null}
     </section>
   );
 }
@@ -1300,8 +1300,8 @@ const serverPendingTextStyle: CSSProperties = {
 
 const serverFloatingDockStyle: CSSProperties = {
   position: "absolute",
-  right: `calc(${SHELL_RAIL_WIDTH} + ${SHELL_COLUMN_GAP} + ${SHELL_EDGE_OFFSET})`,
-  bottom: "clamp(10px, 1vw, 14px)",
+  right: "0px",
+  bottom: "18px",
   zIndex: 4,
   display: "grid",
   justifyItems: "end",

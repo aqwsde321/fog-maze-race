@@ -838,7 +838,7 @@ describe("GameScreen keyboard control", () => {
     expect(container.querySelector('[data-testid="room-chat-panel"]')).toBeNull();
   });
 
-  it("positions the floating server controls to the left of the right rail", async () => {
+  it("anchors the floating server controls inside the game shell", async () => {
     await act(async () => {
       root.render(
         <GameScreen
@@ -859,10 +859,12 @@ describe("GameScreen keyboard control", () => {
     });
 
     const dock = container.querySelector<HTMLElement>('[data-testid="server-floating-dock"]');
+    const shell = container.querySelector<HTMLElement>('[data-testid="game-shell"]');
 
     expect(dock).not.toBeNull();
-    expect(dock?.style.right.startsWith("calc(")).toBe(true);
-    expect(dock?.style.bottom).toBe("clamp(10px, 1vw, 14px)");
+    expect(shell?.contains(dock ?? null)).toBe(true);
+    expect(dock?.style.right).toBe("0px");
+    expect(dock?.style.bottom).toBe("18px");
   });
 
   it("hides the floating server controls for non-host players", async () => {
